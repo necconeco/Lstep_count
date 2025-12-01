@@ -2,7 +2,7 @@
 
 ## プロジェクト概要
 - **開始日**: 2025-11-30
-- **最終更新**: 2025-12-01（Phase 4完了）
+- **最終更新**: 2025-12-01（Phase 5完了）
 - **アプローチ**: 究極のMVP（1ページ構成）
 - **技術スタック**: React 18 + TypeScript 5 + Vite 5
 
@@ -12,7 +12,7 @@
 - [x] **Phase 2: Git/GitHub管理** - 完了（2025-12-01）
 - [x] **Phase 3: フロントエンド基盤** - 完了（2025-12-01）
 - [x] **Phase 4: ページ実装** - 完了（2025-12-01）
-- [ ] **Phase 5: データ処理実装** - 未着手
+- [x] **Phase 5: データ処理実装** - 完了（2025-12-01）
 - [ ] **Phase 6: レポート生成実装** - 未着手
 - [ ] **Phase 7: テスト** - 未着手
 - [ ] **Phase 8: デプロイ** - 未着手
@@ -173,24 +173,72 @@ src/
 - TypeScriptエラー: 0件
 - ESLint警告: 2件（console.log使用、Phase 5で修正予定）
 
+## Phase 5: データ処理実装 - 完了内容
+
+### ✅ 完了した成果物
+- [x] **csvParser.ts**: PapaParseによるCSV解析
+  - UTF-8/BOM付きCSV対応
+  - 必須カラム検証（7カラム）
+  - エラー・警告の詳細レポート
+  - バリデーション機能（ファイルタイプ、サイズ）
+- [x] **masterDataManager.ts**: IndexedDB操作
+  - データベース初期化（lstep-aggregation-db）
+  - 履歴マスタのCRUD操作
+  - 一括保存機能（saveMasterDataBatch）
+  - エラーハンドリング
+- [x] **dataAggregator.ts**: データ集計ロジック
+  - 実施判定ロジック（ステータス='予約済み' AND 来店/来場='済み'）
+  - 初回/2回目/3回目以降判定（履歴マスタ参照）
+  - サマリー集計（申込数、実施数、キャンセル数、実施率）
+  - 相談員別実績集計（ソート機能付き）
+  - 日別集計（日付順ソート）
+  - 月別集計（実施率計算）
+  - スプレッドシート出力データ生成（AB~AM列）
+- [x] **reviewDetector.ts**: 要確認リスト検出
+  - パターン1: データ不整合（キャンセル済み+来店済み）
+  - パターン2: 未来店（予約済み+未来店）
+  - パターン3: 通常キャンセル（キャンセル済み+未来店）
+  - キャンセル一覧生成（初回/2回目判定付き）
+
+### 🔧 ストア更新
+- **masterStore.ts**: IndexedDB連携実装
+  - getAllMasterData → IndexedDBから読み込み
+  - updateMasterData → IndexedDBに保存
+  - clearMasterData → IndexedDBクリア
+- **aggregationStore.ts**: 実際の集計ロジック使用
+  - モックデータ削除
+  - aggregateAll関数呼び出し
+- **reviewStore.ts**: 実際の検出ロジック使用
+  - モックデータ削除
+  - detectAllReviewRecords + generateCancellationList呼び出し
+
+### 📱 コンポーネント更新
+- **CsvUploader.tsx**: 実際のCSVパーサー使用
+  - モックデータ生成を削除
+  - parseCSV + validateCSVFile使用
+  - 履歴マスタ自動更新（実施済みレコード）
+  - エラー・警告表示
+
+### 🐛 バグ修正
+- ESLint警告修正（console.log削除）
+
+### 📦 ビルド結果
+- バンドルサイズ: 797KB（gzip: 240KB）
+- ビルド時間: 3.27秒
+- TypeScriptエラー: 0件
+- ESLint警告: 0件
+
+### ✨ 実現した機能
+- ✅ 実際のCSVファイル読み込み（PapaParse）
+- ✅ 履歴マスタ管理（IndexedDB）
+- ✅ 初回/2回目/3回目以降の正確な判定
+- ✅ 実施判定（2フィールド条件）
+- ✅ 全集計ロジック実装
+- ✅ 要確認リスト検出（3パターン）
+- ✅ キャンセル一覧生成
+- ✅ データ永続化
+
 ## 次のステップ
-
-### Phase 5: データ処理実装
-**実装する機能**:
-- CSVパース処理（PapaParse）
-- 履歴マスタ管理（IndexedDB）
-- 初回/2回目/3回目以降判定ロジック
-- 実施判定ロジック
-- 要確認リスト検出（3パターン）
-- キャンセル一覧生成
-- 相談員別実績集計
-- 日別/月別集計
-
-**必要なユーティリティ**:
-- csvParser.ts
-- dataAggregator.ts
-- reviewDetector.ts
-- masterDataManager.ts（IndexedDB操作）
 
 ### Phase 6: レポート生成実装
 **実装する機能**:
