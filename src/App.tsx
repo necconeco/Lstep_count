@@ -24,6 +24,7 @@ import { CancellationList } from './components/CancellationList';
 import { HistoryView } from './components/HistoryView';
 import { useCsvStore } from './store/csvStore';
 import { useAggregationStore } from './store/aggregationStore';
+import { generateSpreadsheet } from './utils/spreadsheetGenerator';
 
 // MUIテーマ設定
 const theme = createTheme({
@@ -56,12 +57,22 @@ const theme = createTheme({
 
 function App() {
   const { csvData } = useCsvStore();
-  const { spreadsheetData } = useAggregationStore();
+  const { spreadsheetData, monthlyResults } = useAggregationStore();
 
   const handleDownloadSpreadsheet = () => {
-    // TODO: Phase 6でSheetJSを使った実際のスプレッドシート生成を実装
     if (spreadsheetData) {
-      alert('スプレッドシート生成機能は Phase 6 で実装予定です');
+      // 集計月を取得（monthlyResultsから取得、なければ現在月を使用）
+      let month = new Date().toISOString().slice(0, 7); // デフォルト: 現在月（YYYY-MM）
+      if (monthlyResults.length > 0 && monthlyResults[0]) {
+        month = monthlyResults[0].month; // 最初の月別集計結果から取得
+      }
+
+      try {
+        generateSpreadsheet(spreadsheetData, month);
+      } catch (error) {
+        console.error('スプレッドシート生成エラー:', error);
+        alert('スプレッドシートの生成に失敗しました。');
+      }
     }
   };
 
@@ -155,7 +166,7 @@ function App() {
         >
           <Container maxWidth="xl">
             <Typography variant="body2" color="text.secondary" align="center">
-              © 2025 Lステップ集計ツール | Phase 4: ページ実装完了
+              © 2025 Lステップ集計ツール | Phase 6: レポート生成実装完了
             </Typography>
           </Container>
         </Box>
