@@ -174,7 +174,7 @@ export function aggregateByStaff(
   const staffMap = new Map<string, StaffResult>();
 
   csvData.forEach((record) => {
-    const staffName = record.担当者 || '担当者不明';
+    const staffName = record.担当者 || '未設定';
     const visitType = getVisitType(record.友だちID, masterData);
     const implemented = isImplemented(record);
     const cancelled = record.ステータス === 'キャンセル済み';

@@ -132,7 +132,7 @@ export async function parseCSV(file: File): Promise<ParseResult> {
 /**
  * CSVファイルのバリデーション
  */
-export function validateCSVFile(file: File): { valid: boolean; error?: string } {
+export function validateCSVFile(file: File): { valid: boolean; error?: string | null } {
   // ファイルタイプチェック
   if (!file.name.endsWith('.csv') && file.type !== 'text/csv') {
     return {
@@ -158,5 +158,5 @@ export function validateCSVFile(file: File): { valid: boolean; error?: string } 
     };
   }
 
-  return { valid: true };
+  return { valid: true, error: null };
 }
