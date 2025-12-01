@@ -2,15 +2,15 @@
 
 ## プロジェクト概要
 - **開始日**: 2025-11-30
-- **最終更新**: 2025-12-01（要件定義v2.1）
+- **最終更新**: 2025-12-01（Phase 3完了）
 - **アプローチ**: 究極のMVP（1ページ構成）
 - **技術スタック**: React 18 + TypeScript 5 + Vite 5
 
 ## Phase 進捗状況
 
 - [x] **Phase 1: 要件定義** - 完了（v2.1: 2025-12-01）
-- [ ] **Phase 2: Git/GitHub管理** - 未着手（オプション）
-- [ ] **Phase 3: フロントエンド基盤** - 未着手
+- [x] **Phase 2: Git/GitHub管理** - 完了（2025-12-01）
+- [x] **Phase 3: フロントエンド基盤** - 完了（2025-12-01）
 - [ ] **Phase 4: ページ実装** - 未着手
 - [ ] **Phase 5: データ処理実装** - 未着手
 - [ ] **Phase 6: レポート生成実装** - 未着手
@@ -76,23 +76,94 @@
 - スプレッドシート出力（AB~AM列の8項目）
 - 履歴管理（IndexedDB）
 
+## Phase 2: Git/GitHub管理 - 完了内容
+
+### ✅ 完了した成果物
+- [x] Gitリポジトリの初期化（mainブランチ）
+- [x] .gitignoreの設定（node_modules, dist等）
+- [x] Phase 1成果物の初回コミット
+
+### 📦 コミット内容
+- 要件定義書 v2.1
+- CLAUDE.md v2.1
+- SCOPE_PROGRESS.md
+- ESLint, Prettier設定
+- GitHub Actions設定
+
+## Phase 3: フロントエンド基盤 - 完了内容
+
+### ✅ 完了した成果物
+- [x] Vite 5プロジェクトの作成（React 18 + TypeScript 5）
+- [x] TypeScript strict設定（tsconfig.json）
+- [x] Vite設定（ポート3247、sourcemap有効）
+- [x] プロジェクト構造の構築（src/components, utils, store, types, config）
+- [x] 依存パッケージのインストール
+  - MUI v7 (@mui/material, @emotion/react, @emotion/styled, @mui/icons-material)
+  - Zustand 5.0.9（状態管理）
+  - PapaParse 5.5.3（CSV処理）
+  - TanStack Table 8.21.3（データ表示）
+  - Recharts 3.5.1（グラフ）
+  - SheetJS 0.18.5（スプレッドシート生成）
+- [x] 開発サーバーの動作確認（http://localhost:3247）
+
+### 📁 プロジェクト構造
+```
+src/
+├── components/     # Reactコンポーネント（準備完了）
+├── utils/          # ユーティリティ関数（準備完了）
+├── store/          # Zustand状態管理（準備完了）
+├── types/          # 型定義（準備完了）
+├── config/         # 設定ファイル（準備完了）
+├── App.tsx         # メインアプリケーション
+├── main.tsx        # エントリーポイント
+├── App.css         # アプリケーションスタイル
+└── index.css       # グローバルスタイル
+```
+
 ## 次のステップ
 
-### Phase 2: Git/GitHub管理（オプション）
-- Gitリポジトリの初期化
-- GitHubリポジトリの作成
-- .gitignoreの設定
-- 初回コミット
+### Phase 4: ページ実装
+**実装する機能**:
+- メインレイアウト（MUIコンポーネント使用）
+- CSVアップロードコンポーネント（ドラッグ&ドロップ）
+- サマリー表示エリア
+- データ表示テーブル（TanStack Table）
+- グラフ表示（Recharts）
+- レポート出力ボタン
 
-**スキップ可能**: すでにGit管理している、またはローカル保存で問題ない場合は、Phase 3へ進んでください。
+**必要なコンポーネント**:
+- CsvUploader.tsx
+- SummaryCard.tsx
+- StaffTable.tsx
+- DailyChart.tsx
+- MonthlyChart.tsx
+- ReviewList.tsx
+- CancellationList.tsx
+- HistoryView.tsx
 
-### Phase 3: フロントエンド基盤
-- Viteプロジェクトの作成
-- TypeScript設定
-- MUI設定
-- ルーティング設定（不要の可能性）
-- 状態管理設定（Zustand）
-- 開発環境の構築
+### Phase 5: データ処理実装
+**実装する機能**:
+- CSVパース処理（PapaParse）
+- 履歴マスタ管理（IndexedDB）
+- 初回/2回目/3回目以降判定ロジック
+- 実施判定ロジック
+- 要確認リスト検出（3パターン）
+- キャンセル一覧生成
+- 相談員別実績集計
+- 日別/月別集計
+
+**必要なユーティリティ**:
+- csvParser.ts
+- dataAggregator.ts
+- reviewDetector.ts
+- masterDataManager.ts（IndexedDB操作）
+
+### Phase 6: レポート生成実装
+**実装する機能**:
+- スプレッドシート出力（SheetJS）
+  - AB~AM列への8項目出力
+  - TTL行の自動計算
+- 履歴データ保存（IndexedDB）
 
 ## 備考
 
