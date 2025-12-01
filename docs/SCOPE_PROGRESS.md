@@ -2,7 +2,7 @@
 
 ## プロジェクト概要
 - **開始日**: 2025-11-30
-- **最終更新**: 2025-12-01（Phase 5完了）
+- **最終更新**: 2025-12-01（Phase 6完了）
 - **アプローチ**: 究極のMVP（1ページ構成）
 - **技術スタック**: React 18 + TypeScript 5 + Vite 5
 
@@ -13,7 +13,7 @@
 - [x] **Phase 3: フロントエンド基盤** - 完了（2025-12-01）
 - [x] **Phase 4: ページ実装** - 完了（2025-12-01）
 - [x] **Phase 5: データ処理実装** - 完了（2025-12-01）
-- [ ] **Phase 6: レポート生成実装** - 未着手
+- [x] **Phase 6: レポート生成実装** - 完了（2025-12-01）
 - [ ] **Phase 7: テスト** - 未着手
 - [ ] **Phase 8: デプロイ** - 未着手
 - [ ] **Phase 9: ドキュメント** - 未着手
@@ -238,14 +238,73 @@ src/
 - ✅ キャンセル一覧生成
 - ✅ データ永続化
 
+## Phase 6: レポート生成実装 - 完了内容
+
+### ✅ 完了した成果物
+- [x] **spreadsheetGenerator.ts**: Excel/CSV生成機能
+  - generateSpreadsheet関数: Excel形式（.xlsx）出力
+  - generateCSV関数: CSV形式出力（オプション）
+  - AB~AM列への8項目データ出力
+  - TTL行の自動追加
+  - セルスタイル設定（ヘッダー太字、数値右寄せ、%表示）
+  - ファイル名自動生成（Lステップ集計_YYYY年MM月_YYYYMMDD.xlsx）
+- [x] **aggregationHistoryManager.ts**: IndexedDB履歴管理
+  - getAllHistories: 全履歴取得
+  - getHistoryByMonth: 月別履歴取得
+  - saveHistory: 履歴保存（新規作成または更新）
+  - deleteHistory: 履歴削除
+  - clearAllHistories: 全履歴削除
+  - getLatestHistory: 最新履歴取得
+  - データベース: lstep-aggregation-db（バージョン2）
+  - ストア: aggregation-history（IDインデックス、monthインデックス、createdAtインデックス）
+- [x] **aggregationStore.ts更新**: 履歴自動保存機能
+  - 集計完了後に自動的にIndexedDBへ保存
+  - 履歴ID: YYYYMM形式
+  - 保存内容: サマリー、相談員別、日別、月別、スプレッドシートデータ
+- [x] **App.tsx更新**: スプレッドシートダウンロード機能
+  - handleDownloadSpreadsheet関数の実装
+  - generateSpreadsheet関数の呼び出し
+  - エラーハンドリング
+  - 集計月の自動取得（monthlyResultsから、なければ現在月）
+- [x] **HistoryView.tsx更新**: 履歴表示コンポーネント
+  - IndexedDBから履歴を読み込み
+  - 履歴一覧表示（新しい順）
+  - 各履歴の詳細情報表示（申込数、実施数、実施率、初回/2回目）
+  - 履歴削除機能（確認ダイアログ付き）
+  - リフレッシュ機能
+  - ローディング表示
+  - エラーハンドリング
+
+### 📊 実装済み機能
+- ✅ Excel形式スプレッドシート出力（SheetJS）
+- ✅ CSV形式スプレッドシート出力（オプション）
+- ✅ AB~AM列への8項目データ出力
+- ✅ TTL行の自動計算
+- ✅ 集計履歴の自動保存（IndexedDB）
+- ✅ 履歴一覧表示
+- ✅ 履歴削除機能
+- ✅ 履歴リフレッシュ機能
+
+### 📦 ビルド結果
+- バンドルサイズ: 1,096KB（gzip: 339KB）
+- ビルド時間: 3.81秒
+- TypeScriptエラー: 0件
+- ESLintエラー: 0件
+
+### ✨ 実現した機能
+- ✅ スプレッドシート生成機能（Excel + CSV）
+- ✅ 自動ファイル名生成
+- ✅ セルスタイル設定（太字、右寄せ、%表示）
+- ✅ 集計履歴の永続化
+- ✅ 履歴管理機能（表示・削除）
+
 ## 次のステップ
 
-### Phase 6: レポート生成実装
-**実装する機能**:
-- スプレッドシート出力（SheetJS）
-  - AB~AM列への8項目出力
-  - TTL行の自動計算
-- 履歴データ保存（IndexedDB）
+### Phase 7: テスト
+**実装予定の内容**:
+- 単体テスト（Vitest）
+- 統合テスト
+- E2Eテスト（オプション）
 
 ## 備考
 
