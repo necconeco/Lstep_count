@@ -60,8 +60,9 @@ function App() {
 
   const handleDownloadSpreadsheet = () => {
     // TODO: Phase 6でSheetJSを使った実際のスプレッドシート生成を実装
-    console.log('スプレッドシートダウンロード:', spreadsheetData);
-    alert('スプレッドシート生成機能は Phase 6 で実装予定です');
+    if (spreadsheetData) {
+      alert('スプレッドシート生成機能は Phase 6 で実装予定です');
+    }
   };
 
   return (

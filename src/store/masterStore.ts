@@ -1,9 +1,10 @@
 /**
  * 履歴マスタデータ管理ストア
- * IndexedDB連携は Phase 5 で実装
+ * IndexedDB連携
  */
 import { create } from 'zustand';
 import type { MasterStoreState, UserHistoryMaster } from '../types';
+import * as masterDataManager from '../utils/masterDataManager';
 
 export const useMasterStore = create<MasterStoreState>((set, get) => ({
   masterData: new Map<string, UserHistoryMaster>(),
@@ -13,10 +14,8 @@ export const useMasterStore = create<MasterStoreState>((set, get) => ({
   loadMasterData: async () => {
     set({ isLoading: true, error: null });
     try {
-      // TODO: Phase 5でIndexedDBからの読み込みを実装
-      // 現在はモックデータで初期化
-      const mockData = new Map<string, UserHistoryMaster>();
-      set({ masterData: mockData, isLoading: false });
+      const data = await masterDataManager.getAllMasterData();
+      set({ masterData: data, isLoading: false });
     } catch (error) {
       set({
         error: error instanceof Error ? error.message : '履歴マスタの読み込みに失敗しました',
@@ -45,10 +44,12 @@ export const useMasterStore = create<MasterStoreState>((set, get) => ({
             updatedAt: new Date(),
           };
 
+      // IndexedDBに保存
+      await masterDataManager.saveMasterRecord(updated);
+
+      // ストアを更新
       const newMasterData = new Map(masterData);
       newMasterData.set(friendId, updated);
-
-      // TODO: Phase 5でIndexedDBへの保存を実装
       set({ masterData: newMasterData });
     } catch (error) {
       set({
@@ -64,7 +65,7 @@ export const useMasterStore = create<MasterStoreState>((set, get) => ({
 
   clearMasterData: async () => {
     try {
-      // TODO: Phase 5でIndexedDBのクリアを実装
+      await masterDataManager.clearAllMasterData();
       set({ masterData: new Map(), error: null });
     } catch (error) {
       set({

@@ -17,7 +17,9 @@ import { useCsvStore } from '../store/csvStore';
 import { useAggregationStore } from '../store/aggregationStore';
 import { useMasterStore } from '../store/masterStore';
 import { useReviewStore } from '../store/reviewStore';
-import type { CsvRecord } from '../types';
+import { parseCSV, validateCSVFile } from '../utils/csvParser';
+import { updateMasterData } from '../utils/dataAggregator';
+import { saveMasterDataBatch } from '../utils/masterDataManager';
 
 export const CsvUploader = () => {
   const [isDragging, setIsDragging] = useState(false);
@@ -28,14 +30,10 @@ export const CsvUploader = () => {
 
   const handleFile = useCallback(
     async (file: File) => {
-      // バリデーション
-      if (!file.name.endsWith('.csv')) {
-        setError('CSVファイルを選択してください');
-        return;
-      }
-
-      if (file.size > 10 * 1024 * 1024) {
-        setError('ファイルサイズは10MB以下にしてください');
+      // ファイルバリデーション
+      const validation = validateCSVFile(file);
+      if (!validation.valid) {
+        setError(validation.error || 'ファイルが無効です');
         return;
       }
 
@@ -43,42 +41,41 @@ export const CsvUploader = () => {
       setError(null);
 
       try {
-        // ファイル読み込み
-        const text = await file.text();
-        const lines = text.split('\n').filter((line) => line.trim());
+        // CSVパース
+        const parseResult = await parseCSV(file);
 
-        if (lines.length < 2) {
-          setError('CSVファイルが空です');
+        if (!parseResult.success || parseResult.data.length === 0) {
+          setError(parseResult.errors[0] || 'CSVファイルが空です');
           setLoading(false);
           return;
         }
 
-        // TODO: Phase 5でPapaParseを使った本格的なCSV解析を実装
-        // 現在は簡易的な解析でモックデータを生成
-        const mockData: CsvRecord[] = Array.from({ length: 50 }, (_, i) => ({
-          予約ID: `RES${String(i + 1).padStart(4, '0')}`,
-          友だちID: `FRIEND${String(i + 1).padStart(4, '0')}`,
-          予約日: `2025-12-${String((i % 28) + 1).padStart(2, '0')}`,
-          ステータス: i % 5 === 0 ? 'キャンセル済み' : '予約済み',
-          '来店/来場': i % 3 === 0 ? 'なし' : '済み',
-          名前: `テストユーザー${i + 1}`,
-          申込日時: `2025-11-${String((i % 28) + 1).padStart(2, '0')} 10:00`,
-          メモ: i % 7 === 0 ? '要確認' : undefined,
-          担当者: i % 2 === 0 ? '相談員A' : '相談員B',
-        }));
+        // 警告がある場合は表示（エラーではない）
+        if (parseResult.warnings.length > 0) {
+          console.warn('CSV警告:', parseResult.warnings);
+        }
 
-        setCsvData(mockData, file.name);
+        const csvData = parseResult.data;
+        setCsvData(csvData, file.name);
 
         // 履歴マスタ読み込み（未読み込みの場合）
         if (masterData.size === 0) {
           await loadMasterData();
         }
 
-        // 集計処理とレビュー検出を実行
-        await processData(mockData, masterData);
-        detectReviewRecords(mockData, masterData);
+        // 履歴マスタを更新（実施済みレコードがあれば）
+        const updatedMasterData = updateMasterData(csvData, masterData);
+        if (updatedMasterData.size > masterData.size) {
+          // 新しいマスタデータがあればIndexedDBに保存
+          await saveMasterDataBatch(updatedMasterData);
+          // マスタストアを再読み込み
+          await loadMasterData();
+        }
 
-        console.log(`✅ CSV読み込み完了: ${mockData.length}件`);
+        // 集計処理とレビュー検出を実行（更新後のマスタデータを使用）
+        const finalMasterData = updatedMasterData.size > masterData.size ? updatedMasterData : masterData;
+        await processData(csvData, finalMasterData);
+        detectReviewRecords(csvData, finalMasterData);
       } catch (err) {
         const message = err instanceof Error ? err.message : 'ファイルの読み込みに失敗しました';
         setError(message);
