@@ -6,6 +6,8 @@ import {
   detectPattern1,
   detectPattern2,
   detectPattern3,
+  detectAllReviewRecords,
+  getReviewStatistics,
   generateCancellationList,
 } from './reviewDetector';
 import type { CsvRecord, UserHistoryMaster } from '../types';
@@ -70,7 +72,7 @@ describe('reviewDetector', () => {
 
       expect(result.length).toBe(1);
       expect(result[0]!.pattern).toBe('pattern2');
-      expect(result[0]!.patternName).toContain('未来店');
+      expect(result[0]!.patternName).toContain('未来日予約');
       expect(result[0]!.record.予約ID).toBe('003');
     });
 
@@ -174,10 +176,18 @@ describe('reviewDetector', () => {
           'friend008',
           {
             friendId: 'friend008',
+            implementationHistory: [
+              {
+                date: new Date('2025-11-01'),
+                reservationId: '007',
+                status: '予約済み',
+              },
+            ],
             implementationCount: 1,
             lastImplementationDate: new Date('2025-11-01'),
             createdAt: new Date(),
             updatedAt: new Date(),
+            lastStaff: null,
           },
         ],
       ]);
@@ -214,6 +224,138 @@ describe('reviewDetector', () => {
       const result = generateCancellationList(csvData, masterData);
 
       expect(result.length).toBe(0);
+    });
+  });
+
+  describe('detectAllReviewRecords', () => {
+    it('should detect all patterns at once', () => {
+      const csvData: CsvRecord[] = [
+        // パターン1: データ不整合
+        {
+          予約ID: '001',
+          友だちID: 'friend001',
+          予約日: '2025-12-01',
+          ステータス: 'キャンセル済み',
+          '来店/来場': '済み',
+          名前: 'テスト太郎',
+          申込日時: '2025-11-30 10:00',
+        },
+        // パターン2: 未来日予約
+        {
+          予約ID: '002',
+          友だちID: 'friend002',
+          予約日: '2025-12-01',
+          ステータス: '予約済み',
+          '来店/来場': 'なし',
+          名前: 'テスト次郎',
+          申込日時: '2025-11-30 11:00',
+        },
+        // パターン3: 通常キャンセル
+        {
+          予約ID: '003',
+          友だちID: 'friend003',
+          予約日: '2025-12-01',
+          ステータス: 'キャンセル済み',
+          '来店/来場': 'なし',
+          名前: 'テスト三郎',
+          申込日時: '2025-11-30 12:00',
+        },
+        // 正常データ（検出されない）
+        {
+          予約ID: '004',
+          友だちID: 'friend004',
+          予約日: '2025-12-01',
+          ステータス: '予約済み',
+          '来店/来場': '済み',
+          名前: 'テスト四郎',
+          申込日時: '2025-11-30 13:00',
+        },
+      ];
+
+      const result = detectAllReviewRecords(csvData);
+
+      expect(result.length).toBe(3);
+      expect(result.filter(r => r.pattern === 'pattern1').length).toBe(1);
+      expect(result.filter(r => r.pattern === 'pattern2').length).toBe(1);
+      expect(result.filter(r => r.pattern === 'pattern3').length).toBe(1);
+    });
+
+    it('should return empty for all normal data', () => {
+      const csvData: CsvRecord[] = [
+        {
+          予約ID: '001',
+          友だちID: 'friend001',
+          予約日: '2025-12-01',
+          ステータス: '予約済み',
+          '来店/来場': '済み',
+          名前: 'テスト太郎',
+          申込日時: '2025-11-30 10:00',
+        },
+      ];
+
+      const result = detectAllReviewRecords(csvData);
+
+      expect(result.length).toBe(0);
+    });
+  });
+
+  describe('getReviewStatistics', () => {
+    it('should calculate statistics correctly', () => {
+      const csvData: CsvRecord[] = [
+        {
+          予約ID: '001',
+          友だちID: 'friend001',
+          予約日: '2025-12-01',
+          ステータス: 'キャンセル済み',
+          '来店/来場': '済み',
+          名前: 'テスト太郎',
+          申込日時: '2025-11-30 10:00',
+        },
+        {
+          予約ID: '002',
+          友だちID: 'friend002',
+          予約日: '2025-12-01',
+          ステータス: '予約済み',
+          '来店/来場': 'なし',
+          名前: 'テスト次郎',
+          申込日時: '2025-11-30 11:00',
+        },
+        {
+          予約ID: '003',
+          友だちID: 'friend003',
+          予約日: '2025-12-01',
+          ステータス: 'キャンセル済み',
+          '来店/来場': 'なし',
+          名前: 'テスト三郎',
+          申込日時: '2025-11-30 12:00',
+        },
+        {
+          予約ID: '004',
+          友だちID: 'friend004',
+          予約日: '2025-12-01',
+          ステータス: 'キャンセル済み',
+          '来店/来場': 'なし',
+          名前: 'テスト四郎',
+          申込日時: '2025-11-30 13:00',
+        },
+      ];
+
+      const reviewRecords = detectAllReviewRecords(csvData);
+      const stats = getReviewStatistics(reviewRecords);
+
+      expect(stats.pattern1Count).toBe(1);
+      expect(stats.pattern2Count).toBe(1);
+      expect(stats.pattern3Count).toBe(2);
+      expect(stats.totalCount).toBe(4);
+    });
+
+    it('should return zeros for empty array', () => {
+      const stats = getReviewStatistics([]);
+
+      expect(stats.pattern1Count).toBe(0);
+      expect(stats.pattern2Count).toBe(0);
+      expect(stats.pattern3Count).toBe(0);
+      expect(stats.totalCount).toBe(0);
     });
   });
 });

@@ -4,7 +4,7 @@
 import type { UserHistoryMaster } from '../types';
 
 const DB_NAME = 'lstep-aggregation-db';
-const DB_VERSION = 1;
+const DB_VERSION = 3; // バージョン3に統一（V2マスターと共存）
 const STORE_NAME = 'user-history-master';
 
 /**
@@ -12,10 +12,25 @@ const STORE_NAME = 'user-history-master';
  */
 async function openDatabase(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
+    // IndexedDBがサポートされているか確認
+    if (!window.indexedDB) {
+      console.error('[openDatabase] IndexedDBがサポートされていません');
+      reject(new Error('お使いのブラウザはIndexedDBをサポートしていません'));
+      return;
+    }
+
     const request = indexedDB.open(DB_NAME, DB_VERSION);
 
-    request.onerror = () => {
-      reject(new Error('IndexedDBを開けませんでした'));
+    request.onerror = (event) => {
+      console.error('[openDatabase] IndexedDB open error:', request.error);
+      console.error('[openDatabase] Error event:', event);
+      console.error('[openDatabase] Error name:', request.error?.name);
+      console.error('[openDatabase] Error message:', request.error?.message);
+      reject(
+        new Error(
+          `IndexedDBを開けませんでした: ${request.error?.message || '不明なエラー'}（${request.error?.name || 'Unknown'}）`
+        )
+      );
     };
 
     request.onsuccess = () => {
@@ -25,7 +40,7 @@ async function openDatabase(): Promise<IDBDatabase> {
     request.onupgradeneeded = (event) => {
       const db = (event.target as IDBOpenDBRequest).result;
 
-      // オブジェクトストアがなければ作成
+      // 旧ストア（user-history-master）がなければ作成
       if (!db.objectStoreNames.contains(STORE_NAME)) {
         const objectStore = db.createObjectStore(STORE_NAME, { keyPath: 'friendId' });
         objectStore.createIndex('lastImplementationDate', 'lastImplementationDate', {
@@ -33,6 +48,26 @@ async function openDatabase(): Promise<IDBDatabase> {
         });
         objectStore.createIndex('implementationCount', 'implementationCount', { unique: false });
       }
+
+      // V2用ストア（full-history-master）がなければ作成
+      if (!db.objectStoreNames.contains('full-history-master')) {
+        const fullStore = db.createObjectStore('full-history-master', { keyPath: 'friendId' });
+        fullStore.createIndex('lastImplementationDate', 'lastImplementationDate', { unique: false });
+        fullStore.createIndex('totalRecordCount', 'totalRecordCount', { unique: false });
+      }
+
+      // V2用ストア（implementation-master）がなければ作成
+      if (!db.objectStoreNames.contains('implementation-master')) {
+        const implStore = db.createObjectStore('implementation-master', { keyPath: 'friendId' });
+        implStore.createIndex('lastImplementationDate', 'lastImplementationDate', { unique: false });
+        implStore.createIndex('implementationCount', 'implementationCount', { unique: false });
+      }
+    };
+
+    request.onblocked = () => {
+      console.warn(
+        '[openDatabase] IndexedDB open blocked - 他のタブでデータベースが開かれている可能性があります'
+      );
     };
   });
 }
@@ -51,9 +86,22 @@ export async function getAllMasterData(): Promise<Map<string, UserHistoryMaster>
       request.onsuccess = () => {
         const data = new Map<string, UserHistoryMaster>();
         (request.result as UserHistoryMaster[]).forEach((record) => {
-          // Date型に変換
+          // Date型に変換（implementationHistory と allHistory 内のdateも変換）
+          // 旧データ互換性: allHistory が存在しない場合は空配列
+          const allHistory = record.allHistory
+            ? record.allHistory.map((h) => ({
+                ...h,
+                date: new Date(h.date),
+              }))
+            : [];
+
           data.set(record.friendId, {
             ...record,
+            allHistory,
+            implementationHistory: record.implementationHistory.map((h) => ({
+              ...h,
+              date: new Date(h.date),
+            })),
             lastImplementationDate: record.lastImplementationDate
               ? new Date(record.lastImplementationDate)
               : null,
@@ -88,8 +136,21 @@ export async function getMasterRecord(friendId: string): Promise<UserHistoryMast
       request.onsuccess = () => {
         if (request.result) {
           const record = request.result as UserHistoryMaster;
+          // 旧データ互換性: allHistory が存在しない場合は空配列
+          const allHistory = record.allHistory
+            ? record.allHistory.map((h) => ({
+                ...h,
+                date: new Date(h.date),
+              }))
+            : [];
+
           resolve({
             ...record,
+            allHistory,
+            implementationHistory: record.implementationHistory.map((h) => ({
+              ...h,
+              date: new Date(h.date),
+            })),
             lastImplementationDate: record.lastImplementationDate
               ? new Date(record.lastImplementationDate)
               : null,
@@ -142,27 +203,58 @@ export async function saveMasterRecord(record: UserHistoryMaster): Promise<void>
 export async function saveMasterDataBatch(
   records: Map<string, UserHistoryMaster>
 ): Promise<void> {
+  if (records.size === 0) {
+    return;
+  }
+
   try {
     const db = await openDatabase();
     const transaction = db.transaction([STORE_NAME], 'readwrite');
     const objectStore = transaction.objectStore(STORE_NAME);
 
-    const promises: Promise<void>[] = [];
+    // トランザクションが完了するまで待機
+    return new Promise((resolve, reject) => {
+      let errorOccurred = false;
 
-    records.forEach((record) => {
-      promises.push(
-        new Promise((resolve, reject) => {
+      // 各レコードをput
+      records.forEach((record, key) => {
+        try {
           const request = objectStore.put(record);
-          request.onsuccess = () => resolve();
-          request.onerror = () => reject();
-        })
-      );
-    });
 
-    await Promise.all(promises);
+          request.onerror = () => {
+            errorOccurred = true;
+            console.error(`[saveMasterDataBatch] put error for ${key}:`, request.error);
+          };
+        } catch (error) {
+          errorOccurred = true;
+          console.error(`[saveMasterDataBatch] Exception during put for ${key}:`, error);
+        }
+      });
+
+      transaction.oncomplete = () => {
+        if (errorOccurred) {
+          console.error('[saveMasterDataBatch] トランザクション完了したが、エラーが発生していました');
+          reject(new Error('一部のレコードの保存に失敗しました'));
+        } else {
+          resolve();
+        }
+      };
+
+      transaction.onerror = () => {
+        console.error('[saveMasterDataBatch] Transaction error:', transaction.error);
+        reject(new Error(`履歴マスタデータの一括保存に失敗しました: ${transaction.error?.message || '不明なエラー'}`));
+      };
+
+      transaction.onabort = () => {
+        console.error('[saveMasterDataBatch] Transaction aborted:', transaction.error);
+        reject(new Error(`トランザクションが中断されました: ${transaction.error?.message || '不明なエラー'}`));
+      };
+    });
   } catch (error) {
-    console.error('saveMasterDataBatch error:', error);
-    throw new Error('履歴マスタデータの一括保存に失敗しました');
+    console.error('[saveMasterDataBatch] Exception:', error);
+    throw error instanceof Error
+      ? error
+      : new Error('履歴マスタデータの一括保存に失敗しました');
   }
 }
 

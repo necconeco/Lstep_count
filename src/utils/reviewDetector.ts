@@ -20,7 +20,7 @@ export function detectPattern1(csvData: CsvRecord[]): ReviewRecord[] {
 }
 
 /**
- * パターン2: 未来店
+ * パターン2: 未来日予約
  * ステータス「予約済み」だが来店/来場が「なし」
  */
 export function detectPattern2(csvData: CsvRecord[]): ReviewRecord[] {
@@ -28,7 +28,7 @@ export function detectPattern2(csvData: CsvRecord[]): ReviewRecord[] {
     .filter((record) => record.ステータス === '予約済み' && record['来店/来場'] === 'なし')
     .map((record) => ({
       pattern: 'pattern2' as const,
-      patternName: 'パターン2: 未来店',
+      patternName: 'パターン2: 未来日予約',
       record,
       reason: 'ステータスが「予約済み」ですが、来店/来場が「なし」です。実施記録の入力漏れの可能性があります。',
     }));

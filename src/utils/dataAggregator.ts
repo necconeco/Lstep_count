@@ -15,17 +15,38 @@ import type {
 
 /**
  * 実施判定
- * ステータスが「予約済み」かつ「来店/来場」が「済み」
+ * 以下の条件を満たす場合に実施扱いとする：
+ * 1. ステータス：予約済み + 来店/来場：済み
+ * 2. ステータス：キャンセル済み + 詳細ステータス：前日 or 当日
+ *    → 来店扱い（実施としてカウント）
  */
 export function isImplemented(record: CsvRecord): boolean {
-  return record.ステータス === '予約済み' && record['来店/来場'] === '済み';
+  const status = record.ステータス;
+  const visit = record['来店/来場'];
+  const detailStatus = record.詳細ステータス;
+
+  // パターン1: 予約済み + 来店済み
+  if (status === '予約済み' && visit === '済み') {
+    return true;
+  }
+
+  // パターン2: キャンセル済み + 詳細ステータスが「前日キャンセル」or「当日キャンセル」
+  // ユーザーがUI上で手動マーキングしたレコードのみ実施扱い
+  if (status === 'キャンセル済み' && detailStatus) {
+    if (detailStatus === '前日キャンセル' || detailStatus === '当日キャンセル') {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 /**
  * 実施ステータスの取得
+ * isImplemented 関数と同じロジックで判定
  */
 export function getImplementationStatus(record: CsvRecord): ImplementationStatus {
-  if (record.ステータス === '予約済み' && record['来店/来場'] === '済み') {
+  if (isImplemented(record)) {
     return '実施済み';
   } else if (record.ステータス === 'キャンセル済み') {
     return 'キャンセル済み';
@@ -37,6 +58,7 @@ export function getImplementationStatus(record: CsvRecord): ImplementationStatus
 /**
  * 初回/2回目判定
  * 履歴マスタを参照して判定
+ * 実施履歴配列の長さで正確に判定
  */
 export function getVisitType(
   friendId: string,
@@ -44,9 +66,9 @@ export function getVisitType(
 ): VisitType {
   const master = masterData.get(friendId);
 
-  if (!master || master.implementationCount === 0) {
+  if (!master || master.implementationHistory.length === 0) {
     return '初回';
-  } else if (master.implementationCount === 1) {
+  } else if (master.implementationHistory.length === 1) {
     return '2回目';
   } else {
     return '3回目以降';
@@ -55,7 +77,7 @@ export function getVisitType(
 
 /**
  * 履歴マスタを更新
- * 実施済みレコードの場合、カウントを増やす
+ * 全予約履歴（allHistory）を保持し、実施済みのみを implementationHistory に追加
  */
 export function updateMasterData(
   csvData: CsvRecord[],
@@ -65,27 +87,91 @@ export function updateMasterData(
   const now = new Date();
 
   csvData.forEach((record) => {
-    if (isImplemented(record)) {
-      const friendId = record.友だちID;
-      const implementationDate = new Date(record.予約日);
-      const existing = newMasterData.get(friendId);
+    const friendId = record.友だちID;
+    const reservationDate = new Date(record.予約日);
+    const staffName = record.担当者 || null;
+    const implemented = isImplemented(record);
+    const existing = newMasterData.get(friendId);
 
-      if (existing) {
+    // 全予約レコードを作成
+    const reservationRecord = {
+      date: reservationDate,
+      reservationId: record.予約ID,
+      status: record.ステータス,
+      visitStatus: record['来店/来場'],
+      isImplemented: implemented,
+      staff: staffName || undefined,
+      detailStatus: record.詳細ステータス,
+    };
+
+    if (existing) {
+      // 重複チェック: 同じ予約IDが既に存在する場合は追加しない
+      const alreadyExistsInAll = existing.allHistory.some(
+        (h) => h.reservationId === record.予約ID
+      );
+
+      if (!alreadyExistsInAll) {
+        // 全予約履歴に追加
+        const newAllHistory = [...existing.allHistory, reservationRecord];
+        newAllHistory.sort((a, b) => a.date.getTime() - b.date.getTime());
+
+        // 実施履歴の更新（実施済みの場合のみ）
+        let newImplementationHistory = existing.implementationHistory;
+        if (implemented) {
+          const alreadyExistsInImpl = existing.implementationHistory.some(
+            (h) => h.reservationId === record.予約ID
+          );
+
+          if (!alreadyExistsInImpl) {
+            newImplementationHistory = [
+              ...existing.implementationHistory,
+              {
+                date: reservationDate,
+                reservationId: record.予約ID,
+                status: record.ステータス,
+                staff: staffName || undefined,
+              },
+            ];
+            newImplementationHistory.sort((a, b) => a.date.getTime() - b.date.getTime());
+          }
+        }
+
+        // lastStaffを更新（実施済みの場合のみ）
+        const updatedLastStaff = implemented && staffName ? staffName : existing.lastStaff;
+
         newMasterData.set(friendId, {
           ...existing,
-          implementationCount: existing.implementationCount + 1,
-          lastImplementationDate: implementationDate,
-          updatedAt: now,
-        });
-      } else {
-        newMasterData.set(friendId, {
-          friendId,
-          implementationCount: 1,
-          lastImplementationDate: implementationDate,
-          createdAt: now,
+          allHistory: newAllHistory,
+          implementationHistory: newImplementationHistory,
+          implementationCount: newImplementationHistory.length,
+          lastImplementationDate: implemented ? reservationDate : existing.lastImplementationDate,
+          lastStaff: updatedLastStaff,
           updatedAt: now,
         });
       }
+    } else {
+      // 新規作成
+      const implementationHistory = implemented
+        ? [
+            {
+              date: reservationDate,
+              reservationId: record.予約ID,
+              status: record.ステータス,
+              staff: staffName || undefined,
+            },
+          ]
+        : [];
+
+      newMasterData.set(friendId, {
+        friendId,
+        allHistory: [reservationRecord],
+        implementationHistory,
+        implementationCount: implementationHistory.length,
+        lastImplementationDate: implemented ? reservationDate : null,
+        lastStaff: implemented && staffName ? staffName : null,
+        createdAt: now,
+        updatedAt: now,
+      });
     }
   });
 
@@ -330,6 +416,34 @@ export function generateSpreadsheetData(summary: AggregationSummary): Spreadshee
     AL: summary.repeatImplementations, // 2回目以降実施合計
     AM: Math.round(summary.repeatImplementationRate * 10) / 10, // 2回目以降実施率(%)
   };
+}
+
+/**
+ * キャリア相談のご利用回数フィールドの自動補完
+ * 空欄の場合、マスタデータを基に「初めて」または「2回目以上」を自動設定
+ */
+export function autoPopulateUsageCount(
+  csvData: CsvRecord[],
+  masterData: Map<string, UserHistoryMaster>
+): CsvRecord[] {
+  const usageCountField = 'キャリア相談のご利用回数を教えてください。';
+
+  return csvData.map((record) => {
+    // 既に値が入っている場合はそのまま
+    const usageValue = record[usageCountField];
+    if (typeof usageValue === 'string' && usageValue.trim() !== '') {
+      return record;
+    }
+
+    // 空欄の場合、自動判定を挿入
+    const visitType = getVisitType(record.友だちID, masterData);
+    const autoValue = visitType === '初回' ? '初めて' : '2回目以上';
+
+    return {
+      ...record,
+      [usageCountField]: autoValue,
+    };
+  });
 }
 
 /**

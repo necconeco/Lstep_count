@@ -20,7 +20,12 @@ export interface CsvRecord {
   申込日時: string; // 必須
   メモ?: string; // オプション
   担当者?: string; // オプション（相談員名）
-  [key: string]: string | undefined; // その他のフィールド
+  // 編集用の詳細ステータス（UI上で手動編集）
+  // キャンセル済みの場合に、前日/当日をマーキングすることで実施扱いにできる
+  詳細ステータス?: '' | '前日キャンセル' | '当日キャンセル';
+  // おまかせ予約フラグ（CSVで担当者が「おまかせ」だった場合true）
+  wasOmakase?: boolean;
+  [key: string]: string | boolean | undefined; // その他のフィールド
 }
 
 /**
@@ -38,12 +43,39 @@ export type VisitType = '初回' | '2回目' | '3回目以降';
 // ============================================================================
 
 /**
+ * 予約履歴の1レコード（全予約を含む）
+ */
+export interface ReservationRecord {
+  date: Date; // 予約日
+  reservationId: string; // 予約ID
+  status: '予約済み' | 'キャンセル済み'; // ステータス
+  visitStatus: '済み' | 'なし'; // 来店/来場ステータス
+  isImplemented: boolean; // 実施済みフラグ（計算用キャッシュ）
+  staff?: string; // 担当者名
+  detailStatus?: string; // 詳細ステータス（前日キャンセル・当日キャンセル等）
+}
+
+/**
+ * 実施履歴の1レコード（実施済みのみ）
+ */
+export interface ImplementationRecord {
+  date: Date; // 実施日
+  reservationId: string; // 予約ID
+  status: string; // ステータス（参考情報）
+  staff?: string; // 担当者名（予約枠から抽出）
+}
+
+/**
  * ユーザー履歴マスタ（IndexedDB保存）
+ * 全予約履歴を保持し、実施履歴から初回/2回目以降を正確に判定
  */
 export interface UserHistoryMaster {
   friendId: string; // 主キー: 友だちID
-  implementationCount: number; // 実施回数
-  lastImplementationDate: Date | null; // 最終実施日
+  allHistory: ReservationRecord[]; // 全予約履歴（実施/未実施/キャンセル含む、日付順）
+  implementationHistory: ImplementationRecord[]; // 実施履歴のみ（日付順）
+  implementationCount: number; // 実施回数（計算用キャッシュ = implementationHistory.length）
+  lastImplementationDate: Date | null; // 最終実施日（計算用キャッシュ）
+  lastStaff: string | null; // 最終担当者名（月次集計・CSV出力で利用）
   createdAt: Date;
   updatedAt: Date;
 }
@@ -193,11 +225,17 @@ export interface CsvStoreState {
   error: string | null;
   fileName: string | null;
   uploadedAt: Date | null;
+  selectedMonth: string | null; // 選択中の月（YYYY-MM形式）
+  availableMonths: string[]; // 利用可能な月のリスト（YYYY-MM形式、降順）
 
   setCsvData: (data: CsvRecord[], fileName: string) => void;
+  updateRecord: (予約ID: string, updates: Partial<CsvRecord>) => void;
   clearCsvData: () => void;
   setError: (error: string | null) => void;
   setLoading: (isLoading: boolean) => void;
+  setSelectedMonth: (month: string | null) => void;
+  setAvailableMonths: (months: string[]) => void;
+  getFilteredData: () => CsvRecord[]; // 選択中の月でフィルタされたデータを取得
 }
 
 /**
@@ -209,9 +247,17 @@ export interface MasterStoreState {
   error: string | null;
 
   loadMasterData: () => Promise<void>;
-  updateMasterData: (friendId: string, implementationDate: Date) => Promise<void>;
+  updateMasterData: (
+    friendId: string,
+    implementationDate: Date,
+    reservationId?: string,
+    status?: string,
+    staff?: string
+  ) => Promise<void>;
   getMasterRecord: (friendId: string) => UserHistoryMaster | null;
+  deleteMasterEntry: (friendId: string) => Promise<void>;
   clearMasterData: () => Promise<void>;
+  processAndUpdateMaster: (csvData: CsvRecord[]) => Promise<void>;
 }
 
 /**
@@ -226,7 +272,11 @@ export interface AggregationStoreState {
   isProcessing: boolean;
   error: string | null;
 
-  processData: (csvData: CsvRecord[], masterData: Map<string, UserHistoryMaster>) => Promise<void>;
+  processData: (
+    csvData: CsvRecord[],
+    masterData: Map<string, UserHistoryMaster>,
+    allCsvData?: CsvRecord[]
+  ) => Promise<void>;
   clearResults: () => void;
   setError: (error: string | null) => void;
 }

@@ -22,18 +22,27 @@ export const useAggregationStore = create<AggregationStoreState>((set) => ({
   isProcessing: false,
   error: null,
 
-  processData: async (csvData: CsvRecord[], masterData: Map<string, UserHistoryMaster>) => {
+  processData: async (
+    csvData: CsvRecord[],
+    masterData: Map<string, UserHistoryMaster>,
+    allCsvData?: CsvRecord[]
+  ) => {
     set({ isProcessing: true, error: null });
 
     try {
-      // 実際の集計処理を実行
+      // 実際の集計処理を実行（フィルタされたデータで）
       const results = aggregateAll(csvData, masterData);
+
+      // 月別集計は全データで実行（月選択フィルタの影響を受けない）
+      const monthlyResults = allCsvData
+        ? aggregateAll(allCsvData, masterData).monthlyResults
+        : results.monthlyResults;
 
       set({
         summary: results.summary,
         staffResults: results.staffResults,
         dailyResults: results.dailyResults,
-        monthlyResults: results.monthlyResults,
+        monthlyResults: monthlyResults,
         spreadsheetData: results.spreadsheetData,
         isProcessing: false,
       });

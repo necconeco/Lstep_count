@@ -2,6 +2,7 @@
  * メインアプリケーション
  * Phase 4: ページ実装完了版
  */
+import { useEffect } from 'react';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import {
   CssBaseline,
@@ -15,6 +16,10 @@ import {
 } from '@mui/material';
 import { Download as DownloadIcon, Assessment as AssessmentIcon } from '@mui/icons-material';
 import { CsvUploader } from './components/CsvUploader';
+import { MonthSelector } from './components/MonthSelector';
+import { MasterDataManager } from './components/MasterDataManager';
+import { MasterDataViewer } from './components/MasterDataViewer';
+import { CsvDataTable } from './components/CsvDataTable';
 import { SummaryCard } from './components/SummaryCard';
 import { StaffTable } from './components/StaffTable';
 import { DailyChart } from './components/DailyChart';
@@ -23,6 +28,7 @@ import { ReviewList } from './components/ReviewList';
 import { CancellationList } from './components/CancellationList';
 import { HistoryView } from './components/HistoryView';
 import { useCsvStore } from './store/csvStore';
+import { useMasterStore } from './store/masterStore';
 import { useAggregationStore } from './store/aggregationStore';
 import { generateSpreadsheet } from './utils/spreadsheetGenerator';
 
@@ -56,8 +62,18 @@ const theme = createTheme({
 });
 
 function App() {
-  const { csvData } = useCsvStore();
-  const { spreadsheetData, monthlyResults } = useAggregationStore();
+  const { csvData, selectedMonth, getFilteredData } = useCsvStore();
+  const { masterData } = useMasterStore();
+  const { spreadsheetData, monthlyResults, processData } = useAggregationStore();
+
+  // 月選択が変更されたときに集計を再実行
+  useEffect(() => {
+    const filteredData = getFilteredData();
+    if (filteredData.length > 0 && masterData.size > 0) {
+      // フィルタされたデータで集計、月別集計のみ全データを使用
+      processData(filteredData, masterData, csvData);
+    }
+  }, [selectedMonth, csvData, masterData, processData, getFilteredData]);
 
   const handleDownloadSpreadsheet = () => {
     if (spreadsheetData) {
@@ -108,8 +124,24 @@ function App() {
           {/* CSVアップロード */}
           <CsvUploader />
 
+          {/* マスターデータ管理 */}
+          <MasterDataManager />
+
+          {/* マスターデータ一覧 */}
+          <MasterDataViewer />
+
           {csvData.length > 0 && (
             <>
+              {/* 月選択 */}
+              <MonthSelector />
+
+              <Divider sx={{ my: 4 }} />
+
+              {/* CSVデータ一覧（詳細ステータス編集） */}
+              <CsvDataTable />
+
+              <Divider sx={{ my: 4 }} />
+
               {/* サマリー */}
               <SummaryCard />
 

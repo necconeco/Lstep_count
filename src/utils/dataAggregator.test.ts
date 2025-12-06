@@ -8,6 +8,7 @@ import {
   updateMasterData,
   aggregateSummary,
   aggregateByStaff,
+  autoPopulateUsageCount,
 } from './dataAggregator';
 import type { CsvRecord, UserHistoryMaster } from '../types';
 
@@ -66,10 +67,12 @@ describe('dataAggregator', () => {
           'friend001',
           {
             friendId: 'friend001',
+            implementationHistory: [],
             implementationCount: 0,
             lastImplementationDate: null,
             createdAt: new Date(),
             updatedAt: new Date(),
+            lastStaff: null,
           },
         ],
       ]);
@@ -83,10 +86,18 @@ describe('dataAggregator', () => {
           'friend001',
           {
             friendId: 'friend001',
+            implementationHistory: [
+              {
+                date: new Date('2025-11-01'),
+                reservationId: '001',
+                status: '予約済み',
+              },
+            ],
             implementationCount: 1,
             lastImplementationDate: new Date('2025-11-01'),
             createdAt: new Date(),
             updatedAt: new Date(),
+            lastStaff: null,
           },
         ],
       ]);
@@ -100,10 +111,23 @@ describe('dataAggregator', () => {
           'friend001',
           {
             friendId: 'friend001',
+            implementationHistory: [
+              {
+                date: new Date('2025-10-01'),
+                reservationId: '001',
+                status: '予約済み',
+              },
+              {
+                date: new Date('2025-11-01'),
+                reservationId: '002',
+                status: '予約済み',
+              },
+            ],
             implementationCount: 2,
             lastImplementationDate: new Date('2025-11-01'),
             createdAt: new Date(),
             updatedAt: new Date(),
+            lastStaff: null,
           },
         ],
       ]);
@@ -153,10 +177,27 @@ describe('dataAggregator', () => {
           'friend001',
           {
             friendId: 'friend001',
+            allHistory: [
+              {
+                date: new Date('2025-12-01'),
+                reservationId: '001',
+                status: '予約済み',
+                visitStatus: '済み',
+                isImplemented: true,
+              },
+            ],
+            implementationHistory: [
+              {
+                date: new Date('2025-12-01'),
+                reservationId: '001',
+                status: '予約済み',
+              },
+            ],
             implementationCount: 1,
             lastImplementationDate: new Date('2025-12-01'),
             createdAt: new Date(),
             updatedAt: new Date(),
+            lastStaff: null,
           },
         ],
       ]);
@@ -168,7 +209,7 @@ describe('dataAggregator', () => {
       expect(record?.implementationCount).toBe(2);
     });
 
-    it('should not update for cancelled records', () => {
+    it('should not update implementationCount for cancelled records', () => {
       const csvData: CsvRecord[] = [
         {
           予約ID: '003',
@@ -184,7 +225,13 @@ describe('dataAggregator', () => {
 
       const result = updateMasterData(csvData, masterData);
 
-      expect(result.size).toBe(0);
+      // キャンセルでもallHistoryには記録されるため、マスターは作成される
+      expect(result.size).toBe(1);
+      const record = result.get('friend001');
+      // ただしimplementationCountは0のまま
+      expect(record?.implementationCount).toBe(0);
+      expect(record?.allHistory.length).toBe(1);
+      expect(record?.implementationHistory.length).toBe(0);
     });
   });
 
@@ -314,6 +361,312 @@ describe('dataAggregator', () => {
 
       expect(result.length).toBe(1);
       expect(result[0]!.staffName).toBe('未設定');
+    });
+  });
+
+  describe('autoPopulateUsageCount', () => {
+    const usageCountField = 'キャリア相談のご利用回数を教えてください。';
+
+    it('should auto-fill empty field with "初めて" for first-time users', () => {
+      const csvData: CsvRecord[] = [
+        {
+          予約ID: '001',
+          友だちID: 'friend001',
+          予約日: '2025-12-01',
+          ステータス: '予約済み',
+          '来店/来場': '済み',
+          名前: 'テスト太郎',
+          申込日時: '2025-11-30 10:00',
+          [usageCountField]: '', // 空欄
+        },
+      ];
+      const masterData = new Map<string, UserHistoryMaster>();
+
+      const result = autoPopulateUsageCount(csvData, masterData);
+
+      expect(result[0]![usageCountField]).toBe('初めて');
+    });
+
+    it('should auto-fill empty field with "2回目以上" for repeat users', () => {
+      const csvData: CsvRecord[] = [
+        {
+          予約ID: '002',
+          友だちID: 'friend001',
+          予約日: '2025-12-02',
+          ステータス: '予約済み',
+          '来店/来場': '済み',
+          名前: 'テスト太郎',
+          申込日時: '2025-12-01 10:00',
+          [usageCountField]: '', // 空欄
+        },
+      ];
+      const masterData = new Map<string, UserHistoryMaster>([
+        [
+          'friend001',
+          {
+            friendId: 'friend001',
+            implementationHistory: [
+              {
+                date: new Date('2025-11-01'),
+                reservationId: '001',
+                status: '予約済み',
+              },
+            ],
+            implementationCount: 1,
+            lastImplementationDate: new Date('2025-11-01'),
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            lastStaff: null,
+          },
+        ],
+      ]);
+
+      const result = autoPopulateUsageCount(csvData, masterData);
+
+      expect(result[0]![usageCountField]).toBe('2回目以上');
+    });
+
+    it('should preserve existing values', () => {
+      const csvData: CsvRecord[] = [
+        {
+          予約ID: '001',
+          友だちID: 'friend001',
+          予約日: '2025-12-01',
+          ステータス: '予約済み',
+          '来店/来場': '済み',
+          名前: 'テスト太郎',
+          申込日時: '2025-11-30 10:00',
+          [usageCountField]: '初めて', // 既に値が入っている
+        },
+      ];
+      const masterData = new Map<string, UserHistoryMaster>([
+        [
+          'friend001',
+          {
+            friendId: 'friend001',
+            implementationHistory: [
+              {
+                date: new Date('2025-10-01'),
+                reservationId: '000',
+                status: '予約済み',
+              },
+            ],
+            implementationCount: 1,
+            lastImplementationDate: new Date('2025-10-01'),
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            lastStaff: null,
+          },
+        ],
+      ]);
+
+      const result = autoPopulateUsageCount(csvData, masterData);
+
+      // マスタデータでは2回目だが、既存値「初めて」が保持される
+      expect(result[0]![usageCountField]).toBe('初めて');
+    });
+
+    it('should handle multiple records', () => {
+      const csvData: CsvRecord[] = [
+        {
+          予約ID: '001',
+          友だちID: 'friend001',
+          予約日: '2025-12-01',
+          ステータス: '予約済み',
+          '来店/来場': '済み',
+          名前: 'テスト太郎',
+          申込日時: '2025-11-30 10:00',
+          [usageCountField]: '',
+        },
+        {
+          予約ID: '002',
+          友だちID: 'friend002',
+          予約日: '2025-12-01',
+          ステータス: '予約済み',
+          '来店/来場': '済み',
+          名前: 'テスト次郎',
+          申込日時: '2025-11-30 11:00',
+          [usageCountField]: '',
+        },
+      ];
+      const masterData = new Map<string, UserHistoryMaster>([
+        [
+          'friend001',
+          {
+            friendId: 'friend001',
+            implementationHistory: [
+              {
+                date: new Date('2025-11-01'),
+                reservationId: '000',
+                status: '予約済み',
+              },
+            ],
+            implementationCount: 1,
+            lastImplementationDate: new Date('2025-11-01'),
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            lastStaff: null,
+          },
+        ],
+      ]);
+
+      const result = autoPopulateUsageCount(csvData, masterData);
+
+      expect(result[0]![usageCountField]).toBe('2回目以上'); // friend001は2回目
+      expect(result[1]![usageCountField]).toBe('初めて'); // friend002は初回
+    });
+  });
+
+  describe('Staff History Tracking', () => {
+    it('should track staff name in implementation history', () => {
+      const csvData: CsvRecord[] = [
+        {
+          予約ID: '001',
+          友だちID: 'friend001',
+          予約日: '2025-12-01',
+          ステータス: '予約済み',
+          '来店/来場': '済み',
+          名前: 'テスト太郎',
+          申込日時: '2025-11-30 10:00',
+          担当者: '山田',
+        },
+      ];
+      const masterData = new Map<string, UserHistoryMaster>();
+
+      const result = updateMasterData(csvData, masterData);
+
+      expect(result.size).toBe(1);
+      const record = result.get('friend001');
+      expect(record?.implementationHistory[0]?.staff).toBe('山田');
+      expect(record?.lastStaff).toBe('山田');
+    });
+
+    it('should update lastStaff to the latest staff member', () => {
+      const csvData: CsvRecord[] = [
+        {
+          予約ID: '002',
+          友だちID: 'friend001',
+          予約日: '2025-12-02',
+          ステータス: '予約済み',
+          '来店/来場': '済み',
+          名前: 'テスト太郎',
+          申込日時: '2025-12-01 10:00',
+          担当者: '田中',
+        },
+      ];
+      const masterData = new Map<string, UserHistoryMaster>([
+        [
+          'friend001',
+          {
+            friendId: 'friend001',
+            allHistory: [
+              {
+                date: new Date('2025-12-01'),
+                reservationId: '001',
+                status: '予約済み',
+                visitStatus: '済み',
+                isImplemented: true,
+                staff: '山田',
+              },
+            ],
+            implementationHistory: [
+              {
+                date: new Date('2025-12-01'),
+                reservationId: '001',
+                status: '予約済み',
+                staff: '山田',
+              },
+            ],
+            implementationCount: 1,
+            lastImplementationDate: new Date('2025-12-01'),
+            lastStaff: null,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+        ],
+      ]);
+
+      const result = updateMasterData(csvData, masterData);
+
+      const record = result.get('friend001');
+      expect(record?.implementationHistory.length).toBe(2);
+      expect(record?.implementationHistory[1]?.staff).toBe('田中');
+      expect(record?.lastStaff).toBe('田中');
+    });
+
+    it('should preserve lastStaff when担当者 is empty', () => {
+      const csvData: CsvRecord[] = [
+        {
+          予約ID: '003',
+          友だちID: 'friend001',
+          予約日: '2025-12-03',
+          ステータス: '予約済み',
+          '来店/来場': '済み',
+          名前: 'テスト太郎',
+          申込日時: '2025-12-02 10:00',
+          // 担当者: undefined (事務局にお任せなど)
+        },
+      ];
+      const masterData = new Map<string, UserHistoryMaster>([
+        [
+          'friend001',
+          {
+            friendId: 'friend001',
+            allHistory: [
+              {
+                date: new Date('2025-12-01'),
+                reservationId: '001',
+                status: '予約済み',
+                visitStatus: '済み',
+                isImplemented: true,
+                staff: '山田',
+              },
+            ],
+            implementationHistory: [
+              {
+                date: new Date('2025-12-01'),
+                reservationId: '001',
+                status: '予約済み',
+                staff: '山田',
+              },
+            ],
+            implementationCount: 1,
+            lastImplementationDate: new Date('2025-12-01'),
+            lastStaff: '山田',
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+        ],
+      ]);
+
+      const result = updateMasterData(csvData, masterData);
+
+      const record = result.get('friend001');
+      expect(record?.implementationHistory.length).toBe(2);
+      expect(record?.implementationHistory[1]?.staff).toBeUndefined();
+      // lastStaffは「山田」のまま保持される
+      expect(record?.lastStaff).toBe('山田');
+    });
+
+    it('should set lastStaff to null for first-time users with no担当者', () => {
+      const csvData: CsvRecord[] = [
+        {
+          予約ID: '001',
+          友だちID: 'friend001',
+          予約日: '2025-12-01',
+          ステータス: '予約済み',
+          '来店/来場': '済み',
+          名前: 'テスト太郎',
+          申込日時: '2025-11-30 10:00',
+          // 担当者: undefined
+        },
+      ];
+      const masterData = new Map<string, UserHistoryMaster>();
+
+      const result = updateMasterData(csvData, masterData);
+
+      const record = result.get('friend001');
+      expect(record?.lastStaff).toBeNull();
     });
   });
 });
