@@ -4,9 +4,6 @@
   "devCommand": "npm run dev",
   "installCommand": "npm install",
   "framework": "vite",
-  "analytics": {
-    "enable": true
-  },
   "rewrites": [
     {
       "source": "/(.*)",
