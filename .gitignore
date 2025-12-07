@@ -52,3 +52,22 @@ lerna-debug.log*
 
 # Vercel
 .vercel/
+
+# Development/Debug files
+audit-result.json
+licenses.json
+*.html
+*.yaml
+*.png
+!index.html
+!public/**/*.html
+
+# Sample data
+sample_data.csv
+samples/
+
+# Mockups
+mockups/
+
+# Temp folders
+.appgenius_temp/
