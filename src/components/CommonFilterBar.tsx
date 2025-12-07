@@ -55,7 +55,6 @@ function formatDateShort(date: Date | null): string {
   return `${month}/${day}`;
 }
 
-
 export const CommonFilterBar = () => {
   const {
     dateBaseType,
@@ -163,18 +162,9 @@ export const CommonFilterBar = () => {
         <Typography variant="body2" color="text.secondary" sx={{ mr: 1 }}>
           基準日:
         </Typography>
-        <ToggleButtonGroup
-          value={dateBaseType}
-          exclusive
-          onChange={handleDateBaseTypeChange}
-          size="small"
-        >
-          <ToggleButton value="session">
-            {DATE_BASE_TYPE_LABELS.session}
-          </ToggleButton>
-          <ToggleButton value="application">
-            {DATE_BASE_TYPE_LABELS.application}
-          </ToggleButton>
+        <ToggleButtonGroup value={dateBaseType} exclusive onChange={handleDateBaseTypeChange} size="small">
+          <ToggleButton value="session">{DATE_BASE_TYPE_LABELS.session}</ToggleButton>
+          <ToggleButton value="application">{DATE_BASE_TYPE_LABELS.application}</ToggleButton>
         </ToggleButtonGroup>
       </Box>
 
@@ -183,12 +173,7 @@ export const CommonFilterBar = () => {
         <DateRangeIcon color="action" fontSize="small" />
         <FormControl size="small" sx={{ minWidth: 120 }}>
           <InputLabel id="period-preset-label">期間</InputLabel>
-          <Select
-            labelId="period-preset-label"
-            value={periodPreset}
-            label="期間"
-            onChange={handlePeriodPresetChange}
-          >
+          <Select labelId="period-preset-label" value={periodPreset} label="期間" onChange={handlePeriodPresetChange}>
             {Object.entries(PERIOD_PRESET_LABELS).map(([value, label]) => (
               <MenuItem key={value} value={value}>
                 {label}
@@ -235,14 +220,7 @@ export const CommonFilterBar = () => {
         />
       )}
 
-      {periodPreset === 'all' && (
-        <Chip
-          size="small"
-          variant="outlined"
-          color="default"
-          label="全期間"
-        />
-      )}
+      {periodPreset === 'all' && <Chip size="small" variant="outlined" color="default" label="全期間" />}
 
       {/* 区切り線 */}
       <Box sx={{ borderLeft: 1, borderColor: 'divider', height: 32 }} />
@@ -253,18 +231,9 @@ export const CommonFilterBar = () => {
         <Typography variant="body2" color="text.secondary" sx={{ mr: 1 }}>
           実施カウント:
         </Typography>
-        <ToggleButtonGroup
-          value={implementationRule}
-          exclusive
-          onChange={handleImplementationRuleChange}
-          size="small"
-        >
-          <ToggleButton value="strict">
-            {IMPLEMENTATION_RULE_LABELS.strict}
-          </ToggleButton>
-          <ToggleButton value="includeLateCancel">
-            {IMPLEMENTATION_RULE_LABELS.includeLateCancel}
-          </ToggleButton>
+        <ToggleButtonGroup value={implementationRule} exclusive onChange={handleImplementationRuleChange} size="small">
+          <ToggleButton value="strict">{IMPLEMENTATION_RULE_LABELS.strict}</ToggleButton>
+          <ToggleButton value="includeLateCancel">{IMPLEMENTATION_RULE_LABELS.includeLateCancel}</ToggleButton>
         </ToggleButtonGroup>
       </Box>
 
@@ -283,12 +252,8 @@ export const CommonFilterBar = () => {
           onChange={handleMergeSameDayChange}
           size="small"
         >
-          <ToggleButton value="separate">
-            個別カウント
-          </ToggleButton>
-          <ToggleButton value="merge">
-            1件に統合
-          </ToggleButton>
+          <ToggleButton value="separate">個別カウント</ToggleButton>
+          <ToggleButton value="merge">1件に統合</ToggleButton>
         </ToggleButtonGroup>
       </Box>
     </Paper>

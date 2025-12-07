@@ -39,10 +39,24 @@ import {
   CameraAlt as CameraAltIcon,
   ManageHistory as ManageHistoryIcon,
   Badge as BadgeIcon,
+  Cancel as CancelIcon,
+  PersonOff as PersonOffIcon,
+  School as SchoolIcon,
 } from '@mui/icons-material';
 import { useHistoryStore } from '../store/historyStore';
 
-export type ViewType = 'history' | 'monthly' | 'campaign' | 'user' | 'staff' | 'snapshot' | 'auditLog' | 'staffMaster';
+export type ViewType =
+  | 'history'
+  | 'monthly'
+  | 'campaign'
+  | 'user'
+  | 'staff'
+  | 'course'
+  | 'snapshot'
+  | 'auditLog'
+  | 'staffMaster'
+  | 'cancelList'
+  | 'unassignedList';
 
 export const SIDEBAR_WIDTH = 280;
 
@@ -54,13 +68,7 @@ interface SidebarProps {
   onMobileClose: () => void;
 }
 
-export const Sidebar = ({
-  currentView,
-  onViewChange,
-  onUploadClick,
-  mobileOpen,
-  onMobileClose,
-}: SidebarProps) => {
+export const Sidebar = ({ currentView, onViewChange, onUploadClick, mobileOpen, onMobileClose }: SidebarProps) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
@@ -70,10 +78,13 @@ export const Sidebar = ({
   const [viewsOpen, setViewsOpen] = useState(true);
 
   // 統計情報
+  const allHistories = Array.from(histories.values());
   const stats = {
     historyCount: histories.size,
     userCount: userCounts.size,
-    implementedCount: Array.from(histories.values()).filter((h) => h.isImplemented).length,
+    implementedCount: allHistories.filter(h => h.isImplemented).length,
+    cancelledCount: allHistories.filter(h => h.status === 'キャンセル済み').length,
+    unassignedCount: allHistories.filter(h => !h.staff || h.staff.trim() === '').length,
   };
 
   const drawerContent = (
@@ -187,7 +198,7 @@ export const Sidebar = ({
                 <ListItemText primary="月次集計" />
               </ListItemButton>
 
-              {/* キャンペーン別 */}
+              {/* 期間サマリー */}
               <ListItemButton
                 sx={{ pl: 4 }}
                 selected={currentView === 'campaign'}
@@ -199,7 +210,7 @@ export const Sidebar = ({
                 <ListItemIcon>
                   <CampaignIcon fontSize="small" />
                 </ListItemIcon>
-                <ListItemText primary="キャンペーン別" />
+                <ListItemText primary="期間サマリー" />
               </ListItemButton>
 
               {/* ユーザー別 */}
@@ -230,6 +241,67 @@ export const Sidebar = ({
                   <PeopleIcon fontSize="small" />
                 </ListItemIcon>
                 <ListItemText primary="担当者別" />
+              </ListItemButton>
+
+              {/* コース別 */}
+              <ListItemButton
+                sx={{ pl: 4 }}
+                selected={currentView === 'course'}
+                onClick={() => {
+                  onViewChange('course');
+                  if (isMobile) onMobileClose();
+                }}
+              >
+                <ListItemIcon>
+                  <SchoolIcon fontSize="small" />
+                </ListItemIcon>
+                <ListItemText primary="コース別" />
+              </ListItemButton>
+
+              {/* キャンセル一覧 */}
+              <ListItemButton
+                sx={{ pl: 4 }}
+                selected={currentView === 'cancelList'}
+                onClick={() => {
+                  onViewChange('cancelList');
+                  if (isMobile) onMobileClose();
+                }}
+              >
+                <ListItemIcon>
+                  <CancelIcon fontSize="small" color={stats.cancelledCount > 0 ? 'error' : 'inherit'} />
+                </ListItemIcon>
+                <ListItemText primary="キャンセル一覧" />
+                {stats.cancelledCount > 0 && (
+                  <Chip
+                    size="small"
+                    label={stats.cancelledCount}
+                    color="error"
+                    sx={{ height: 20, fontSize: '0.7rem' }}
+                  />
+                )}
+              </ListItemButton>
+
+              {/* 未割当一覧 */}
+              <ListItemButton
+                sx={{ pl: 4 }}
+                selected={currentView === 'unassignedList'}
+                onClick={() => {
+                  onViewChange('unassignedList');
+                  if (isMobile) onMobileClose();
+                }}
+              >
+                <ListItemIcon>
+                  <PersonOffIcon fontSize="small" color={stats.unassignedCount > 0 ? 'warning' : 'inherit'} />
+                </ListItemIcon>
+                <ListItemText primary="未割当一覧" />
+                {stats.unassignedCount > 0 && (
+                  <Chip
+                    size="small"
+                    label={stats.unassignedCount}
+                    color="warning"
+                    sx={{ height: 20, fontSize: '0.7rem' }}
+                  />
+                )}
               </ListItemButton>
             </List>
           </Collapse>

@@ -3,18 +3,46 @@
  *
  * 右カラム:
  * - フィルタバー（共通）
- * - ビューに応じたコンテンツ
+ * - ビューに応じたコンテンツ（動的インポートで最適化）
  */
-import { Box, Typography, Paper, Alert } from '@mui/material';
+import { lazy, Suspense } from 'react';
+import { Box, CircularProgress, Typography } from '@mui/material';
 import type { ViewType } from './Sidebar';
 import { CommonFilterBar } from './CommonFilterBar';
+
+// 軽量コンポーネント（即時読み込み）
 import { HistoryViewer } from './HistoryViewer';
-import { MonthlyAggregationView } from './MonthlyAggregationView';
-import { CampaignAggregationView } from './CampaignAggregationView';
-import { StaffAggregationView } from './StaffAggregationView';
-import { SnapshotManager } from './SnapshotManager';
-import { AuditLogViewer } from './AuditLogViewer';
-import { StaffMasterManager } from './StaffMasterManager';
+
+// 重いコンポーネント（動的インポートで遅延読み込み）
+const MonthlyAggregationView = lazy(() => import('./MonthlyAggregationView').then(m => ({ default: m.MonthlyAggregationView })));
+const CampaignAggregationView = lazy(() => import('./CampaignAggregationView').then(m => ({ default: m.CampaignAggregationView })));
+const StaffAggregationView = lazy(() => import('./StaffAggregationView').then(m => ({ default: m.StaffAggregationView })));
+const SnapshotManager = lazy(() => import('./SnapshotManager').then(m => ({ default: m.SnapshotManager })));
+const AuditLogViewer = lazy(() => import('./AuditLogViewer').then(m => ({ default: m.AuditLogViewer })));
+const StaffMasterManager = lazy(() => import('./StaffMasterManager').then(m => ({ default: m.StaffMasterManager })));
+const CancelListView = lazy(() => import('./CancelListView').then(m => ({ default: m.CancelListView })));
+const UnassignedListView = lazy(() => import('./UnassignedListView').then(m => ({ default: m.UnassignedListView })));
+const CourseAggregationView = lazy(() => import('./CourseAggregationView').then(m => ({ default: m.CourseAggregationView })));
+const UserAggregationView = lazy(() => import('./UserAggregationView').then(m => ({ default: m.UserAggregationView })));
+
+// ローディングコンポーネント
+const LoadingFallback = () => (
+  <Box
+    sx={{
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      minHeight: 200,
+      gap: 2,
+    }}
+  >
+    <CircularProgress size={40} />
+    <Typography variant="body2" color="text.secondary">
+      読み込み中...
+    </Typography>
+  </Box>
+);
 
 interface MainContentProps {
   currentView: ViewType;
@@ -24,36 +52,34 @@ export const MainContent = ({ currentView }: MainContentProps) => {
   return (
     <Box sx={{ flexGrow: 1, p: 3, overflow: 'auto' }}>
       {/* 共通フィルタバー（集計ビューのみ表示） */}
-      {['history', 'monthly', 'campaign', 'user', 'staff'].includes(currentView) && (
-        <CommonFilterBar />
-      )}
+      {['history', 'monthly', 'campaign', 'user', 'staff', 'course', 'cancelList', 'unassignedList'].includes(
+        currentView
+      ) && <CommonFilterBar />}
 
       {/* ビューに応じたコンテンツ */}
       {currentView === 'history' && <HistoryViewer />}
 
-      {currentView === 'monthly' && <MonthlyAggregationView />}
+      <Suspense fallback={<LoadingFallback />}>
+        {currentView === 'monthly' && <MonthlyAggregationView />}
 
-      {currentView === 'campaign' && <CampaignAggregationView />}
+        {currentView === 'campaign' && <CampaignAggregationView />}
 
-      {currentView === 'user' && (
-        <Paper sx={{ p: 3 }}>
-          <Typography variant="h5" gutterBottom>
-            ユーザー別集計
-          </Typography>
-          <Alert severity="info">
-            ユーザー別集計ビューは近日実装予定です。
-            各ユーザーの来店履歴・累計実施回数を確認できます。
-          </Alert>
-        </Paper>
-      )}
+        {currentView === 'user' && <UserAggregationView />}
 
-      {currentView === 'staff' && <StaffAggregationView />}
+        {currentView === 'staff' && <StaffAggregationView />}
 
-      {currentView === 'snapshot' && <SnapshotManager />}
+        {currentView === 'course' && <CourseAggregationView />}
 
-      {currentView === 'auditLog' && <AuditLogViewer />}
+        {currentView === 'snapshot' && <SnapshotManager />}
 
-      {currentView === 'staffMaster' && <StaffMasterManager />}
+        {currentView === 'auditLog' && <AuditLogViewer />}
+
+        {currentView === 'staffMaster' && <StaffMasterManager />}
+
+        {currentView === 'cancelList' && <CancelListView />}
+
+        {currentView === 'unassignedList' && <UnassignedListView />}
+      </Suspense>
     </Box>
   );
 };
