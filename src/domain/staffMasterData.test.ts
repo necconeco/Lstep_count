@@ -2,11 +2,16 @@
  * 担当者判定ロジックのテスト
  */
 import { describe, it, expect } from 'vitest';
-import { classifyReservationSlot, OFFICIAL_STAFF_MEMBERS } from './staffMasterData';
+import {
+  classifyReservationSlot,
+  isOfficialStaffMember,
+  isOmakaseSlot,
+  OFFICIAL_STAFF_MEMBERS,
+} from './staffMasterData';
 
 describe('classifyReservationSlot', () => {
   describe('正式担当者の判定', () => {
-    it.each(OFFICIAL_STAFF_MEMBERS)('「%s」は担当者として認識される', (staffName) => {
+    it.each(OFFICIAL_STAFF_MEMBERS)('「%s」は担当者として認識される', staffName => {
       const result = classifyReservationSlot(staffName);
       expect(result.staffName).toBe(staffName);
       expect(result.wasOmakase).toBe(false);
@@ -89,5 +94,74 @@ describe('classifyReservationSlot', () => {
       expect(result.staffName).toBeNull();
       expect(result.wasOmakase).toBe(false);
     });
+  });
+});
+
+describe('isOfficialStaffMember', () => {
+  it.each(OFFICIAL_STAFF_MEMBERS)('「%s」は正式メンバーとして認識される', staffName => {
+    expect(isOfficialStaffMember(staffName)).toBe(true);
+  });
+
+  it('未登録の名前は正式メンバーではない', () => {
+    expect(isOfficialStaffMember('山田太郎')).toBe(false);
+  });
+
+  it('空文字は正式メンバーではない', () => {
+    expect(isOfficialStaffMember('')).toBe(false);
+  });
+
+  it('部分一致は正式メンバーではない', () => {
+    // '佐々木宏明' の一部だけでは認識されない
+    expect(isOfficialStaffMember('佐々木')).toBe(false);
+  });
+});
+
+describe('isOmakaseSlot', () => {
+  it('「事務局にお任せ」を含むとおまかせ', () => {
+    expect(isOmakaseSlot('事務局にお任せ（日程が変更になる可能性があります）')).toBe(true);
+  });
+
+  it('「事務局おまかせ」を含むとおまかせ', () => {
+    expect(isOmakaseSlot('事務局おまかせ')).toBe(true);
+  });
+
+  it('「お任せ」を含むとおまかせ', () => {
+    expect(isOmakaseSlot('お任せ')).toBe(true);
+  });
+
+  it('「おまかせ」を含むとおまかせ', () => {
+    expect(isOmakaseSlot('おまかせ')).toBe(true);
+  });
+
+  it('「調整中」を含むとおまかせ', () => {
+    expect(isOmakaseSlot('調整中')).toBe(true);
+  });
+
+  it('「担当者変更の可能性があります」を含むとおまかせ', () => {
+    expect(isOmakaseSlot('佐々木宏明（担当者変更の可能性があります）')).toBe(true);
+  });
+
+  it('「別日の調整を依頼する可能性があります」を含むとおまかせ', () => {
+    expect(isOmakaseSlot('塩見千重子（予約日により別日の調整を依頼する可能性があります）')).toBe(true);
+  });
+
+  it('通常の担当者名はおまかせではない', () => {
+    expect(isOmakaseSlot('佐々木宏明')).toBe(false);
+  });
+
+  it('空文字はおまかせではない', () => {
+    expect(isOmakaseSlot('')).toBe(false);
+  });
+
+  it('nullはおまかせではない', () => {
+    expect(isOmakaseSlot(null)).toBe(false);
+  });
+
+  it('undefinedはおまかせではない', () => {
+    expect(isOmakaseSlot(undefined)).toBe(false);
+  });
+
+  it('前後にスペースがあっても認識される', () => {
+    expect(isOmakaseSlot('  お任せ  ')).toBe(true);
   });
 });

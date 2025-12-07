@@ -243,13 +243,16 @@ describe('domain/logic', () => {
 
     it('should increment user count on new implementation', () => {
       const existingUserCounts = new Map<string, UserVisitCount>([
-        ['F001', {
-          friendId: 'F001',
-          implementationCount: 1,
-          lastSessionDate: new Date('2024-11-01'),
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        }],
+        [
+          'F001',
+          {
+            friendId: 'F001',
+            implementationCount: 1,
+            lastSessionDate: new Date('2024-11-01'),
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+        ],
       ]);
 
       const csvRecords: CsvInputRecord[] = [
@@ -275,44 +278,50 @@ describe('domain/logic', () => {
   describe('recalculateAllVisitIndexes', () => {
     it('should recalculate visit indexes correctly', () => {
       const histories = new Map<string, ReservationHistory>([
-        ['R001', {
-          reservationId: 'R001',
-          friendId: 'F001',
-          name: 'テスト太郎',
-          sessionDate: new Date('2024-12-01'),
-          applicationDate: new Date('2024-11-25'),
-          status: '予約済み',
-          visitStatus: '済み',
-          isImplemented: true,
-          staff: null,
-          detailStatus: null,
-          visitIndex: 0, // 不正なインデックス
-          visitLabel: '初回',
-          isExcluded: false,
-          wasOmakase: false,
-          groupId: null,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        }],
-        ['R002', {
-          reservationId: 'R002',
-          friendId: 'F001',
-          name: 'テスト太郎',
-          sessionDate: new Date('2024-12-05'),
-          applicationDate: new Date('2024-11-28'),
-          status: '予約済み',
-          visitStatus: '済み',
-          isImplemented: true,
-          staff: null,
-          detailStatus: null,
-          visitIndex: 0,
-          visitLabel: '初回',
-          isExcluded: false,
-          wasOmakase: false,
-          groupId: null,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        }],
+        [
+          'R001',
+          {
+            reservationId: 'R001',
+            friendId: 'F001',
+            name: 'テスト太郎',
+            sessionDate: new Date('2024-12-01'),
+            applicationDate: new Date('2024-11-25'),
+            status: '予約済み',
+            visitStatus: '済み',
+            isImplemented: true,
+            staff: null,
+            detailStatus: null,
+            visitIndex: 0, // 不正なインデックス
+            visitLabel: '初回',
+            isExcluded: false,
+            wasOmakase: false,
+            groupId: null,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+        ],
+        [
+          'R002',
+          {
+            reservationId: 'R002',
+            friendId: 'F001',
+            name: 'テスト太郎',
+            sessionDate: new Date('2024-12-05'),
+            applicationDate: new Date('2024-11-28'),
+            status: '予約済み',
+            visitStatus: '済み',
+            isImplemented: true,
+            staff: null,
+            detailStatus: null,
+            visitIndex: 0,
+            visitLabel: '初回',
+            isExcluded: false,
+            wasOmakase: false,
+            groupId: null,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+        ],
       ]);
 
       const result = recalculateAllVisitIndexes(histories);
@@ -326,64 +335,60 @@ describe('domain/logic', () => {
 
   describe('filterByPeriod', () => {
     const histories = new Map<string, ReservationHistory>([
-      ['R001', {
-        reservationId: 'R001',
-        friendId: 'F001',
-        name: 'テスト太郎',
-        sessionDate: new Date('2024-12-01'),
-        applicationDate: new Date('2024-11-25'),
-        status: '予約済み',
-        visitStatus: '済み',
-        isImplemented: true,
-        staff: null,
-        detailStatus: null,
-        visitIndex: 1,
-        visitLabel: '初回',
-        isExcluded: false,
-        wasOmakase: false,
-        groupId: null,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      }],
-      ['R002', {
-        reservationId: 'R002',
-        friendId: 'F002',
-        name: 'テスト次郎',
-        sessionDate: new Date('2024-12-15'),
-        applicationDate: new Date('2024-12-10'),
-        status: '予約済み',
-        visitStatus: '済み',
-        isImplemented: true,
-        staff: null,
-        detailStatus: null,
-        visitIndex: 1,
-        visitLabel: '初回',
-        isExcluded: false,
-        wasOmakase: false,
-        groupId: null,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      }],
+      [
+        'R001',
+        {
+          reservationId: 'R001',
+          friendId: 'F001',
+          name: 'テスト太郎',
+          sessionDate: new Date('2024-12-01'),
+          applicationDate: new Date('2024-11-25'),
+          status: '予約済み',
+          visitStatus: '済み',
+          isImplemented: true,
+          staff: null,
+          detailStatus: null,
+          visitIndex: 1,
+          visitLabel: '初回',
+          isExcluded: false,
+          wasOmakase: false,
+          groupId: null,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      ],
+      [
+        'R002',
+        {
+          reservationId: 'R002',
+          friendId: 'F002',
+          name: 'テスト次郎',
+          sessionDate: new Date('2024-12-15'),
+          applicationDate: new Date('2024-12-10'),
+          status: '予約済み',
+          visitStatus: '済み',
+          isImplemented: true,
+          staff: null,
+          detailStatus: null,
+          visitIndex: 1,
+          visitLabel: '初回',
+          isExcluded: false,
+          wasOmakase: false,
+          groupId: null,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      ],
     ]);
 
     it('should filter by session date', () => {
-      const result = filterByPeriod(
-        histories,
-        new Date('2024-12-01'),
-        new Date('2024-12-10'),
-        'session'
-      );
+      const result = filterByPeriod(histories, new Date('2024-12-01'), new Date('2024-12-10'), 'session');
       expect(result.length).toBe(1);
       expect(result[0].reservationId).toBe('R001');
     });
 
     it('should filter by application date', () => {
-      const result = filterByPeriod(
-        histories,
-        new Date('2024-12-01'),
-        new Date('2024-12-31'),
-        'application'
-      );
+      const result = filterByPeriod(histories, new Date('2024-12-01'), new Date('2024-12-31'), 'application');
       expect(result.length).toBe(1);
       expect(result[0].reservationId).toBe('R002');
     });
@@ -451,12 +456,7 @@ describe('domain/logic', () => {
     ];
 
     it('should calculate summary correctly', () => {
-      const summary = calculateSummary(
-        records,
-        new Date('2024-12-01'),
-        new Date('2024-12-31'),
-        'session'
-      );
+      const summary = calculateSummary(records, new Date('2024-12-01'), new Date('2024-12-31'), 'session');
 
       expect(summary.totalRecords).toBe(3);
       expect(summary.totalImplementations).toBe(2);
@@ -475,12 +475,7 @@ describe('domain/logic', () => {
         },
       ];
 
-      const summary = calculateSummary(
-        withExcluded,
-        new Date('2024-12-01'),
-        new Date('2024-12-31'),
-        'session'
-      );
+      const summary = calculateSummary(withExcluded, new Date('2024-12-01'), new Date('2024-12-31'), 'session');
 
       expect(summary.totalRecords).toBe(3); // 除外されたものはカウントしない
     });
@@ -574,44 +569,50 @@ describe('domain/logic', () => {
   describe('historiesToFlatRecords', () => {
     it('should convert and sort histories descending by date', () => {
       const histories = new Map<string, ReservationHistory>([
-        ['R001', {
-          reservationId: 'R001',
-          friendId: 'F001',
-          name: 'テスト太郎',
-          sessionDate: new Date('2024-12-01'),
-          applicationDate: new Date('2024-11-25'),
-          status: '予約済み',
-          visitStatus: '済み',
-          isImplemented: true,
-          staff: null,
-          detailStatus: null,
-          visitIndex: 1,
-          visitLabel: '初回',
-          isExcluded: false,
-          wasOmakase: false,
-          groupId: null,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        }],
-        ['R002', {
-          reservationId: 'R002',
-          friendId: 'F002',
-          name: 'テスト次郎',
-          sessionDate: new Date('2024-12-05'),
-          applicationDate: new Date('2024-11-28'),
-          status: '予約済み',
-          visitStatus: '済み',
-          isImplemented: true,
-          staff: null,
-          detailStatus: null,
-          visitIndex: 1,
-          visitLabel: '初回',
-          isExcluded: false,
-          wasOmakase: false,
-          groupId: null,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        }],
+        [
+          'R001',
+          {
+            reservationId: 'R001',
+            friendId: 'F001',
+            name: 'テスト太郎',
+            sessionDate: new Date('2024-12-01'),
+            applicationDate: new Date('2024-11-25'),
+            status: '予約済み',
+            visitStatus: '済み',
+            isImplemented: true,
+            staff: null,
+            detailStatus: null,
+            visitIndex: 1,
+            visitLabel: '初回',
+            isExcluded: false,
+            wasOmakase: false,
+            groupId: null,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+        ],
+        [
+          'R002',
+          {
+            reservationId: 'R002',
+            friendId: 'F002',
+            name: 'テスト次郎',
+            sessionDate: new Date('2024-12-05'),
+            applicationDate: new Date('2024-11-28'),
+            status: '予約済み',
+            visitStatus: '済み',
+            isImplemented: true,
+            staff: null,
+            detailStatus: null,
+            visitIndex: 1,
+            visitLabel: '初回',
+            isExcluded: false,
+            wasOmakase: false,
+            groupId: null,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+        ],
       ]);
 
       const flat = historiesToFlatRecords(histories);
