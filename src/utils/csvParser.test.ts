@@ -330,8 +330,9 @@ describe('csvParser', () => {
       });
 
       it('should include additional columns', async () => {
-        const csv = '友だちID,予約日,ステータス,来店/来場,名前,申込日時,カスタム列\n' +
-          'friend001,2024-12-01,予約済み,済み,田中太郎,2024-11-25 10:00,カスタム値\n';
+        // 予約枠列を追加して2025年形式として認識させる
+        const csv = '友だちID,予約日,ステータス,来店/来場,名前,申込日時,予約枠,カスタム列\n' +
+          'friend001,2024-12-01,予約済み,済み,田中太郎,2024-11-25 10:00,野沢さん枠,カスタム値\n';
         const file = createCSVFile(csv);
         const result = await parseCSV(file);
 

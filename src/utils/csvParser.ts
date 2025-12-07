@@ -1,10 +1,15 @@
 /**
  * CSVパース処理
  * PapaParse使用
+ *
+ * 2024年と2025年以降のCSV形式を自動判定して適切にパースします。
+ * - 2024年: 担当者=null, コース=不明, キャンセル=シンプル判定
+ * - 2025年以降: 通常のパース処理
  */
 import Papa from 'papaparse';
 import type { CsvRecord, ParseResult } from '../types';
 import { classifyReservationSlot } from '../domain/staffMasterData';
+import { is2024Format, parse2024CSV } from './csv2024Parser';
 
 /**
  * カラム名のマッピング（LステップCSV → 内部形式）
@@ -102,6 +107,7 @@ async function readFileWithEncoding(file: File): Promise<string> {
 
 /**
  * CSVファイルをパースしてCsvRecord配列に変換
+ * 2024年形式と2025年以降の形式を自動判定して適切にパースします
  */
 export async function parseCSV(file: File): Promise<ParseResult> {
   const errors: string[] = [];
@@ -111,6 +117,20 @@ export async function parseCSV(file: File): Promise<ParseResult> {
     // ファイルをShift-JIS/UTF-8で読み込み
     const csvText = await readFileWithEncoding(file);
 
+    // まずヘッダーだけを取得して形式を判定
+    const headerResult = Papa.parse<Record<string, string>>(csvText, {
+      header: true,
+      preview: 1, // 1行だけパース（ヘッダー取得用）
+    });
+    const headers = headerResult.meta.fields || [];
+
+    // 2024年形式かどうか判定
+    if (is2024Format(headers, file.name)) {
+      // 2024年専用パーサーを使用
+      return parse2024CSV(csvText, file.name);
+    }
+
+    // 2025年以降の通常パース処理
     return new Promise(resolve => {
       Papa.parse<Record<string, string>>(csvText, {
         header: true,
@@ -120,10 +140,10 @@ export async function parseCSV(file: File): Promise<ParseResult> {
         complete: results => {
           try {
             // ヘッダー検証（カラムマッピングを考慮）
-            const headers = results.meta.fields || [];
+            const resultHeaders = results.meta.fields || [];
 
             // カラムマッピングを適用したヘッダーを作成
-            const mappedHeaders = headers.map(h => COLUMN_MAPPING[h] || h);
+            const mappedHeaders = resultHeaders.map(h => COLUMN_MAPPING[h] || h);
 
             // 必須カラムのチェック
             const missingColumns = REQUIRED_COLUMNS.filter(col => !mappedHeaders.includes(col));
@@ -131,7 +151,7 @@ export async function parseCSV(file: File): Promise<ParseResult> {
             if (missingColumns.length > 0) {
               console.error('[CSV Parser] 期待されるカラム:', REQUIRED_COLUMNS);
               errors.push(`必須カラムが不足しています: ${missingColumns.join(', ')}`);
-              errors.push(`デバッグ: 検出されたヘッダー: ${headers.join(', ')}`);
+              errors.push(`デバッグ: 検出されたヘッダー: ${resultHeaders.join(', ')}`);
               resolve({
                 success: false,
                 data: [],
