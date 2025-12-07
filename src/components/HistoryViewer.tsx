@@ -51,7 +51,7 @@ import {
 import { useHistoryStore } from '../store/historyStore';
 import { useUiStore, DATE_BASE_TYPE_LABELS, PERIOD_PRESET_LABELS } from '../store/uiStore';
 import { ReservationDetailDrawer } from './ReservationDetailDrawer';
-import { getCancelTimingFromStrings } from '../domain/logic';
+import { getCancelTimingFromStrings, historyToFlatRecord } from '../domain/logic';
 import type { FlatRecord, CancelTiming } from '../domain/types';
 import { CANCEL_TIMING_LABELS } from '../domain/types';
 
@@ -106,7 +106,6 @@ export const HistoryViewer = () => {
     initialize,
     clearAllData,
     recalculateVisitIndexes,
-    getFlatRecords,
     exportToCSV,
     exportToJSON,
     toggleExcluded,
@@ -130,10 +129,10 @@ export const HistoryViewer = () => {
     initialize();
   }, [initialize]);
 
-  // フラットレコードを取得
+  // フラットレコードを取得（historiesが変更されたら再計算）
   const allRecords = useMemo<FlatRecord[]>(() => {
-    return getFlatRecords();
-  }, [getFlatRecords]);
+    return Array.from(histories.values()).map(historyToFlatRecord);
+  }, [histories]);
 
   // 有効な期間を取得
   const effectivePeriod = useMemo(() => getEffectivePeriod(), [getEffectivePeriod]);
