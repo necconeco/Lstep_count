@@ -221,14 +221,21 @@ export function StaffAggregationView(_props: StaffAggregationViewProps) {
     implementationRule,
     mergeSameDayReservations,
     dateBaseType,
+    periodPreset,
+    periodFrom,
+    periodTo,
     getEffectivePeriod,
   } = useUiStore();
 
   // タブ切り替え (0: テーブル, 1: グラフ)
   const [activeTab, setActiveTab] = useState(0);
 
-  // 共通フィルタから有効期間を取得
-  const effectivePeriod = getEffectivePeriod();
+  // 共通フィルタから有効期間を取得（フィルタ条件の変更を検知）
+  const effectivePeriod = useMemo(
+    () => getEffectivePeriod(),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [periodPreset, periodFrom, periodTo]
+  );
 
   // フィルタリングされたレコード（共通フィルタに連動）
   const filteredRecords = useMemo(() => {

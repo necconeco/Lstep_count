@@ -57,10 +57,14 @@ function getYearMonth(dateStr: string): string {
 
 export const MonthlyAggregationView = () => {
   const { histories } = useHistoryStore();
-  const { dateBaseType, periodPreset, implementationRule, mergeSameDayReservations, getEffectivePeriod } = useUiStore();
+  const { dateBaseType, periodPreset, periodFrom, periodTo, implementationRule, mergeSameDayReservations, getEffectivePeriod } = useUiStore();
 
-  // 有効な期間を取得
-  const effectivePeriod = useMemo(() => getEffectivePeriod(), [getEffectivePeriod]);
+  // 有効な期間を取得（フィルタ条件の変更を検知）
+  const effectivePeriod = useMemo(
+    () => getEffectivePeriod(),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [periodPreset, periodFrom, periodTo]
+  );
 
   // 全履歴レコードを取得
   const allRecords = useMemo(() => {
