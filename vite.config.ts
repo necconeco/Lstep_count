@@ -1,12 +1,34 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
+// CSPヘッダー設定（セキュリティ強化）
+const cspDirectives = [
+  "default-src 'self'",
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval'", // Vite開発サーバー用
+  "style-src 'self' 'unsafe-inline'", // MUI用
+  "img-src 'self' data: blob:",
+  "font-src 'self' data:",
+  "connect-src 'self' https://*.sentry.io", // Sentry用
+  "frame-ancestors 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
+].join('; ')
+
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
   server: {
     port: 3247,
     strictPort: true,
+    headers: {
+      // CSPヘッダー
+      'Content-Security-Policy': cspDirectives,
+      // その他のセキュリティヘッダー
+      'X-Content-Type-Options': 'nosniff',
+      'X-Frame-Options': 'DENY',
+      'X-XSS-Protection': '1; mode=block',
+      'Referrer-Policy': 'strict-origin-when-cross-origin',
+    },
   },
   build: {
     outDir: 'dist',

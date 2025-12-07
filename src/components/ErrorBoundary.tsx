@@ -93,11 +93,7 @@ export class ErrorBoundary extends Component<Props, State> {
                 エラーが発生しました
               </Typography>
 
-              <Typography
-                variant="body1"
-                color="text.secondary"
-                sx={{ mb: 3 }}
-              >
+              <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
                 申し訳ありませんが、予期しないエラーが発生しました。
                 ページを再読み込みするか、しばらく時間をおいて再度お試しください。
               </Typography>
@@ -131,30 +127,17 @@ export class ErrorBoundary extends Component<Props, State> {
               )}
 
               <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center' }}>
-                <Button
-                  variant="contained"
-                  color="primary"
-                  startIcon={<RefreshIcon />}
-                  onClick={this.handleReload}
-                >
+                <Button variant="contained" color="primary" startIcon={<RefreshIcon />} onClick={this.handleReload}>
                   ページを再読み込み
                 </Button>
 
-                <Button
-                  variant="outlined"
-                  color="secondary"
-                  onClick={this.handleReset}
-                >
+                <Button variant="outlined" color="secondary" onClick={this.handleReset}>
                   再試行
                 </Button>
               </Box>
             </Paper>
 
-            <Typography
-              variant="caption"
-              color="text.secondary"
-              sx={{ mt: 3 }}
-            >
+            <Typography variant="caption" color="text.secondary" sx={{ mt: 3 }}>
               問題が解決しない場合は、ブラウザのキャッシュをクリアしてください。
             </Typography>
           </Box>
