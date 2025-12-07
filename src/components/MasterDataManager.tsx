@@ -91,11 +91,9 @@ export const MasterDataManager = () => {
    * マスターに登録するかのチェックボックストグル
    */
   const handleToggleInclude = (index: number) => {
-    setCandidates((prev) =>
+    setCandidates(prev =>
       prev.map((candidate, i) =>
-        i === index
-          ? { ...candidate, shouldIncludeInMaster: !candidate.shouldIncludeInMaster }
-          : candidate
+        i === index ? { ...candidate, shouldIncludeInMaster: !candidate.shouldIncludeInMaster } : candidate
       )
     );
   };
@@ -104,11 +102,9 @@ export const MasterDataManager = () => {
    * 削除ボタン（行を除外）
    */
   const handleDelete = (index: number) => {
-    setCandidates((prev) =>
+    setCandidates(prev =>
       prev.map((candidate, i) =>
-        i === index
-          ? { ...candidate, isDeleted: true, shouldIncludeInMaster: false }
-          : candidate
+        i === index ? { ...candidate, isDeleted: true, shouldIncludeInMaster: false } : candidate
       )
     );
   };
@@ -122,9 +118,7 @@ export const MasterDataManager = () => {
 
     try {
       // チェックが入っていて、削除されていない行のみを抽出
-      const recordsToSave = candidates
-        .filter((c) => c.shouldIncludeInMaster && !c.isDeleted)
-        .map((c) => c.record);
+      const recordsToSave = candidates.filter(c => c.shouldIncludeInMaster && !c.isDeleted).map(c => c.record);
 
       if (recordsToSave.length === 0) {
         setError('マスターに登録する行が選択されていません');
@@ -150,8 +144,7 @@ export const MasterDataManager = () => {
       setCandidates([]);
       setFileName(null);
     } catch (err) {
-      const message =
-        err instanceof Error ? err.message : 'マスターデータの保存に失敗しました';
+      const message = err instanceof Error ? err.message : 'マスターデータの保存に失敗しました';
       setError(message);
       console.error('マスターデータ保存エラー:', err);
     } finally {
@@ -161,8 +154,8 @@ export const MasterDataManager = () => {
 
   // 統計情報
   const totalCandidates = candidates.length;
-  const includedCount = candidates.filter((c) => c.shouldIncludeInMaster && !c.isDeleted).length;
-  const deletedCount = candidates.filter((c) => c.isDeleted).length;
+  const includedCount = candidates.filter(c => c.shouldIncludeInMaster && !c.isDeleted).length;
+  const deletedCount = candidates.filter(c => c.isDeleted).length;
 
   return (
     <Box sx={{ mb: 4 }}>
@@ -172,12 +165,8 @@ export const MasterDataManager = () => {
       </Typography>
 
       <Alert severity="info" sx={{ mb: 3 }}>
-        <Typography variant="body2">
-          ① LステップCSVをアップロードして、実施候補を確認
-        </Typography>
-        <Typography variant="body2">
-          ② 不要な行はチェックを外すか、削除ボタンで除外
-        </Typography>
+        <Typography variant="body2">① LステップCSVをアップロードして、実施候補を確認</Typography>
+        <Typography variant="body2">② 不要な行はチェックを外すか、削除ボタンで除外</Typography>
         <Typography variant="body2">③ 「マスターデータに反映」で登録</Typography>
       </Alert>
 
@@ -192,15 +181,13 @@ export const MasterDataManager = () => {
             type="file"
             accept=".csv"
             hidden
-            onChange={(e) => {
+            onChange={e => {
               const file = e.target.files?.[0];
               if (file) handleFileUpload(file);
             }}
           />
         </Button>
-        {fileName && (
-          <Chip label={`ファイル: ${fileName}`} color="primary" sx={{ ml: 2 }} />
-        )}
+        {fileName && <Chip label={`ファイル: ${fileName}`} color="primary" sx={{ ml: 2 }} />}
       </Paper>
 
       {error && (
@@ -299,9 +286,7 @@ export const MasterDataManager = () => {
                         <Chip
                           label={candidate.record.ステータス}
                           size="small"
-                          color={
-                            candidate.record.ステータス === '予約済み' ? 'success' : 'error'
-                          }
+                          color={candidate.record.ステータス === '予約済み' ? 'success' : 'error'}
                         />
                       </TableCell>
                       <TableCell>
@@ -311,9 +296,7 @@ export const MasterDataManager = () => {
                           color={candidate.record['来店/来場'] === '済み' ? 'success' : 'default'}
                         />
                       </TableCell>
-                      <TableCell>
-                        {candidate.record.詳細ステータス || '-'}
-                      </TableCell>
+                      <TableCell>{candidate.record.詳細ステータス || '-'}</TableCell>
                       <TableCell>
                         <Chip label={visitType} size="small" color="primary" variant="outlined" />
                       </TableCell>

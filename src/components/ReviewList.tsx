@@ -21,11 +21,7 @@ import {
   Paper,
   Button,
 } from '@mui/material';
-import {
-  Warning as WarningIcon,
-  ExpandMore as ExpandMoreIcon,
-  Download as DownloadIcon,
-} from '@mui/icons-material';
+import { Warning as WarningIcon, ExpandMore as ExpandMoreIcon, Download as DownloadIcon } from '@mui/icons-material';
 import { useReviewStore } from '../store/reviewStore';
 import { useCsvStore } from '../store/csvStore';
 import { useMasterStore } from '../store/masterStore';
@@ -52,9 +48,9 @@ export const ReviewList = () => {
   }
 
   // パターンごとにグループ化
-  const pattern1Records = reviewRecords.filter((r) => r.pattern === 'pattern1');
-  const pattern2Records = reviewRecords.filter((r) => r.pattern === 'pattern2');
-  const pattern3Records = reviewRecords.filter((r) => r.pattern === 'pattern3');
+  const pattern1Records = reviewRecords.filter(r => r.pattern === 'pattern1');
+  const pattern2Records = reviewRecords.filter(r => r.pattern === 'pattern2');
+  const pattern3Records = reviewRecords.filter(r => r.pattern === 'pattern3');
 
   // CSVエクスポート（選択された月のデータのみ）
   const handleExportCSV = () => {
@@ -94,13 +90,7 @@ export const ReviewList = () => {
     } else if (record.ステータス === '予約済み' && record['来店/来場'] === '済み') {
       return <Chip label="済み" color="success" size="small" />;
     } else {
-      return (
-        <Chip
-          label={`${record.ステータス} / ${record['来店/来場']}`}
-          color="default"
-          size="small"
-        />
-      );
+      return <Chip label={`${record.ステータス} / ${record['来店/来場']}`} color="default" size="small" />;
     }
   };
 
@@ -127,12 +117,7 @@ export const ReviewList = () => {
           >
             日別集計をダウンロード
           </Button>
-          <Button
-            variant="contained"
-            color="primary"
-            startIcon={<DownloadIcon />}
-            onClick={handleExportCSV}
-          >
+          <Button variant="contained" color="primary" startIcon={<DownloadIcon />} onClick={handleExportCSV}>
             修正済みCSVをダウンロード
           </Button>
         </Box>
@@ -170,7 +155,7 @@ export const ReviewList = () => {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {pattern1Records.map((review) => (
+                  {pattern1Records.map(review => (
                     <TableRow key={review.record.予約ID} hover>
                       <TableCell>{review.record.予約ID}</TableCell>
                       <TableCell>{review.record.予約日}</TableCell>
@@ -219,7 +204,7 @@ export const ReviewList = () => {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {pattern2Records.map((review) => (
+                  {pattern2Records.map(review => (
                     <TableRow key={review.record.予約ID} hover>
                       <TableCell>{review.record.予約ID}</TableCell>
                       <TableCell>{review.record.予約日}</TableCell>
@@ -267,7 +252,7 @@ export const ReviewList = () => {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {pattern3Records.map((review) => (
+                  {pattern3Records.map(review => (
                     <TableRow key={review.record.予約ID} hover>
                       <TableCell>{review.record.予約ID}</TableCell>
                       <TableCell>{review.record.予約日}</TableCell>

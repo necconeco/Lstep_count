@@ -10,12 +10,13 @@ import { getVisitType } from './dataAggregator';
  */
 export function detectPattern1(csvData: CsvRecord[]): ReviewRecord[] {
   return csvData
-    .filter((record) => record.ステータス === 'キャンセル済み' && record['来店/来場'] === '済み')
-    .map((record) => ({
+    .filter(record => record.ステータス === 'キャンセル済み' && record['来店/来場'] === '済み')
+    .map(record => ({
       pattern: 'pattern1' as const,
       patternName: 'パターン1: データ不整合',
       record,
-      reason: 'ステータスが「キャンセル済み」ですが、来店/来場が「済み」になっています。データの不整合の可能性があります。',
+      reason:
+        'ステータスが「キャンセル済み」ですが、来店/来場が「済み」になっています。データの不整合の可能性があります。',
     }));
 }
 
@@ -25,8 +26,8 @@ export function detectPattern1(csvData: CsvRecord[]): ReviewRecord[] {
  */
 export function detectPattern2(csvData: CsvRecord[]): ReviewRecord[] {
   return csvData
-    .filter((record) => record.ステータス === '予約済み' && record['来店/来場'] === 'なし')
-    .map((record) => ({
+    .filter(record => record.ステータス === '予約済み' && record['来店/来場'] === 'なし')
+    .map(record => ({
       pattern: 'pattern2' as const,
       patternName: 'パターン2: 未来日予約',
       record,
@@ -40,8 +41,8 @@ export function detectPattern2(csvData: CsvRecord[]): ReviewRecord[] {
  */
 export function detectPattern3(csvData: CsvRecord[]): ReviewRecord[] {
   return csvData
-    .filter((record) => record.ステータス === 'キャンセル済み' && record['来店/来場'] === 'なし')
-    .map((record) => ({
+    .filter(record => record.ステータス === 'キャンセル済み' && record['来店/来場'] === 'なし')
+    .map(record => ({
       pattern: 'pattern3' as const,
       patternName: 'パターン3: 通常キャンセル',
       record,
@@ -68,8 +69,8 @@ export function generateCancellationList(
   masterData: Map<string, UserHistoryMaster>
 ): CancellationRecord[] {
   return csvData
-    .filter((record) => record.ステータス === 'キャンセル済み')
-    .map((record) => {
+    .filter(record => record.ステータス === 'キャンセル済み')
+    .map(record => {
       const visitType: VisitType = getVisitType(record.友だちID, masterData);
 
       return {
@@ -89,9 +90,9 @@ export function getReviewStatistics(reviewRecords: ReviewRecord[]): {
   pattern3Count: number;
   totalCount: number;
 } {
-  const pattern1Count = reviewRecords.filter((r) => r.pattern === 'pattern1').length;
-  const pattern2Count = reviewRecords.filter((r) => r.pattern === 'pattern2').length;
-  const pattern3Count = reviewRecords.filter((r) => r.pattern === 'pattern3').length;
+  const pattern1Count = reviewRecords.filter(r => r.pattern === 'pattern1').length;
+  const pattern2Count = reviewRecords.filter(r => r.pattern === 'pattern2').length;
+  const pattern3Count = reviewRecords.filter(r => r.pattern === 'pattern3').length;
 
   return {
     pattern1Count,

@@ -35,9 +35,7 @@ export function getVisitLabel(visitIndex: number): VisitType {
  * @param masterData - Map<friendId, UserHistoryMaster>
  * @returns FlattenedHistoryRecord[] - 日付順にソートされた履歴一覧
  */
-export function flattenMasterData(
-  masterData: Map<string, UserHistoryMaster>
-): FlattenedHistoryRecord[] {
+export function flattenMasterData(masterData: Map<string, UserHistoryMaster>): FlattenedHistoryRecord[] {
   const flattenedRecords: FlattenedHistoryRecord[] = [];
 
   masterData.forEach((master, friendId) => {
@@ -89,17 +87,10 @@ function formatDate(date: Date): string {
  */
 export function flattenedHistoryToCSV(records: FlattenedHistoryRecord[]): string {
   // CSVヘッダー
-  const header = [
-    '友だちID',
-    '予約ID',
-    '実施日',
-    '来店回数',
-    '区分',
-    '担当者',
-  ].join(',');
+  const header = ['友だちID', '予約ID', '実施日', '来店回数', '区分', '担当者'].join(',');
 
   // CSVボディ
-  const rows = records.map((record) => {
+  const rows = records.map(record => {
     return [
       escapeCSVValue(record.friendId),
       escapeCSVValue(record.reservationId),

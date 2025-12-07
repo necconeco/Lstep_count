@@ -89,10 +89,6 @@ export function detectImplementationCandidate(record: CsvRecord): Implementation
  * @param csvData CSVレコード配列
  * @returns 実施候補のリスト
  */
-export function extractImplementationCandidates(
-  csvData: CsvRecord[]
-): ImplementationCandidate[] {
-  return csvData
-    .map((record) => detectImplementationCandidate(record))
-    .filter((candidate) => candidate.isCandidate); // 実施候補のみを返す
+export function extractImplementationCandidates(csvData: CsvRecord[]): ImplementationCandidate[] {
+  return csvData.map(record => detectImplementationCandidate(record)).filter(candidate => candidate.isCandidate); // 実施候補のみを返す
 }

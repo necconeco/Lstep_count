@@ -24,7 +24,7 @@ async function openDatabase(): Promise<IDBDatabase> {
       resolve(request.result);
     };
 
-    request.onupgradeneeded = (event) => {
+    request.onupgradeneeded = event => {
       const db = (event.target as IDBOpenDBRequest).result;
 
       // 履歴マスタストア（Phase 5で作成済み）
@@ -56,7 +56,7 @@ export async function getAllHistories(): Promise<AggregationHistory[]> {
       const request = store.getAll();
 
       request.onsuccess = () => {
-        const histories = request.result.map((history) => ({
+        const histories = request.result.map(history => ({
           ...history,
           createdAt: new Date(history.createdAt),
           updatedAt: new Date(history.updatedAt),

@@ -47,7 +47,7 @@ import { OFFICIAL_STAFF_MEMBERS } from '../domain/staffMasterData';
 interface ReservationDetailDrawerProps {
   open: boolean;
   onClose: () => void;
-  record: FlatRecord | null;  // 初期表示用（reservationIdの取得に使用）
+  record: FlatRecord | null; // 初期表示用（reservationIdの取得に使用）
 }
 
 /**
@@ -79,12 +79,9 @@ function formatValue(field: string, value: unknown): string {
   return String(value);
 }
 
-export const ReservationDetailDrawer = ({
-  open,
-  onClose,
-  record: initialRecord,
-}: ReservationDetailDrawerProps) => {
-  const { histories, setExcluded, updateDetailStatus, assignStaffToOmakase, setIsImplementedManual, getAuditLogsByReservation } = useHistoryStore();
+export const ReservationDetailDrawer = ({ open, onClose, record: initialRecord }: ReservationDetailDrawerProps) => {
+  const { histories, setExcluded, updateDetailStatus, assignStaff, setIsImplementedManual, getAuditLogsByReservation } =
+    useHistoryStore();
   const [isUpdating, setIsUpdating] = useState(false);
   const [selectedStaff, setSelectedStaff] = useState<string>('');
 
@@ -92,7 +89,7 @@ export const ReservationDetailDrawer = ({
   const record = useMemo<FlatRecord | null>(() => {
     if (!initialRecord) return null;
     const history = histories.get(initialRecord.reservationId);
-    if (!history) return initialRecord;  // フォールバック
+    if (!history) return initialRecord; // フォールバック
     return historyToFlatRecord(history);
   }, [initialRecord, histories]);
 
@@ -127,18 +124,32 @@ export const ReservationDetailDrawer = ({
   );
 
   /**
-   * おまかせ予約への担当者割当
+   * 担当者割当（おまかせ以外も可能）
    */
   const handleAssignStaff = useCallback(async () => {
     if (!record || !selectedStaff) return;
     setIsUpdating(true);
     try {
-      await assignStaffToOmakase(record.reservationId, selectedStaff);
+      await assignStaff(record.reservationId, selectedStaff);
       setSelectedStaff('');
     } finally {
       setIsUpdating(false);
     }
-  }, [record, selectedStaff, assignStaffToOmakase]);
+  }, [record, selectedStaff, assignStaff]);
+
+  /**
+   * 担当者クリア
+   */
+  const handleClearStaff = useCallback(async () => {
+    if (!record) return;
+    setIsUpdating(true);
+    try {
+      await assignStaff(record.reservationId, null);
+      setSelectedStaff('');
+    } finally {
+      setIsUpdating(false);
+    }
+  }, [record, assignStaff]);
 
   /**
    * 実施状態の手動設定
@@ -203,10 +214,7 @@ export const ReservationDetailDrawer = ({
           {/* 基本情報セクション */}
           <Paper variant="outlined" sx={{ mb: 2 }}>
             <Box sx={{ p: 2, bgcolor: 'grey.50' }}>
-              <Typography
-                variant="subtitle2"
-                sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
-              >
+              <Typography variant="subtitle2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <PersonIcon fontSize="small" />
                 基本情報
               </Typography>
@@ -225,10 +233,7 @@ export const ReservationDetailDrawer = ({
                 <ListItemText
                   primary="友だちID"
                   secondary={
-                    <Typography
-                      variant="body2"
-                      sx={{ fontFamily: 'monospace', fontSize: '0.85rem' }}
-                    >
+                    <Typography variant="body2" sx={{ fontFamily: 'monospace', fontSize: '0.85rem' }}>
                       {record.friendId}
                     </Typography>
                   }
@@ -239,10 +244,7 @@ export const ReservationDetailDrawer = ({
                 <ListItemText
                   primary="予約ID"
                   secondary={
-                    <Typography
-                      variant="body2"
-                      sx={{ fontFamily: 'monospace', fontSize: '0.85rem' }}
-                    >
+                    <Typography variant="body2" sx={{ fontFamily: 'monospace', fontSize: '0.85rem' }}>
                       {record.reservationId || '-'}
                     </Typography>
                   }
@@ -254,17 +256,8 @@ export const ReservationDetailDrawer = ({
                   primary="担当者"
                   secondary={
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Typography variant="body1">
-                        {record.staff || '-'}
-                      </Typography>
-                      {record.wasOmakase && (
-                        <Chip
-                          label="おまかせ"
-                          size="small"
-                          color="warning"
-                          variant="outlined"
-                        />
-                      )}
+                      <Typography variant="body1">{record.staff || '-'}</Typography>
+                      {record.wasOmakase && <Chip label="おまかせ" size="small" color="warning" variant="outlined" />}
                     </Box>
                   }
                   primaryTypographyProps={{ variant: 'caption', color: 'text.secondary' }}
@@ -285,10 +278,7 @@ export const ReservationDetailDrawer = ({
                   <ListItemText
                     primary="予約枠"
                     secondary={
-                      <Typography
-                        variant="body2"
-                        sx={{ wordBreak: 'break-word' }}
-                      >
+                      <Typography variant="body2" sx={{ wordBreak: 'break-word' }}>
                         {record.reservationSlot}
                       </Typography>
                     }
@@ -299,83 +289,83 @@ export const ReservationDetailDrawer = ({
             </List>
           </Paper>
 
-          {/* おまかせ予約への担当者割当セクション */}
-          {record.wasOmakase && (
-            <Paper variant="outlined" sx={{ mb: 2, borderColor: 'warning.main' }}>
-              <Box sx={{ p: 2, bgcolor: 'warning.50' }}>
-                <Typography
-                  variant="subtitle2"
-                  sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
-                >
-                  <PersonAddIcon fontSize="small" />
-                  担当者の手動割当
-                </Typography>
-              </Box>
-              <Divider />
-              <Box sx={{ p: 2 }}>
-                <Alert severity="info" sx={{ mb: 2 }}>
-                  <Typography variant="body2">
-                    この予約は「おまかせ」で申し込まれました。
-                    担当者を手動で割り当てることができます。
-                  </Typography>
+          {/* 担当者割当セクション */}
+          <Paper
+            variant="outlined"
+            sx={{
+              mb: 2,
+              borderColor: !record.staff ? 'warning.main' : record.wasOmakase ? 'info.main' : 'divider',
+            }}
+          >
+            <Box sx={{ p: 2, bgcolor: !record.staff ? 'warning.50' : record.wasOmakase ? 'info.50' : 'grey.50' }}>
+              <Typography variant="subtitle2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <PersonAddIcon fontSize="small" />
+                担当者設定
+                {!record.staff && <Chip label="未割当" size="small" color="warning" />}
+                {record.wasOmakase && <Chip label="おまかせ" size="small" color="info" variant="outlined" />}
+              </Typography>
+            </Box>
+            <Divider />
+            <Box sx={{ p: 2 }}>
+              {!record.staff && (
+                <Alert severity="warning" sx={{ mb: 2 }}>
+                  <Typography variant="body2">担当者が未割当です。担当者を設定してください。</Typography>
                 </Alert>
+              )}
 
-                {record.staff ? (
-                  <Box sx={{ mb: 2 }}>
-                    <Typography variant="caption" color="text.secondary">
-                      現在の担当者
-                    </Typography>
-                    <Box sx={{ mt: 0.5 }}>
-                      <Chip
-                        label={record.staff}
-                        color="success"
-                        icon={<PersonIcon />}
-                      />
-                    </Box>
-                  </Box>
-                ) : (
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                    担当者が未割当です
+              {record.staff ? (
+                <Box sx={{ mb: 2 }}>
+                  <Typography variant="caption" color="text.secondary">
+                    現在の担当者
                   </Typography>
-                )}
+                  <Box sx={{ mt: 0.5, display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Chip label={record.staff} color="success" icon={<PersonIcon />} />
+                    <Button
+                      size="small"
+                      color="error"
+                      variant="outlined"
+                      onClick={handleClearStaff}
+                      disabled={isUpdating}
+                    >
+                      クリア
+                    </Button>
+                  </Box>
+                </Box>
+              ) : (
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                  担当者が未割当です
+                </Typography>
+              )}
 
-                <FormControl fullWidth size="small" sx={{ mb: 1 }}>
-                  <InputLabel>担当者を選択</InputLabel>
-                  <Select
-                    value={selectedStaff}
-                    label="担当者を選択"
-                    onChange={(e) => setSelectedStaff(e.target.value)}
-                  >
-                    {OFFICIAL_STAFF_MEMBERS.map((staff) => (
-                      <MenuItem key={staff} value={staff}>
-                        {staff}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
+              <FormControl fullWidth size="small" sx={{ mb: 1 }}>
+                <InputLabel>担当者を選択</InputLabel>
+                <Select value={selectedStaff} label="担当者を選択" onChange={e => setSelectedStaff(e.target.value)}>
+                  {OFFICIAL_STAFF_MEMBERS.map(staff => (
+                    <MenuItem key={staff} value={staff}>
+                      {staff}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
 
-                <Button
-                  variant="contained"
-                  color="warning"
-                  onClick={handleAssignStaff}
-                  disabled={isUpdating || !selectedStaff}
-                  startIcon={isUpdating ? <CircularProgress size={16} /> : <PersonAddIcon />}
-                  fullWidth
-                  size="small"
-                >
-                  {record.staff ? '担当者を変更' : '担当者を割当'}
-                </Button>
-              </Box>
-            </Paper>
-          )}
+              <Button
+                variant="contained"
+                color={!record.staff ? 'warning' : 'primary'}
+                onClick={handleAssignStaff}
+                disabled={isUpdating || !selectedStaff}
+                startIcon={isUpdating ? <CircularProgress size={16} /> : <PersonAddIcon />}
+                fullWidth
+                size="small"
+              >
+                {record.staff ? '担当者を変更' : '担当者を割当'}
+              </Button>
+            </Box>
+          </Paper>
 
           {/* 日付情報セクション */}
           <Paper variant="outlined" sx={{ mb: 2 }}>
             <Box sx={{ p: 2, bgcolor: 'grey.50' }}>
-              <Typography
-                variant="subtitle2"
-                sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
-              >
+              <Typography variant="subtitle2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <EventIcon fontSize="small" />
                 日付情報
               </Typography>
@@ -404,10 +394,7 @@ export const ReservationDetailDrawer = ({
           {/* ステータス情報セクション */}
           <Paper variant="outlined" sx={{ mb: 2 }}>
             <Box sx={{ p: 2, bgcolor: 'grey.50' }}>
-              <Typography
-                variant="subtitle2"
-                sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
-              >
+              <Typography variant="subtitle2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <AssignmentIcon fontSize="small" />
                 ステータス情報
               </Typography>
@@ -419,13 +406,7 @@ export const ReservationDetailDrawer = ({
                   primary="予約ステータス"
                   secondary={
                     <Chip
-                      icon={
-                        record.status === '予約済み' ? (
-                          <CheckCircleIcon />
-                        ) : (
-                          <CancelIcon />
-                        )
-                      }
+                      icon={record.status === '予約済み' ? <CheckCircleIcon /> : <CancelIcon />}
                       label={record.status}
                       size="small"
                       color={record.status === '予約済み' ? 'primary' : 'error'}
@@ -480,10 +461,7 @@ export const ReservationDetailDrawer = ({
           {record.isImplemented && (
             <Paper variant="outlined" sx={{ mb: 2 }}>
               <Box sx={{ p: 2, bgcolor: 'success.50' }}>
-                <Typography
-                  variant="subtitle2"
-                  sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
-                >
+                <Typography variant="subtitle2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <CheckCircleIcon fontSize="small" color="success" />
                   来店回数情報
                 </Typography>
@@ -509,11 +487,7 @@ export const ReservationDetailDrawer = ({
                         label={record.visitLabel}
                         size="medium"
                         color={
-                          record.visitLabel === '初回'
-                            ? 'success'
-                            : record.visitLabel === '2回目'
-                            ? 'info'
-                            : 'default'
+                          record.visitLabel === '初回' ? 'success' : record.visitLabel === '2回目' ? 'info' : 'default'
                         }
                       />
                     }
@@ -527,10 +501,7 @@ export const ReservationDetailDrawer = ({
           {/* 詳細ステータス変更セクション */}
           <Paper variant="outlined" sx={{ mb: 2 }}>
             <Box sx={{ p: 2, bgcolor: 'info.50' }}>
-              <Typography
-                variant="subtitle2"
-                sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
-              >
+              <Typography variant="subtitle2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <SwapHorizIcon fontSize="small" />
                 実施判定の手動変更
               </Typography>
@@ -539,8 +510,7 @@ export const ReservationDetailDrawer = ({
             <Box sx={{ p: 2 }}>
               <Alert severity="info" sx={{ mb: 2 }}>
                 <Typography variant="body2">
-                  前日/当日キャンセルを設定すると「実施」扱いになります。
-                  変更は監査ログに記録されます。
+                  前日/当日キャンセルを設定すると「実施」扱いになります。 変更は監査ログに記録されます。
                 </Typography>
               </Alert>
 
@@ -557,8 +527,8 @@ export const ReservationDetailDrawer = ({
                       record.detailStatus === '前日キャンセル'
                         ? 'warning'
                         : record.detailStatus === '当日キャンセル'
-                        ? 'error'
-                        : 'default'
+                          ? 'error'
+                          : 'default'
                     }
                     variant={record.detailStatus ? 'filled' : 'outlined'}
                   />
@@ -619,17 +589,11 @@ export const ReservationDetailDrawer = ({
                       isImplementedManual === null
                         ? '自動判定'
                         : isImplementedManual
-                        ? '実施（手動設定）'
-                        : '未実施（手動設定）'
+                          ? '実施（手動設定）'
+                          : '未実施（手動設定）'
                     }
                     size="small"
-                    color={
-                      isImplementedManual === null
-                        ? 'default'
-                        : isImplementedManual
-                        ? 'success'
-                        : 'error'
-                    }
+                    color={isImplementedManual === null ? 'default' : isImplementedManual ? 'success' : 'error'}
                     variant={isImplementedManual === null ? 'outlined' : 'filled'}
                   />
                 </Box>
@@ -685,10 +649,7 @@ export const ReservationDetailDrawer = ({
                 bgcolor: record.isExcluded ? 'warning.50' : 'grey.50',
               }}
             >
-              <Typography
-                variant="subtitle2"
-                sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
-              >
+              <Typography variant="subtitle2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <BlockIcon fontSize="small" />
                 集計設定
               </Typography>
@@ -696,18 +657,10 @@ export const ReservationDetailDrawer = ({
             <Divider />
             <Box sx={{ p: 2 }}>
               <FormControlLabel
-                control={
-                  <Switch
-                    checked={record.isExcluded}
-                    onChange={handleExcludedChange}
-                    color="warning"
-                  />
-                }
+                control={<Switch checked={record.isExcluded} onChange={handleExcludedChange} color="warning" />}
                 label={
                   <Box>
-                    <Typography variant="body2">
-                      この予約を集計から除外する
-                    </Typography>
+                    <Typography variant="body2">この予約を集計から除外する</Typography>
                     <Typography variant="caption" color="text.secondary">
                       ONにすると、集計結果に含まれなくなります
                     </Typography>
@@ -716,13 +669,7 @@ export const ReservationDetailDrawer = ({
                 sx={{ alignItems: 'flex-start', ml: 0 }}
               />
               {record.isExcluded && (
-                <Chip
-                  icon={<BlockIcon />}
-                  label="現在除外中"
-                  color="warning"
-                  size="small"
-                  sx={{ mt: 1 }}
-                />
+                <Chip icon={<BlockIcon />} label="現在除外中" color="warning" size="small" sx={{ mt: 1 }} />
               )}
             </Box>
           </Paper>
@@ -731,10 +678,7 @@ export const ReservationDetailDrawer = ({
           {auditLogs.length > 0 && (
             <Paper variant="outlined" sx={{ mb: 2 }}>
               <Box sx={{ p: 2, bgcolor: 'grey.50' }}>
-                <Typography
-                  variant="subtitle2"
-                  sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
-                >
+                <Typography variant="subtitle2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <HistoryIcon fontSize="small" />
                   変更履歴
                   <Chip label={auditLogs.length} size="small" color="primary" />

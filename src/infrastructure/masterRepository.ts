@@ -3,10 +3,7 @@
  * IndexedDB入出力（2系統ストア: フル履歴マスター / 実施マスター）
  */
 
-import type {
-  FullHistoryMaster,
-  ImplementationMaster,
-} from '../domain/masterTypes';
+import type { FullHistoryMaster, ImplementationMaster } from '../domain/masterTypes';
 
 const DB_NAME = 'lstep-aggregation-db';
 const DB_VERSION = 3; // バージョン3に変更（2系統ストア対応）
@@ -34,21 +31,17 @@ async function openDatabase(): Promise<IDBDatabase> {
 
     const request = indexedDB.open(DB_NAME, DB_VERSION);
 
-    request.onerror = (event) => {
+    request.onerror = event => {
       console.error('[openDatabase] IndexedDB open error:', request.error);
       console.error('[openDatabase] Error event:', event);
-      reject(
-        new Error(
-          `IndexedDBを開けませんでした: ${request.error?.message || '不明なエラー'}`
-        )
-      );
+      reject(new Error(`IndexedDBを開けませんでした: ${request.error?.message || '不明なエラー'}`));
     };
 
     request.onsuccess = () => {
       resolve(request.result);
     };
 
-    request.onupgradeneeded = (event) => {
+    request.onupgradeneeded = event => {
       const db = (event.target as IDBOpenDBRequest).result;
 
       // フル履歴マスターストア
@@ -81,9 +74,7 @@ async function openDatabase(): Promise<IDBDatabase> {
 /**
  * IndexedDBから取得したデータのDate型を復元
  */
-function restoreDates<T extends { createdAt: Date | string; updatedAt: Date | string }>(
-  record: T
-): T {
+function restoreDates<T extends { createdAt: Date | string; updatedAt: Date | string }>(record: T): T {
   return {
     ...record,
     createdAt: new Date(record.createdAt),
@@ -97,9 +88,7 @@ function restoreDates<T extends { createdAt: Date | string; updatedAt: Date | st
 function restoreFullHistoryMaster(record: FullHistoryMaster): FullHistoryMaster {
   return {
     ...restoreDates(record),
-    lastImplementationDate: record.lastImplementationDate
-      ? new Date(record.lastImplementationDate)
-      : null,
+    lastImplementationDate: record.lastImplementationDate ? new Date(record.lastImplementationDate) : null,
     records: record.records.map(r => ({
       ...r,
       date: new Date(r.date),
@@ -113,9 +102,7 @@ function restoreFullHistoryMaster(record: FullHistoryMaster): FullHistoryMaster 
 function restoreImplementationMaster(record: ImplementationMaster): ImplementationMaster {
   return {
     ...restoreDates(record),
-    lastImplementationDate: record.lastImplementationDate
-      ? new Date(record.lastImplementationDate)
-      : null,
+    lastImplementationDate: record.lastImplementationDate ? new Date(record.lastImplementationDate) : null,
     records: record.records.map(r => ({
       ...r,
       date: new Date(r.date),
@@ -140,7 +127,7 @@ export async function getAllFullHistoryMasters(): Promise<Map<string, FullHistor
     return new Promise((resolve, reject) => {
       request.onsuccess = () => {
         const data = new Map<string, FullHistoryMaster>();
-        (request.result as FullHistoryMaster[]).forEach((record) => {
+        (request.result as FullHistoryMaster[]).forEach(record => {
           data.set(record.friendId, restoreFullHistoryMaster(record));
         });
         resolve(data);
@@ -159,9 +146,7 @@ export async function getAllFullHistoryMasters(): Promise<Map<string, FullHistor
 /**
  * フル履歴マスターを一括保存
  */
-export async function saveFullHistoryMastersBatch(
-  masters: Map<string, FullHistoryMaster>
-): Promise<void> {
+export async function saveFullHistoryMastersBatch(masters: Map<string, FullHistoryMaster>): Promise<void> {
   if (masters.size === 0) return;
 
   try {
@@ -244,7 +229,7 @@ export async function getAllImplementationMasters(): Promise<Map<string, Impleme
     return new Promise((resolve, reject) => {
       request.onsuccess = () => {
         const data = new Map<string, ImplementationMaster>();
-        (request.result as ImplementationMaster[]).forEach((record) => {
+        (request.result as ImplementationMaster[]).forEach(record => {
           data.set(record.friendId, restoreImplementationMaster(record));
         });
         resolve(data);
@@ -263,9 +248,7 @@ export async function getAllImplementationMasters(): Promise<Map<string, Impleme
 /**
  * 実施マスターを一括保存
  */
-export async function saveImplementationMastersBatch(
-  masters: Map<string, ImplementationMaster>
-): Promise<void> {
+export async function saveImplementationMastersBatch(masters: Map<string, ImplementationMaster>): Promise<void> {
   if (masters.size === 0) return;
 
   try {

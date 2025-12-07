@@ -40,7 +40,7 @@ export const StaffTable = () => {
     () => [
       columnHelper.accessor('staffName', {
         header: '相談員名',
-        cell: (info) => (
+        cell: info => (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <PersonIcon fontSize="small" color="action" />
             <Typography variant="body2" fontWeight="medium">
@@ -51,25 +51,19 @@ export const StaffTable = () => {
       }),
       columnHelper.accessor('applications', {
         header: '申込数',
-        cell: (info) => (
-          <Chip label={info.getValue()} color="primary" size="small" variant="outlined" />
-        ),
+        cell: info => <Chip label={info.getValue()} color="primary" size="small" variant="outlined" />,
       }),
       columnHelper.accessor('implementations', {
         header: '実施数',
-        cell: (info) => (
-          <Chip label={info.getValue()} color="success" size="small" variant="outlined" />
-        ),
+        cell: info => <Chip label={info.getValue()} color="success" size="small" variant="outlined" />,
       }),
       columnHelper.accessor('cancellations', {
         header: 'キャンセル数',
-        cell: (info) => (
-          <Chip label={info.getValue()} color="error" size="small" variant="outlined" />
-        ),
+        cell: info => <Chip label={info.getValue()} color="error" size="small" variant="outlined" />,
       }),
       columnHelper.accessor('implementationRate', {
         header: '実施率',
-        cell: (info) => (
+        cell: info => (
           <Typography variant="body2" fontWeight="bold" color="primary">
             {info.getValue().toFixed(1)}%
           </Typography>
@@ -77,7 +71,7 @@ export const StaffTable = () => {
       }),
       columnHelper.accessor('firstTimeCount', {
         header: '初回',
-        cell: (info) => (
+        cell: info => (
           <Typography variant="body2" color="text.secondary">
             {info.getValue()}
           </Typography>
@@ -85,7 +79,7 @@ export const StaffTable = () => {
       }),
       columnHelper.accessor('repeatCount', {
         header: '2回目以降',
-        cell: (info) => (
+        cell: info => (
           <Typography variant="body2" color="text.secondary">
             {info.getValue()}
           </Typography>
@@ -122,9 +116,9 @@ export const StaffTable = () => {
           <TableContainer component={Paper} variant="outlined">
             <Table size="small">
               <TableHead>
-                {table.getHeaderGroups().map((headerGroup) => (
+                {table.getHeaderGroups().map(headerGroup => (
                   <TableRow key={headerGroup.id}>
-                    {headerGroup.headers.map((header) => (
+                    {headerGroup.headers.map(header => (
                       <TableCell
                         key={header.id}
                         sx={{
@@ -147,12 +141,10 @@ export const StaffTable = () => {
                 ))}
               </TableHead>
               <TableBody>
-                {table.getRowModel().rows.map((row) => (
+                {table.getRowModel().rows.map(row => (
                   <TableRow key={row.id} hover>
-                    {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id}>
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </TableCell>
+                    {row.getVisibleCells().map(cell => (
+                      <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
                     ))}
                   </TableRow>
                 ))}

@@ -58,11 +58,7 @@ interface ReservationEditDrawerProps {
 // コンポーネント
 // ============================================================================
 
-export function ReservationEditDrawer({
-  open,
-  onClose,
-  reservationId,
-}: ReservationEditDrawerProps) {
+export function ReservationEditDrawer({ open, onClose, reservationId }: ReservationEditDrawerProps) {
   const {
     getHistory,
     histories,
@@ -104,7 +100,7 @@ export function ReservationEditDrawer({
         // 同日の予約を検索
         const sameDayDate = formatDate(history.sessionDate);
         const sameDayList = Array.from(histories.values()).filter(
-          (h) =>
+          h =>
             h.friendId === history.friendId &&
             formatDate(h.sessionDate) === sameDayDate &&
             h.reservationId !== reservationId
@@ -225,23 +221,35 @@ export function ReservationEditDrawer({
                 </Typography>
                 <Stack spacing={1}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Typography variant="body2" color="text.secondary">予約ID</Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      予約ID
+                    </Typography>
                     <Typography variant="body2">{reservation.reservationId}</Typography>
                   </Box>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Typography variant="body2" color="text.secondary">名前</Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      名前
+                    </Typography>
                     <Typography variant="body2">{reservation.name}</Typography>
                   </Box>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Typography variant="body2" color="text.secondary">友だちID</Typography>
-                    <Typography variant="body2" sx={{ fontSize: '0.75rem' }}>{reservation.friendId}</Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      友だちID
+                    </Typography>
+                    <Typography variant="body2" sx={{ fontSize: '0.75rem' }}>
+                      {reservation.friendId}
+                    </Typography>
                   </Box>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Typography variant="body2" color="text.secondary">実施日</Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      実施日
+                    </Typography>
                     <Typography variant="body2">{formatDate(reservation.sessionDate)}</Typography>
                   </Box>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Typography variant="body2" color="text.secondary">申込日時</Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      申込日時
+                    </Typography>
                     <Typography variant="body2">{formatDateTime(reservation.applicationDate)}</Typography>
                   </Box>
                 </Stack>
@@ -271,18 +279,10 @@ export function ReservationEditDrawer({
                     size="small"
                     icon={reservation.isImplemented ? <CheckCircleIcon /> : <CancelIcon />}
                   />
-                  {reservation.wasOmakase && (
-                    <Chip label="おまかせ" color="info" size="small" />
-                  )}
-                  {reservation.detailStatus && (
-                    <Chip label={reservation.detailStatus} color="error" size="small" />
-                  )}
-                  {reservation.groupId && (
-                    <Chip label="統合済み" color="secondary" size="small" icon={<MergeIcon />} />
-                  )}
-                  {reservation.isExcluded && (
-                    <Chip label="除外" color="default" size="small" variant="outlined" />
-                  )}
+                  {reservation.wasOmakase && <Chip label="おまかせ" color="info" size="small" />}
+                  {reservation.detailStatus && <Chip label={reservation.detailStatus} color="error" size="small" />}
+                  {reservation.groupId && <Chip label="統合済み" color="secondary" size="small" icon={<MergeIcon />} />}
+                  {reservation.isExcluded && <Chip label="除外" color="default" size="small" variant="outlined" />}
                 </Stack>
 
                 {/* 来店回数 */}
@@ -318,15 +318,11 @@ export function ReservationEditDrawer({
                   <Stack direction="row" spacing={1} alignItems="flex-end">
                     <FormControl size="small" sx={{ minWidth: 200 }}>
                       <InputLabel>担当者</InputLabel>
-                      <Select
-                        value={selectedStaff}
-                        label="担当者"
-                        onChange={(e) => setSelectedStaff(e.target.value)}
-                      >
+                      <Select value={selectedStaff} label="担当者" onChange={e => setSelectedStaff(e.target.value)}>
                         <MenuItem value="">
                           <em>未選択</em>
                         </MenuItem>
-                        {activeStaffList.map((staff) => (
+                        {activeStaffList.map(staff => (
                           <MenuItem key={staff.staffId} value={staff.staffName}>
                             {staff.staffName}
                           </MenuItem>
@@ -366,7 +362,7 @@ export function ReservationEditDrawer({
                     <Select
                       value={selectedDetailStatus}
                       label="詳細ステータス"
-                      onChange={(e) => setSelectedDetailStatus(e.target.value)}
+                      onChange={e => setSelectedDetailStatus(e.target.value)}
                     >
                       <MenuItem value="">通常</MenuItem>
                       <MenuItem value="前日キャンセル">前日キャンセル</MenuItem>
@@ -417,7 +413,7 @@ export function ReservationEditDrawer({
                     同日の別予約と統合して1件としてカウントします
                   </Typography>
                   <List dense>
-                    {sameDayReservations.map((r) => (
+                    {sameDayReservations.map(r => (
                       <ListItem
                         key={r.reservationId}
                         secondaryAction={
@@ -432,10 +428,7 @@ export function ReservationEditDrawer({
                           </Tooltip>
                         }
                       >
-                        <ListItemText
-                          primary={r.reservationId}
-                          secondary={`${r.status} / ${r.visitStatus}`}
-                        />
+                        <ListItemText primary={r.reservationId} secondary={`${r.status} / ${r.visitStatus}`} />
                       </ListItem>
                     ))}
                   </List>
@@ -449,11 +442,7 @@ export function ReservationEditDrawer({
                 <Typography variant="body2" sx={{ mb: 1 }}>
                   この予約は統合されています (ID: {reservation.groupId})
                 </Typography>
-                <Button
-                  size="small"
-                  variant="outlined"
-                  onClick={handleUnmerge}
-                >
+                <Button size="small" variant="outlined" onClick={handleUnmerge}>
                   統合を解除
                 </Button>
               </Alert>
@@ -473,7 +462,7 @@ export function ReservationEditDrawer({
               </Typography>
             ) : (
               <List dense>
-                {auditLogs.map((log) => (
+                {auditLogs.map(log => (
                   <ListItem key={log.id} sx={{ py: 0.5 }}>
                     <ListItemText
                       primary={

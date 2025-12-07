@@ -4,16 +4,7 @@
  */
 import { useEffect } from 'react';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
-import {
-  CssBaseline,
-  AppBar,
-  Toolbar,
-  Typography,
-  Container,
-  Box,
-  Button,
-  Divider,
-} from '@mui/material';
+import { CssBaseline, AppBar, Toolbar, Typography, Container, Box, Button, Divider } from '@mui/material';
 import { Download as DownloadIcon, Assessment as AssessmentIcon } from '@mui/icons-material';
 import { CsvUploader } from './components/CsvUploader';
 import { MonthSelector } from './components/MonthSelector';
@@ -192,7 +183,7 @@ function App() {
             py: 3,
             px: 2,
             mt: 'auto',
-            backgroundColor: (theme) =>
+            backgroundColor: theme =>
               theme.palette.mode === 'light' ? theme.palette.grey[200] : theme.palette.grey[800],
           }}
         >

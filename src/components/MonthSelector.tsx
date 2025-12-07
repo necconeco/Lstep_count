@@ -31,9 +31,9 @@ export const MonthSelector = () => {
             id="month-selector"
             value={selectedMonth || ''}
             label="対象月"
-            onChange={(e) => setSelectedMonth(e.target.value || null)}
+            onChange={e => setSelectedMonth(e.target.value || null)}
           >
-            {availableMonths.map((month) => (
+            {availableMonths.map(month => (
               <MenuItem key={month} value={month}>
                 {month}
               </MenuItem>
@@ -42,12 +42,7 @@ export const MonthSelector = () => {
         </FormControl>
 
         {selectedMonth && (
-          <Chip
-            label={`${selectedMonth}のデータを表示中`}
-            color="primary"
-            variant="outlined"
-            sx={{ ml: 1 }}
-          />
+          <Chip label={`${selectedMonth}のデータを表示中`} color="primary" variant="outlined" sx={{ ml: 1 }} />
         )}
       </Box>
 

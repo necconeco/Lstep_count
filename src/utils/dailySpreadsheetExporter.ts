@@ -27,7 +27,7 @@ export function generateDailySpreadsheetData(
   const dailyMap = new Map<string, DailySpreadsheetRow>();
 
   // 各レコードを日付ごとに集計
-  csvData.forEach((record) => {
+  csvData.forEach(record => {
     const date = record.予約日;
     const visitType = getVisitType(record.友だちID, masterData);
     const implemented = isImplemented(record);
@@ -64,23 +64,17 @@ export function generateDailySpreadsheetData(
   });
 
   // 各日の割合を計算
-  const dailyResults = Array.from(dailyMap.values()).map((daily) => {
+  const dailyResults = Array.from(dailyMap.values()).map(daily => {
     const totalReservations = daily.firstTimeReservations + daily.repeatReservations;
 
     return {
       ...daily,
-      firstTimeReservationRate:
-        totalReservations > 0 ? (daily.firstTimeReservations / totalReservations) * 100 : 0,
+      firstTimeReservationRate: totalReservations > 0 ? (daily.firstTimeReservations / totalReservations) * 100 : 0,
       firstTimeImplementationRate:
-        daily.firstTimeReservations > 0
-          ? (daily.firstTimeImplementations / daily.firstTimeReservations) * 100
-          : 0,
-      repeatReservationRate:
-        totalReservations > 0 ? (daily.repeatReservations / totalReservations) * 100 : 0,
+        daily.firstTimeReservations > 0 ? (daily.firstTimeImplementations / daily.firstTimeReservations) * 100 : 0,
+      repeatReservationRate: totalReservations > 0 ? (daily.repeatReservations / totalReservations) * 100 : 0,
       repeatImplementationRate:
-        daily.repeatReservations > 0
-          ? (daily.repeatImplementations / daily.repeatReservations) * 100
-          : 0,
+        daily.repeatReservations > 0 ? (daily.repeatImplementations / daily.repeatReservations) * 100 : 0,
     };
   });
 
@@ -92,39 +86,24 @@ export function generateDailySpreadsheetData(
  * TTL（合計）行を生成
  */
 function generateTTLRow(dailyData: DailySpreadsheetRow[]): DailySpreadsheetRow {
-  const totalFirstTimeReservations = dailyData.reduce(
-    (sum, row) => sum + row.firstTimeReservations,
-    0
-  );
-  const totalFirstTimeImplementations = dailyData.reduce(
-    (sum, row) => sum + row.firstTimeImplementations,
-    0
-  );
+  const totalFirstTimeReservations = dailyData.reduce((sum, row) => sum + row.firstTimeReservations, 0);
+  const totalFirstTimeImplementations = dailyData.reduce((sum, row) => sum + row.firstTimeImplementations, 0);
   const totalRepeatReservations = dailyData.reduce((sum, row) => sum + row.repeatReservations, 0);
-  const totalRepeatImplementations = dailyData.reduce(
-    (sum, row) => sum + row.repeatImplementations,
-    0
-  );
+  const totalRepeatImplementations = dailyData.reduce((sum, row) => sum + row.repeatImplementations, 0);
   const totalReservations = totalFirstTimeReservations + totalRepeatReservations;
 
   return {
     date: 'TTL',
     firstTimeReservations: totalFirstTimeReservations,
-    firstTimeReservationRate:
-      totalReservations > 0 ? (totalFirstTimeReservations / totalReservations) * 100 : 0,
+    firstTimeReservationRate: totalReservations > 0 ? (totalFirstTimeReservations / totalReservations) * 100 : 0,
     firstTimeImplementations: totalFirstTimeImplementations,
     firstTimeImplementationRate:
-      totalFirstTimeReservations > 0
-        ? (totalFirstTimeImplementations / totalFirstTimeReservations) * 100
-        : 0,
+      totalFirstTimeReservations > 0 ? (totalFirstTimeImplementations / totalFirstTimeReservations) * 100 : 0,
     repeatReservations: totalRepeatReservations,
-    repeatReservationRate:
-      totalReservations > 0 ? (totalRepeatReservations / totalReservations) * 100 : 0,
+    repeatReservationRate: totalReservations > 0 ? (totalRepeatReservations / totalReservations) * 100 : 0,
     repeatImplementations: totalRepeatImplementations,
     repeatImplementationRate:
-      totalRepeatReservations > 0
-        ? (totalRepeatImplementations / totalRepeatReservations) * 100
-        : 0,
+      totalRepeatReservations > 0 ? (totalRepeatImplementations / totalRepeatReservations) * 100 : 0,
   };
 }
 
@@ -158,7 +137,7 @@ export function exportDailySpreadsheetCSV(
   const headerRow = headers.join(',');
 
   // データ行（日付列 + AB〜AM列の8列 = 計9列）
-  const dataRows = allRows.map((row) => {
+  const dataRows = allRows.map(row => {
     return [
       row.date,
       row.firstTimeReservations,

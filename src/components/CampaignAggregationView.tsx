@@ -1,9 +1,9 @@
 /**
- * キャンペーン別集計ビューコンポーネント
+ * 期間サマリービューコンポーネント
  *
- * - キャンペーンを選択して集計を表示
- * - キャンペーンのマスターデータ（期間・日付タイプ）に基づいてフィルタリング
- * - 新規キャンペーン追加・編集・削除
+ * - 分析期間を選択して集計を表示
+ * - 期間マスターデータ（期間・日付タイプ）に基づいてフィルタリング
+ * - 新規期間追加・編集・削除
  */
 import { useState, useMemo, useCallback } from 'react';
 import {
@@ -35,7 +35,7 @@ import {
   Divider,
 } from '@mui/material';
 import {
-  Campaign as CampaignIcon,
+  DateRange as PeriodSummaryIcon,
   Add as AddIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
@@ -96,7 +96,7 @@ interface CampaignSummary {
   // 初回→2回目のCVR（期間内で初回を実施したユーザーのうち、2回目も実施した人の割合）
   firstToSecondCVR: number;
   // 初回→2回目のCVR計算用内訳
-  firstTimeUserCount: number;          // 期間内で初回を実施したユニークユーザー数
+  firstTimeUserCount: number; // 期間内で初回を実施したユニークユーザー数
   firstTimeUserWithSecondCount: number; // そのうち2回目も実施したユーザー数
 }
 
@@ -113,13 +113,13 @@ interface CampaignFormData {
  * 日別集計データ
  */
 interface DailyData {
-  date: string;           // YYYY-MM-DD
-  dateLabel: string;      // MM/DD表示用
+  date: string; // YYYY-MM-DD
+  dateLabel: string; // MM/DD表示用
   total: number;
   implemented: number;
   cancelled: number;
   firstVisit: number;
-  repeat: number;         // 2回目 + 3回目以降
+  repeat: number; // 2回目 + 3回目以降
 }
 
 /**
@@ -136,7 +136,7 @@ interface StaffPerformance {
   secondVisitCount: number;
   implementationRate: number;
   cancelRate: number;
-  lateCancelRate: number;   // 前日+当日キャンセル率
+  lateCancelRate: number; // 前日+当日キャンセル率
   firstToSecondCVR: number;
   firstTimeUserCount: number;
   firstTimeUserWithSecondCount: number;
@@ -146,8 +146,8 @@ interface StaffPerformance {
  * 時間帯別データ（ヒートマップ用）
  */
 interface HourlyData {
-  hour: number;       // 0-23
-  hourLabel: string;  // "9:00" など
+  hour: number; // 0-23
+  hourLabel: string; // "9:00" など
   total: number;
   implemented: number;
   cancelled: number;
@@ -158,8 +158,8 @@ interface HourlyData {
  * 曜日別データ
  */
 interface DayOfWeekData {
-  dayIndex: number;       // 0=日曜, 1=月曜, ... 6=土曜
-  dayName: string;        // "日", "月", ... "土"
+  dayIndex: number; // 0=日曜, 1=月曜, ... 6=土曜
+  dayName: string; // "日", "月", ... "土"
   total: number;
   implemented: number;
   cancelled: number;
@@ -230,9 +230,7 @@ function filterRecordsForCampaign(
     // 除外フラグがtrueのレコードは集計から除外
     if (history.isExcluded) continue;
 
-    const targetDate = campaign.targetDateType === 'application'
-      ? history.applicationDate
-      : history.sessionDate;
+    const targetDate = campaign.targetDateType === 'application' ? history.applicationDate : history.sessionDate;
 
     if (targetDate >= campaign.targetPeriodFrom && targetDate <= periodToEnd) {
       results.push(history);
@@ -297,15 +295,9 @@ function calculateCampaignSummary(
   }
 
   const totalCount = records.length;
-  const implementationRate = totalCount > 0
-    ? Math.round((implementedCount / totalCount) * 1000) / 10
-    : 0;
-  const firstVisitRate = implementedCount > 0
-    ? Math.round((firstVisitCount / implementedCount) * 1000) / 10
-    : 0;
-  const thirdPlusRate = implementedCount > 0
-    ? Math.round((thirdPlusVisitCount / implementedCount) * 1000) / 10
-    : 0;
+  const implementationRate = totalCount > 0 ? Math.round((implementedCount / totalCount) * 1000) / 10 : 0;
+  const firstVisitRate = implementedCount > 0 ? Math.round((firstVisitCount / implementedCount) * 1000) / 10 : 0;
+  const thirdPlusRate = implementedCount > 0 ? Math.round((thirdPlusVisitCount / implementedCount) * 1000) / 10 : 0;
 
   // 初回→2回目CVR
   // 期間内で初回を実施し、かつ2回目以上も実施したユーザー数
@@ -315,9 +307,8 @@ function calculateCampaignSummary(
       firstTimeUserWithSecondCount++;
     }
   }
-  const firstToSecondCVR = firstTimeUsers.size > 0
-    ? Math.round((firstTimeUserWithSecondCount / firstTimeUsers.size) * 1000) / 10
-    : 0;
+  const firstToSecondCVR =
+    firstTimeUsers.size > 0 ? Math.round((firstTimeUserWithSecondCount / firstTimeUsers.size) * 1000) / 10 : 0;
 
   return {
     totalCount,
@@ -350,9 +341,7 @@ function calculateDailyData(
   const dailyMap = new Map<string, DailyData>();
 
   for (const record of records) {
-    const targetDate = dateType === 'application'
-      ? record.applicationDate
-      : record.sessionDate;
+    const targetDate = dateType === 'application' ? record.applicationDate : record.sessionDate;
 
     const dateStr = formatDateForInput(targetDate);
     const dateLabel = `${targetDate.getMonth() + 1}/${targetDate.getDate()}`;
@@ -396,17 +385,20 @@ function calculateStaffPerformance(
   records: ReservationHistory[],
   implementationRule: ImplementationRule = 'includeLateCancel'
 ): StaffPerformance[] {
-  const staffMap = new Map<string, {
-    totalCount: number;
-    implementedCount: number;
-    cancelCount: number;
-    previousDayCancelCount: number;
-    sameDayCancelCount: number;
-    firstVisitCount: number;
-    secondVisitCount: number;
-    firstTimeUsers: Set<string>;
-    secondOrMoreUsers: Set<string>;
-  }>();
+  const staffMap = new Map<
+    string,
+    {
+      totalCount: number;
+      implementedCount: number;
+      cancelCount: number;
+      previousDayCancelCount: number;
+      sameDayCancelCount: number;
+      firstVisitCount: number;
+      secondVisitCount: number;
+      firstTimeUsers: Set<string>;
+      secondOrMoreUsers: Set<string>;
+    }
+  >();
 
   for (const record of records) {
     const staffName = record.staff || '(未割当)';
@@ -453,15 +445,13 @@ function calculateStaffPerformance(
   const results: StaffPerformance[] = [];
 
   for (const [staffName, data] of staffMap) {
-    const implementationRate = data.totalCount > 0
-      ? Math.round((data.implementedCount / data.totalCount) * 1000) / 10
-      : 0;
-    const cancelRate = data.totalCount > 0
-      ? Math.round((data.cancelCount / data.totalCount) * 1000) / 10
-      : 0;
-    const lateCancelRate = data.totalCount > 0
-      ? Math.round(((data.previousDayCancelCount + data.sameDayCancelCount) / data.totalCount) * 1000) / 10
-      : 0;
+    const implementationRate =
+      data.totalCount > 0 ? Math.round((data.implementedCount / data.totalCount) * 1000) / 10 : 0;
+    const cancelRate = data.totalCount > 0 ? Math.round((data.cancelCount / data.totalCount) * 1000) / 10 : 0;
+    const lateCancelRate =
+      data.totalCount > 0
+        ? Math.round(((data.previousDayCancelCount + data.sameDayCancelCount) / data.totalCount) * 1000) / 10
+        : 0;
 
     // 初回→2回目CVR
     let firstTimeUserWithSecondCount = 0;
@@ -470,9 +460,10 @@ function calculateStaffPerformance(
         firstTimeUserWithSecondCount++;
       }
     }
-    const firstToSecondCVR = data.firstTimeUsers.size > 0
-      ? Math.round((firstTimeUserWithSecondCount / data.firstTimeUsers.size) * 1000) / 10
-      : 0;
+    const firstToSecondCVR =
+      data.firstTimeUsers.size > 0
+        ? Math.round((firstTimeUserWithSecondCount / data.firstTimeUsers.size) * 1000) / 10
+        : 0;
 
     results.push({
       staffName,
@@ -536,9 +527,7 @@ function calculateHourlyData(
       total: data.total,
       implemented: data.implemented,
       cancelled: data.cancelled,
-      implementationRate: data.total > 0
-        ? Math.round((data.implemented / data.total) * 1000) / 10
-        : 0,
+      implementationRate: data.total > 0 ? Math.round((data.implemented / data.total) * 1000) / 10 : 0,
     });
   }
 
@@ -581,9 +570,7 @@ function calculateDayOfWeekData(
       total: data.total,
       implemented: data.implemented,
       cancelled: data.cancelled,
-      implementationRate: data.total > 0
-        ? Math.round((data.implemented / data.total) * 1000) / 10
-        : 0,
+      implementationRate: data.total > 0 ? Math.round((data.implemented / data.total) * 1000) / 10 : 0,
     });
   }
 
@@ -593,9 +580,7 @@ function calculateDayOfWeekData(
 /**
  * 曜日×時間帯のヒートマップデータを計算
  */
-function calculateHeatmapData(
-  records: ReservationHistory[]
-): HeatmapCell[] {
+function calculateHeatmapData(records: ReservationHistory[]): HeatmapCell[] {
   // 曜日(0-6) × 時間帯(0-23) のマップ
   const heatmap: Map<string, { count: number; implemented: number }> = new Map();
 
@@ -638,7 +623,7 @@ function calculateHeatmapData(
 }
 
 // ============================================================================
-// キャンペーン追加・編集ダイアログ
+// 期間追加・編集ダイアログ
 // ============================================================================
 
 interface CampaignDialogProps {
@@ -649,13 +634,7 @@ interface CampaignDialogProps {
   mode: 'add' | 'edit';
 }
 
-const CampaignDialog = ({
-  open,
-  onClose,
-  onSave,
-  initialData,
-  mode,
-}: CampaignDialogProps) => {
+const CampaignDialog = ({ open, onClose, onSave, initialData, mode }: CampaignDialogProps) => {
   const [formData, setFormData] = useState<CampaignFormData>(() => {
     if (initialData) {
       return {
@@ -684,7 +663,7 @@ const CampaignDialog = ({
 
   const handleSave = async () => {
     if (!formData.campaignName.trim()) {
-      alert('キャンペーン名を入力してください');
+      alert('期間名を入力してください');
       return;
     }
     if (!formData.targetPeriodFrom || !formData.targetPeriodTo) {
@@ -697,7 +676,7 @@ const CampaignDialog = ({
       await onSave(formData);
       onClose();
     } catch (error) {
-      console.error('キャンペーン保存エラー:', error);
+      console.error('期間設定保存エラー:', error);
       alert('保存に失敗しました');
     } finally {
       setSaving(false);
@@ -706,28 +685,26 @@ const CampaignDialog = ({
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle>
-        {mode === 'add' ? 'キャンペーン追加' : 'キャンペーン編集'}
-      </DialogTitle>
+      <DialogTitle>{mode === 'add' ? '期間追加' : '期間編集'}</DialogTitle>
       <DialogContent>
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
           <TextField
-            label="キャンペーン名"
+            label="期間名"
             value={formData.campaignName}
-            onChange={(e) => setFormData({ ...formData, campaignName: e.target.value })}
+            onChange={e => setFormData({ ...formData, campaignName: e.target.value })}
             fullWidth
             required
-            placeholder="例: キャリア相談12月"
+            placeholder="例: 2024年12月"
           />
 
           <TextField
             label="説明（オプション）"
             value={formData.description}
-            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+            onChange={e => setFormData({ ...formData, description: e.target.value })}
             fullWidth
             multiline
             rows={2}
-            placeholder="キャンペーンの説明を入力"
+            placeholder="期間の説明を入力"
           />
 
           <Divider />
@@ -741,7 +718,7 @@ const CampaignDialog = ({
               label="開始日"
               type="date"
               value={formData.targetPeriodFrom}
-              onChange={(e) => setFormData({ ...formData, targetPeriodFrom: e.target.value })}
+              onChange={e => setFormData({ ...formData, targetPeriodFrom: e.target.value })}
               InputLabelProps={{ shrink: true }}
               fullWidth
               required
@@ -750,7 +727,7 @@ const CampaignDialog = ({
               label="終了日"
               type="date"
               value={formData.targetPeriodTo}
-              onChange={(e) => setFormData({ ...formData, targetPeriodTo: e.target.value })}
+              onChange={e => setFormData({ ...formData, targetPeriodTo: e.target.value })}
               InputLabelProps={{ shrink: true }}
               fullWidth
               required
@@ -762,9 +739,7 @@ const CampaignDialog = ({
             <Select
               value={formData.targetDateType}
               label="基準日"
-              onChange={(e) =>
-                setFormData({ ...formData, targetDateType: e.target.value as TargetDateType })
-              }
+              onChange={e => setFormData({ ...formData, targetDateType: e.target.value as TargetDateType })}
             >
               <MenuItem value="application">申込日</MenuItem>
               <MenuItem value="session">実施日</MenuItem>
@@ -774,10 +749,8 @@ const CampaignDialog = ({
           <Alert severity="info" sx={{ mt: 1 }}>
             <Typography variant="body2">
               <strong>基準日</strong>: 期間フィルタに使用する日付の種類
-              <br />
-              • <strong>申込日</strong>: ユーザーが申込んだ日で集計（マーケティング効果測定向け）
-              <br />
-              • <strong>実施日</strong>: 実際に来店した日で集計（運用実績向け）
+              <br />• <strong>申込日</strong>: ユーザーが申込んだ日で集計（マーケティング効果測定向け）
+              <br />• <strong>実施日</strong>: 実際に来店した日で集計（運用実績向け）
             </Typography>
           </Alert>
         </Box>
@@ -816,7 +789,7 @@ export const CampaignAggregationView = () => {
 
   // 選択中のキャンペーン
   const selectedCampaign = useMemo(() => {
-    return campaigns.find((c) => c.campaignId === selectedCampaignId) || null;
+    return campaigns.find(c => c.campaignId === selectedCampaignId) || null;
   }, [campaigns, selectedCampaignId]);
 
   // 選択中キャンペーンの対象レコード
@@ -880,7 +853,7 @@ export const CampaignAggregationView = () => {
 
   // 全キャンペーンのサマリー（一覧表示用）
   const allCampaignSummaries = useMemo(() => {
-    return campaigns.map((campaign) => {
+    return campaigns.map(campaign => {
       const records = filterRecordsForCampaign(histories, campaign);
       const mergedRecords = applySameDayMerge(records, mergeSameDayReservations);
       return {
@@ -945,7 +918,7 @@ export const CampaignAggregationView = () => {
         setSelectedCampaignId(null);
       }
     } catch (error) {
-      console.error('キャンペーン削除エラー:', error);
+      console.error('期間設定削除エラー:', error);
       alert('削除に失敗しました');
     } finally {
       setDeleteConfirmOpen(false);
@@ -963,7 +936,8 @@ export const CampaignAggregationView = () => {
     }
 
     // ヘッダー行
-    const header = 'campaignName,description,targetPeriodFrom,targetPeriodTo,targetDateType,totalCount,implementedCount,cancelCount,firstVisitCount,secondVisitCount,thirdOrMoreCount,uniqueUsers';
+    const header =
+      'campaignName,description,targetPeriodFrom,targetPeriodTo,targetDateType,totalCount,implementedCount,cancelCount,firstVisitCount,secondVisitCount,thirdOrMoreCount,uniqueUsers';
 
     // データ行
     const rows = allCampaignSummaries.map(({ campaign, summary: s }) => {
@@ -1022,75 +996,77 @@ export const CampaignAggregationView = () => {
   /**
    * キャンペーン詳細CSV（該当レコード一覧）ダウンロード
    */
-  const handleDownloadDetailCSV = useCallback((campaign: CampaignMaster) => {
-    // 対象レコードを取得（isExcluded=trueは除外済み）
-    const records = filterRecordsForCampaign(histories, campaign);
+  const handleDownloadDetailCSV = useCallback(
+    (campaign: CampaignMaster) => {
+      // 対象レコードを取得（isExcluded=trueは除外済み）
+      const records = filterRecordsForCampaign(histories, campaign);
 
-    if (records.length === 0) {
-      alert('該当するレコードがありません');
-      return;
-    }
-
-    // CSVエスケープ
-    const escapeCsv = (value: string) => {
-      if (!value) return '';
-      if (value.includes(',') || value.includes('\n') || value.includes('"')) {
-        return `"${value.replace(/"/g, '""')}"`;
+      if (records.length === 0) {
+        alert('該当するレコードがありません');
+        return;
       }
-      return value;
-    };
 
-    // ヘッダー行
-    const header = 'friendId,name,applicationDate,sessionDate,status,visitStatus,isImplemented,visitIndex,visitLabel,isExcluded';
+      // CSVエスケープ
+      const escapeCsv = (value: string) => {
+        if (!value) return '';
+        if (value.includes(',') || value.includes('\n') || value.includes('"')) {
+          return `"${value.replace(/"/g, '""')}"`;
+        }
+        return value;
+      };
 
-    // データ行（sessionDate降順でソート）
-    const sortedRecords = [...records].sort(
-      (a, b) => b.sessionDate.getTime() - a.sessionDate.getTime()
-    );
+      // ヘッダー行
+      const header =
+        'friendId,name,applicationDate,sessionDate,status,visitStatus,isImplemented,visitIndex,visitLabel,isExcluded';
 
-    const rows = sortedRecords.map((record) => {
-      return [
-        escapeCsv(record.friendId),
-        escapeCsv(record.name),
-        formatDateTime(record.applicationDate),
-        formatDateTime(record.sessionDate),
-        record.status,
-        record.visitStatus,
-        record.isImplemented ? 'true' : 'false',
-        record.visitIndex,
-        record.visitLabel,
-        record.isExcluded ? 'true' : 'false',
-      ].join(',');
-    });
+      // データ行（sessionDate降順でソート）
+      const sortedRecords = [...records].sort((a, b) => b.sessionDate.getTime() - a.sessionDate.getTime());
 
-    // CSV文字列を生成
-    const csv = [header, ...rows].join('\n');
+      const rows = sortedRecords.map(record => {
+        return [
+          escapeCsv(record.friendId),
+          escapeCsv(record.name),
+          formatDateTime(record.applicationDate),
+          formatDateTime(record.sessionDate),
+          record.status,
+          record.visitStatus,
+          record.isImplemented ? 'true' : 'false',
+          record.visitIndex,
+          record.visitLabel,
+          record.isExcluded ? 'true' : 'false',
+        ].join(',');
+      });
 
-    // BOM付きUTF-8でダウンロード
-    const bom = '\uFEFF';
-    const blob = new Blob([bom + csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
+      // CSV文字列を生成
+      const csv = [header, ...rows].join('\n');
 
-    // ファイル名: campaign-detail-[campaignName]-YYYYMMDD-HHmm.csv
-    // スペースを_に変換
-    const safeCampaignName = campaign.campaignName.replace(/\s+/g, '_');
-    const now = new Date();
-    const timestamp = [
-      now.getFullYear(),
-      String(now.getMonth() + 1).padStart(2, '0'),
-      String(now.getDate()).padStart(2, '0'),
-      '-',
-      String(now.getHours()).padStart(2, '0'),
-      String(now.getMinutes()).padStart(2, '0'),
-    ].join('');
-    const filename = `campaign-detail-${safeCampaignName}-${timestamp}.csv`;
+      // BOM付きUTF-8でダウンロード
+      const bom = '\uFEFF';
+      const blob = new Blob([bom + csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
 
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = filename;
-    link.click();
-    URL.revokeObjectURL(url);
-  }, [histories]);
+      // ファイル名: campaign-detail-[campaignName]-YYYYMMDD-HHmm.csv
+      // スペースを_に変換
+      const safeCampaignName = campaign.campaignName.replace(/\s+/g, '_');
+      const now = new Date();
+      const timestamp = [
+        now.getFullYear(),
+        String(now.getMonth() + 1).padStart(2, '0'),
+        String(now.getDate()).padStart(2, '0'),
+        '-',
+        String(now.getHours()).padStart(2, '0'),
+        String(now.getMinutes()).padStart(2, '0'),
+      ].join('');
+      const filename = `campaign-detail-${safeCampaignName}-${timestamp}.csv`;
+
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      link.click();
+      URL.revokeObjectURL(url);
+    },
+    [histories]
+  );
 
   /**
    * 日別集計CSVダウンロード
@@ -1105,17 +1081,9 @@ export const CampaignAggregationView = () => {
     const header = '日付,総件数,実施,キャンセル,初回,リピート,実施率(%)';
 
     // データ行
-    const rows = dailyData.map((d) => {
+    const rows = dailyData.map(d => {
       const rate = d.total > 0 ? Math.round((d.implemented / d.total) * 1000) / 10 : 0;
-      return [
-        d.date,
-        d.total,
-        d.implemented,
-        d.cancelled,
-        d.firstVisit,
-        d.repeat,
-        rate,
-      ].join(',');
+      return [d.date, d.total, d.implemented, d.cancelled, d.firstVisit, d.repeat, rate].join(',');
     });
 
     // 合計行を追加
@@ -1168,12 +1136,10 @@ export const CampaignAggregationView = () => {
     return (
       <Box sx={{ mb: 4 }}>
         <Typography variant="h5" sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-          <CampaignIcon color="primary" />
-          キャンペーン別集計
+          <PeriodSummaryIcon color="primary" />
+          期間サマリー
         </Typography>
-        <Alert severity="info">
-          履歴データがありません。CSVをアップロードしてください。
-        </Alert>
+        <Alert severity="info">履歴データがありません。CSVをアップロードしてください。</Alert>
       </Box>
     );
   }
@@ -1182,23 +1148,19 @@ export const CampaignAggregationView = () => {
     <Box sx={{ mb: 4 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h5" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <CampaignIcon color="primary" />
-          キャンペーン別集計
+          <PeriodSummaryIcon color="primary" />
+          期間サマリー
         </Typography>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={handleAddCampaign}
-        >
-          キャンペーン追加
+        <Button variant="contained" startIcon={<AddIcon />} onClick={handleAddCampaign}>
+          期間追加
         </Button>
       </Box>
 
-      {/* キャンペーン一覧 */}
+      {/* 期間一覧 */}
       <Paper elevation={2} sx={{ p: 2, mb: 3 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
           <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
-            キャンペーン一覧
+            期間一覧
           </Typography>
           <Button
             variant="outlined"
@@ -1212,15 +1174,13 @@ export const CampaignAggregationView = () => {
         </Box>
 
         {campaigns.length === 0 ? (
-          <Alert severity="info">
-            キャンペーンがありません。「キャンペーン追加」ボタンから作成してください。
-          </Alert>
+          <Alert severity="info">期間設定がありません。「期間追加」ボタンから作成してください。</Alert>
         ) : (
           <TableContainer>
             <Table size="small">
               <TableHead>
                 <TableRow>
-                  <TableCell>キャンペーン名</TableCell>
+                  <TableCell>期間名</TableCell>
                   <TableCell>期間</TableCell>
                   <TableCell align="center">基準日</TableCell>
                   <TableCell align="right">総件数</TableCell>
@@ -1251,8 +1211,7 @@ export const CampaignAggregationView = () => {
                     </TableCell>
                     <TableCell>
                       <Typography variant="body2">
-                        {formatDateDisplay(campaign.targetPeriodFrom)} 〜{' '}
-                        {formatDateDisplay(campaign.targetPeriodTo)}
+                        {formatDateDisplay(campaign.targetPeriodFrom)} 〜 {formatDateDisplay(campaign.targetPeriodTo)}
                       </Typography>
                     </TableCell>
                     <TableCell align="center">
@@ -1271,12 +1230,7 @@ export const CampaignAggregationView = () => {
                     </TableCell>
                     <TableCell align="right">{s.firstVisitCount}</TableCell>
                     <TableCell align="right">
-                      <Chip
-                        size="small"
-                        label={s.uniqueUsers}
-                        color="primary"
-                        variant="outlined"
-                      />
+                      <Chip size="small" label={s.uniqueUsers} color="primary" variant="outlined" />
                     </TableCell>
                     <TableCell align="center">
                       <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center' }}>
@@ -1284,7 +1238,7 @@ export const CampaignAggregationView = () => {
                           <IconButton
                             size="small"
                             color="info"
-                            onClick={(e) => {
+                            onClick={e => {
                               e.stopPropagation();
                               handleDownloadDetailCSV(campaign);
                             }}
@@ -1295,7 +1249,7 @@ export const CampaignAggregationView = () => {
                         <Tooltip title="編集">
                           <IconButton
                             size="small"
-                            onClick={(e) => {
+                            onClick={e => {
                               e.stopPropagation();
                               handleEditCampaign(campaign);
                             }}
@@ -1307,7 +1261,7 @@ export const CampaignAggregationView = () => {
                           <IconButton
                             size="small"
                             color="error"
-                            onClick={(e) => {
+                            onClick={e => {
                               e.stopPropagation();
                               handleDeleteClick(campaign.campaignId);
                             }}
@@ -1372,7 +1326,10 @@ export const CampaignAggregationView = () => {
               </CardContent>
             </Card>
 
-            <Card variant="outlined" sx={{ flex: '1 1 120px', minWidth: 120, maxWidth: 160, borderColor: 'success.main' }}>
+            <Card
+              variant="outlined"
+              sx={{ flex: '1 1 120px', minWidth: 120, maxWidth: 160, borderColor: 'success.main' }}
+            >
               <CardContent sx={{ textAlign: 'center', py: 1.5 }}>
                 <Typography variant="caption" color="text.secondary">
                   実施
@@ -1390,7 +1347,10 @@ export const CampaignAggregationView = () => {
               </CardContent>
             </Card>
 
-            <Card variant="outlined" sx={{ flex: '1 1 120px', minWidth: 120, maxWidth: 160, borderColor: 'error.main' }}>
+            <Card
+              variant="outlined"
+              sx={{ flex: '1 1 120px', minWidth: 120, maxWidth: 160, borderColor: 'error.main' }}
+            >
               <CardContent sx={{ textAlign: 'center', py: 1.5 }}>
                 <Typography variant="caption" color="text.secondary">
                   キャンセル
@@ -1412,12 +1372,7 @@ export const CampaignAggregationView = () => {
                 <Typography variant="h5" fontWeight="bold">
                   {summary.firstVisitCount}
                 </Typography>
-                <Chip
-                  size="small"
-                  label={`${summary.firstVisitRate}%`}
-                  variant="outlined"
-                  sx={{ mt: 0.5 }}
-                />
+                <Chip size="small" label={`${summary.firstVisitRate}%`} variant="outlined" sx={{ mt: 0.5 }} />
               </CardContent>
             </Card>
 
@@ -1440,12 +1395,7 @@ export const CampaignAggregationView = () => {
                 <Typography variant="h5" fontWeight="bold">
                   {summary.thirdPlusVisitCount}
                 </Typography>
-                <Chip
-                  size="small"
-                  label={`${summary.thirdPlusRate}%`}
-                  variant="outlined"
-                  sx={{ mt: 0.5 }}
-                />
+                <Chip size="small" label={`${summary.thirdPlusRate}%`} variant="outlined" sx={{ mt: 0.5 }} />
               </CardContent>
             </Card>
           </Box>
@@ -1495,26 +1445,35 @@ export const CampaignAggregationView = () => {
             </Card>
 
             {/* キャンセル詳細 */}
-            <Card variant="outlined" sx={{ flex: '1 1 200px', minWidth: 200, maxWidth: 280, borderColor: 'warning.main' }}>
+            <Card
+              variant="outlined"
+              sx={{ flex: '1 1 200px', minWidth: 200, maxWidth: 280, borderColor: 'warning.main' }}
+            >
               <CardContent sx={{ py: 1.5 }}>
                 <Typography variant="caption" color="text.secondary">
                   キャンセル内訳
                 </Typography>
                 <Box sx={{ display: 'flex', gap: 2, mt: 1 }}>
                   <Box sx={{ textAlign: 'center' }}>
-                    <Typography variant="body2" color="text.secondary">早期</Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      早期
+                    </Typography>
                     <Typography variant="h6" fontWeight="bold">
                       {summary.earlyCancelCount}
                     </Typography>
                   </Box>
                   <Box sx={{ textAlign: 'center' }}>
-                    <Typography variant="body2" color="warning.main">前日</Typography>
+                    <Typography variant="body2" color="warning.main">
+                      前日
+                    </Typography>
                     <Typography variant="h6" fontWeight="bold" color="warning.main">
                       {summary.previousDayCancelCount}
                     </Typography>
                   </Box>
                   <Box sx={{ textAlign: 'center' }}>
-                    <Typography variant="body2" color="error.main">当日</Typography>
+                    <Typography variant="body2" color="error.main">
+                      当日
+                    </Typography>
                     <Typography variant="h6" fontWeight="bold" color="error.main">
                       {summary.sameDayCancelCount}
                     </Typography>
@@ -1539,10 +1498,7 @@ export const CampaignAggregationView = () => {
               </Typography>
               <Box sx={{ width: '100%', height: 350 }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart
-                    data={dailyData}
-                    margin={{ top: 20, right: 30, left: 10, bottom: 5 }}
-                  >
+                  <ComposedChart data={dailyData} margin={{ top: 20, right: 30, left: 10, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
                     <XAxis
                       dataKey="dateLabel"
@@ -1556,23 +1512,11 @@ export const CampaignAggregationView = () => {
                         border: '1px solid #e0e0e0',
                         borderRadius: 4,
                       }}
-                      labelFormatter={(label) => `日付: ${label}`}
+                      labelFormatter={label => `日付: ${label}`}
                     />
                     <Legend />
-                    <Bar
-                      dataKey="implemented"
-                      name="実施"
-                      stackId="a"
-                      fill="#4caf50"
-                      radius={[0, 0, 0, 0]}
-                    />
-                    <Bar
-                      dataKey="cancelled"
-                      name="キャンセル"
-                      stackId="a"
-                      fill="#f44336"
-                      radius={[4, 4, 0, 0]}
-                    />
+                    <Bar dataKey="implemented" name="実施" stackId="a" fill="#4caf50" radius={[0, 0, 0, 0]} />
+                    <Bar dataKey="cancelled" name="キャンセル" stackId="a" fill="#f44336" radius={[4, 4, 0, 0]} />
                     <Line
                       type="monotone"
                       dataKey="firstVisit"
@@ -1627,10 +1571,7 @@ export const CampaignAggregationView = () => {
                       <YAxis dataKey="name" type="category" tick={{ fontSize: 12 }} />
                       <RechartsTooltip />
                       <Bar dataKey="value" name="ユーザー数" radius={[0, 4, 4, 0]}>
-                        {[
-                          { fill: '#4caf50' },
-                          { fill: '#2196f3' },
-                        ].map((entry, index) => (
+                        {[{ fill: '#4caf50' }, { fill: '#2196f3' }].map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={entry.fill} />
                         ))}
                       </Bar>
@@ -1694,7 +1635,7 @@ export const CampaignAggregationView = () => {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {staffPerformance.map((staff) => (
+                    {staffPerformance.map(staff => (
                       <TableRow key={staff.staffName} hover>
                         <TableCell>
                           <Typography fontWeight="medium">{staff.staffName}</Typography>
@@ -1709,14 +1650,18 @@ export const CampaignAggregationView = () => {
                           <Chip
                             size="small"
                             label={`${staff.implementationRate}%`}
-                            color={staff.implementationRate >= 80 ? 'success' : staff.implementationRate >= 60 ? 'warning' : 'error'}
+                            color={
+                              staff.implementationRate >= 80
+                                ? 'success'
+                                : staff.implementationRate >= 60
+                                  ? 'warning'
+                                  : 'error'
+                            }
                             variant="outlined"
                           />
                         </TableCell>
                         <TableCell align="right">
-                          <Typography color="text.secondary">
-                            {staff.cancelCount}
-                          </Typography>
+                          <Typography color="text.secondary">{staff.cancelCount}</Typography>
                         </TableCell>
                         <TableCell align="right">
                           {staff.previousDayCancelCount + staff.sameDayCancelCount > 0 ? (
@@ -1733,12 +1678,7 @@ export const CampaignAggregationView = () => {
                         <TableCell align="right">
                           {staff.firstTimeUserCount > 0 ? (
                             <Tooltip title={`${staff.firstTimeUserWithSecondCount}/${staff.firstTimeUserCount}人`}>
-                              <Chip
-                                size="small"
-                                label={`${staff.firstToSecondCVR}%`}
-                                color="info"
-                                variant="outlined"
-                              />
+                              <Chip size="small" label={`${staff.firstToSecondCVR}%`} color="info" variant="outlined" />
                             </Tooltip>
                           ) : (
                             <Typography color="text.secondary">-</Typography>
@@ -1779,16 +1719,14 @@ export const CampaignAggregationView = () => {
                           <Cell key={`cell-${index}`} fill={entry.fill} />
                         ))}
                       </Pie>
-                      <RechartsTooltip
-                        formatter={(value: number, name: string) => [`${value}件`, name]}
-                      />
+                      <RechartsTooltip formatter={(value: number, name: string) => [`${value}件`, name]} />
                     </PieChart>
                   </ResponsiveContainer>
                 </Box>
 
                 {/* 内訳リスト */}
                 <Box sx={{ flex: '1 1 200px', minWidth: 200 }}>
-                  {userTypeDistribution.map((item) => (
+                  {userTypeDistribution.map(item => (
                     <Box
                       key={item.name}
                       sx={{
@@ -1816,7 +1754,11 @@ export const CampaignAggregationView = () => {
                         <Typography variant="body1" fontWeight="bold">
                           {item.value}件
                           <Typography component="span" variant="caption" color="text.secondary" sx={{ ml: 1 }}>
-                            ({summary.implementedCount > 0 ? Math.round((item.value / summary.implementedCount) * 100) : 0}%)
+                            (
+                            {summary.implementedCount > 0
+                              ? Math.round((item.value / summary.implementedCount) * 100)
+                              : 0}
+                            %)
                           </Typography>
                         </Typography>
                       </Box>
@@ -1848,18 +1790,14 @@ export const CampaignAggregationView = () => {
                         margin={{ top: 10, right: 10, left: 0, bottom: 5 }}
                       >
                         <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                        <XAxis
-                          dataKey="hourLabel"
-                          tick={{ fontSize: 10 }}
-                          interval={1}
-                        />
+                        <XAxis dataKey="hourLabel" tick={{ fontSize: 10 }} interval={1} />
                         <YAxis tick={{ fontSize: 10 }} />
                         <RechartsTooltip
                           formatter={(value: number, name: string) => [
                             `${value}件`,
-                            name === 'implemented' ? '実施' : 'キャンセル'
+                            name === 'implemented' ? '実施' : 'キャンセル',
                           ]}
-                          labelFormatter={(label) => `${label}`}
+                          labelFormatter={label => `${label}`}
                         />
                         <Bar dataKey="implemented" name="実施" stackId="a" fill="#4caf50" />
                         <Bar dataKey="cancelled" name="キャンセル" stackId="a" fill="#f44336" />
@@ -1875,22 +1813,16 @@ export const CampaignAggregationView = () => {
                   </Typography>
                   <Box sx={{ height: 200 }}>
                     <ResponsiveContainer width="100%" height="100%">
-                      <BarChart
-                        data={dayOfWeekData}
-                        margin={{ top: 10, right: 10, left: 0, bottom: 5 }}
-                      >
+                      <BarChart data={dayOfWeekData} margin={{ top: 10, right: 10, left: 0, bottom: 5 }}>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                        <XAxis
-                          dataKey="dayName"
-                          tick={{ fontSize: 12 }}
-                        />
+                        <XAxis dataKey="dayName" tick={{ fontSize: 12 }} />
                         <YAxis tick={{ fontSize: 10 }} />
                         <RechartsTooltip
                           formatter={(value: number, name: string) => [
                             `${value}件`,
-                            name === 'implemented' ? '実施' : 'キャンセル'
+                            name === 'implemented' ? '実施' : 'キャンセル',
                           ]}
-                          labelFormatter={(label) => `${label}曜`}
+                          labelFormatter={label => `${label}曜`}
                         />
                         <Bar dataKey="implemented" name="実施" stackId="a" fill="#4caf50" />
                         <Bar dataKey="cancelled" name="キャンセル" stackId="a" fill="#f44336" />
@@ -1945,11 +1877,10 @@ export const CampaignAggregationView = () => {
                           >
                             {dayName}
                           </Box>
-                          {dayData.map((cell) => {
+                          {dayData.map(cell => {
                             const intensity = cell.count / maxCount;
-                            const bgcolor = cell.count > 0
-                              ? `rgba(33, 150, 243, ${0.1 + intensity * 0.8})`
-                              : 'grey.100';
+                            const bgcolor =
+                              cell.count > 0 ? `rgba(33, 150, 243, ${0.1 + intensity * 0.8})` : 'grey.100';
 
                             return (
                               <Tooltip
@@ -2020,12 +1951,7 @@ export const CampaignAggregationView = () => {
                   <TableChartIcon color="primary" />
                   日別詳細テーブル
                 </Typography>
-                <Button
-                  variant="outlined"
-                  size="small"
-                  startIcon={<DownloadIcon />}
-                  onClick={handleDownloadDailyCSV}
-                >
+                <Button variant="outlined" size="small" startIcon={<DownloadIcon />} onClick={handleDownloadDailyCSV}>
                   CSVダウンロード
                 </Button>
               </Box>
@@ -2034,16 +1960,28 @@ export const CampaignAggregationView = () => {
                   <TableHead>
                     <TableRow>
                       <TableCell sx={{ fontWeight: 'bold', bgcolor: 'grey.100' }}>日付</TableCell>
-                      <TableCell align="right" sx={{ fontWeight: 'bold', bgcolor: 'grey.100' }}>総件数</TableCell>
-                      <TableCell align="right" sx={{ fontWeight: 'bold', bgcolor: 'grey.100' }}>実施</TableCell>
-                      <TableCell align="right" sx={{ fontWeight: 'bold', bgcolor: 'grey.100' }}>キャンセル</TableCell>
-                      <TableCell align="right" sx={{ fontWeight: 'bold', bgcolor: 'grey.100' }}>初回</TableCell>
-                      <TableCell align="right" sx={{ fontWeight: 'bold', bgcolor: 'grey.100' }}>リピート</TableCell>
-                      <TableCell align="right" sx={{ fontWeight: 'bold', bgcolor: 'grey.100' }}>実施率</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 'bold', bgcolor: 'grey.100' }}>
+                        総件数
+                      </TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 'bold', bgcolor: 'grey.100' }}>
+                        実施
+                      </TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 'bold', bgcolor: 'grey.100' }}>
+                        キャンセル
+                      </TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 'bold', bgcolor: 'grey.100' }}>
+                        初回
+                      </TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 'bold', bgcolor: 'grey.100' }}>
+                        リピート
+                      </TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 'bold', bgcolor: 'grey.100' }}>
+                        実施率
+                      </TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {dailyData.map((d) => {
+                    {dailyData.map(d => {
                       const rate = d.total > 0 ? Math.round((d.implemented / d.total) * 1000) / 10 : 0;
                       return (
                         <TableRow key={d.date} hover>
@@ -2102,7 +2040,13 @@ export const CampaignAggregationView = () => {
                         <Chip
                           size="small"
                           label={`${summary.implementationRate}%`}
-                          color={summary.implementationRate >= 80 ? 'success' : summary.implementationRate >= 60 ? 'warning' : 'error'}
+                          color={
+                            summary.implementationRate >= 80
+                              ? 'success'
+                              : summary.implementationRate >= 60
+                                ? 'warning'
+                                : 'error'
+                          }
                         />
                       </TableCell>
                     </TableRow>
@@ -2115,14 +2059,13 @@ export const CampaignAggregationView = () => {
           {/* 対象レコードなしの場合 */}
           {summary.totalCount === 0 && (
             <Alert severity="warning">
-              この期間内に対象レコードがありません。
-              期間設定や基準日を確認してください。
+              この期間内に対象レコードがありません。 期間設定や基準日を確認してください。
             </Alert>
           )}
         </Paper>
       )}
 
-      {/* キャンペーン追加・編集ダイアログ */}
+      {/* 期間追加・編集ダイアログ */}
       <CampaignDialog
         open={dialogOpen}
         onClose={() => setDialogOpen(false)}
@@ -2133,10 +2076,10 @@ export const CampaignAggregationView = () => {
 
       {/* 削除確認ダイアログ */}
       <Dialog open={deleteConfirmOpen} onClose={() => setDeleteConfirmOpen(false)}>
-        <DialogTitle>キャンペーンの削除</DialogTitle>
+        <DialogTitle>期間の削除</DialogTitle>
         <DialogContent>
           <Typography>
-            このキャンペーンを削除しますか？
+            この期間設定を削除しますか？
             <br />
             <strong>この操作は取り消せません。</strong>
           </Typography>

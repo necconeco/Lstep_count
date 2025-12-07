@@ -419,9 +419,8 @@ export async function initializeDefaultCampaigns(): Promise<void> {
     },
   ];
 
-  for (const campaign of defaultCampaigns) {
-    await saveCampaign(campaign);
-  }
+  // Promise.all()で並列保存（N+1問題解消）
+  await Promise.all(defaultCampaigns.map(campaign => saveCampaign(campaign)));
 }
 
 // ============================================================================
@@ -567,6 +566,26 @@ export async function saveStaff(staff: StaffMaster): Promise<void> {
     const request = store.put(staff);
     request.onsuccess = () => resolve();
     request.onerror = () => reject(new Error('担当者の保存に失敗しました'));
+  });
+}
+
+/**
+ * 担当者を一括保存（upsert）- N+1問題解消
+ */
+export async function saveStaffBatch(staffList: StaffMaster[]): Promise<void> {
+  if (staffList.length === 0) return;
+
+  const db = await openDatabase();
+  const tx = db.transaction([STORE_STAFF], 'readwrite');
+  const store = tx.objectStore(STORE_STAFF);
+
+  return new Promise((resolve, reject) => {
+    staffList.forEach(staff => {
+      store.put(staff);
+    });
+
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(new Error('担当者の一括保存に失敗しました'));
   });
 }
 

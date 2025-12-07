@@ -60,10 +60,7 @@ export function getImplementationStatus(record: CsvRecord): ImplementationStatus
  * 履歴マスタを参照して判定
  * 実施履歴配列の長さで正確に判定
  */
-export function getVisitType(
-  friendId: string,
-  masterData: Map<string, UserHistoryMaster>
-): VisitType {
+export function getVisitType(friendId: string, masterData: Map<string, UserHistoryMaster>): VisitType {
   const master = masterData.get(friendId);
 
   if (!master || master.implementationHistory.length === 0) {
@@ -86,7 +83,7 @@ export function updateMasterData(
   const newMasterData = new Map(currentMasterData);
   const now = new Date();
 
-  csvData.forEach((record) => {
+  csvData.forEach(record => {
     const friendId = record.友だちID;
     const reservationDate = new Date(record.予約日);
     const staffName = record.担当者 || null;
@@ -106,9 +103,7 @@ export function updateMasterData(
 
     if (existing) {
       // 重複チェック: 同じ予約IDが既に存在する場合は追加しない
-      const alreadyExistsInAll = existing.allHistory.some(
-        (h) => h.reservationId === record.予約ID
-      );
+      const alreadyExistsInAll = existing.allHistory.some(h => h.reservationId === record.予約ID);
 
       if (!alreadyExistsInAll) {
         // 全予約履歴に追加
@@ -118,9 +113,7 @@ export function updateMasterData(
         // 実施履歴の更新（実施済みの場合のみ）
         let newImplementationHistory = existing.implementationHistory;
         if (implemented) {
-          const alreadyExistsInImpl = existing.implementationHistory.some(
-            (h) => h.reservationId === record.予約ID
-          );
+          const alreadyExistsInImpl = existing.implementationHistory.some(h => h.reservationId === record.予約ID);
 
           if (!alreadyExistsInImpl) {
             newImplementationHistory = [
@@ -181,10 +174,7 @@ export function updateMasterData(
 /**
  * サマリー集計
  */
-export function aggregateSummary(
-  csvData: CsvRecord[],
-  masterData: Map<string, UserHistoryMaster>
-): AggregationSummary {
+export function aggregateSummary(csvData: CsvRecord[], masterData: Map<string, UserHistoryMaster>): AggregationSummary {
   let totalApplications = 0;
   let totalImplementations = 0;
   let totalCancellations = 0;
@@ -193,7 +183,7 @@ export function aggregateSummary(
   let repeatApplications = 0;
   let repeatImplementations = 0;
 
-  csvData.forEach((record) => {
+  csvData.forEach(record => {
     totalApplications++;
 
     const visitType = getVisitType(record.友だちID, masterData);
@@ -223,16 +213,12 @@ export function aggregateSummary(
     }
   });
 
-  const implementationRate =
-    totalApplications > 0 ? (totalImplementations / totalApplications) * 100 : 0;
-  const firstTimeApplicationRate =
-    totalApplications > 0 ? (firstTimeApplications / totalApplications) * 100 : 0;
+  const implementationRate = totalApplications > 0 ? (totalImplementations / totalApplications) * 100 : 0;
+  const firstTimeApplicationRate = totalApplications > 0 ? (firstTimeApplications / totalApplications) * 100 : 0;
   const firstTimeImplementationRate =
     firstTimeApplications > 0 ? (firstTimeImplementations / firstTimeApplications) * 100 : 0;
-  const repeatApplicationRate =
-    totalApplications > 0 ? (repeatApplications / totalApplications) * 100 : 0;
-  const repeatImplementationRate =
-    repeatApplications > 0 ? (repeatImplementations / repeatApplications) * 100 : 0;
+  const repeatApplicationRate = totalApplications > 0 ? (repeatApplications / totalApplications) * 100 : 0;
+  const repeatImplementationRate = repeatApplications > 0 ? (repeatImplementations / repeatApplications) * 100 : 0;
 
   return {
     totalApplications,
@@ -253,13 +239,10 @@ export function aggregateSummary(
 /**
  * 相談員別実績集計
  */
-export function aggregateByStaff(
-  csvData: CsvRecord[],
-  masterData: Map<string, UserHistoryMaster>
-): StaffResult[] {
+export function aggregateByStaff(csvData: CsvRecord[], masterData: Map<string, UserHistoryMaster>): StaffResult[] {
   const staffMap = new Map<string, StaffResult>();
 
-  csvData.forEach((record) => {
+  csvData.forEach(record => {
     const staffName = record.担当者 || '未設定';
     const visitType = getVisitType(record.友だちID, masterData);
     const implemented = isImplemented(record);
@@ -297,9 +280,8 @@ export function aggregateByStaff(
 
   // 実施率を計算
   const results: StaffResult[] = [];
-  staffMap.forEach((staff) => {
-    staff.implementationRate =
-      staff.applications > 0 ? (staff.implementations / staff.applications) * 100 : 0;
+  staffMap.forEach(staff => {
+    staff.implementationRate = staff.applications > 0 ? (staff.implementations / staff.applications) * 100 : 0;
     results.push(staff);
   });
 
@@ -310,13 +292,10 @@ export function aggregateByStaff(
 /**
  * 日別集計
  */
-export function aggregateByDate(
-  csvData: CsvRecord[],
-  masterData: Map<string, UserHistoryMaster>
-): DailyResult[] {
+export function aggregateByDate(csvData: CsvRecord[], masterData: Map<string, UserHistoryMaster>): DailyResult[] {
   const dateMap = new Map<string, DailyResult>();
 
-  csvData.forEach((record) => {
+  csvData.forEach(record => {
     const date = record.予約日;
     const visitType = getVisitType(record.友だちID, masterData);
     const implemented = isImplemented(record);
@@ -358,13 +337,10 @@ export function aggregateByDate(
 /**
  * 月別集計
  */
-export function aggregateByMonth(
-  csvData: CsvRecord[],
-  _masterData: Map<string, UserHistoryMaster>
-): MonthlyResult[] {
+export function aggregateByMonth(csvData: CsvRecord[], _masterData: Map<string, UserHistoryMaster>): MonthlyResult[] {
   const monthMap = new Map<string, MonthlyResult>();
 
-  csvData.forEach((record) => {
+  csvData.forEach(record => {
     const month = record.予約日.substring(0, 7); // YYYY-MM
     const implemented = isImplemented(record);
     const cancelled = record.ステータス === 'キャンセル済み';
@@ -393,9 +369,8 @@ export function aggregateByMonth(
 
   // 実施率を計算してソート
   const results: MonthlyResult[] = [];
-  monthMap.forEach((monthly) => {
-    monthly.implementationRate =
-      monthly.applications > 0 ? (monthly.implementations / monthly.applications) * 100 : 0;
+  monthMap.forEach(monthly => {
+    monthly.implementationRate = monthly.applications > 0 ? (monthly.implementations / monthly.applications) * 100 : 0;
     results.push(monthly);
   });
 
@@ -422,13 +397,10 @@ export function generateSpreadsheetData(summary: AggregationSummary): Spreadshee
  * キャリア相談のご利用回数フィールドの自動補完
  * 空欄の場合、マスタデータを基に「初めて」または「2回目以上」を自動設定
  */
-export function autoPopulateUsageCount(
-  csvData: CsvRecord[],
-  masterData: Map<string, UserHistoryMaster>
-): CsvRecord[] {
+export function autoPopulateUsageCount(csvData: CsvRecord[], masterData: Map<string, UserHistoryMaster>): CsvRecord[] {
   const usageCountField = 'キャリア相談のご利用回数を教えてください。';
 
-  return csvData.map((record) => {
+  return csvData.map(record => {
     // 既に値が入っている場合はそのまま
     const usageValue = record[usageCountField];
     if (typeof usageValue === 'string' && usageValue.trim() !== '') {
@@ -449,10 +421,7 @@ export function autoPopulateUsageCount(
 /**
  * 全集計処理を実行
  */
-export function aggregateAll(
-  csvData: CsvRecord[],
-  masterData: Map<string, UserHistoryMaster>
-) {
+export function aggregateAll(csvData: CsvRecord[], masterData: Map<string, UserHistoryMaster>) {
   const summary = aggregateSummary(csvData, masterData);
   const staffResults = aggregateByStaff(csvData, masterData);
   const dailyResults = aggregateByDate(csvData, masterData);

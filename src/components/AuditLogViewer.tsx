@@ -66,14 +66,14 @@ export function AuditLogViewer({ onOpenReservation }: AuditLogViewerProps) {
 
   // フィールドの一覧を取得
   const uniqueFields = useMemo(() => {
-    const fields = new Set(auditLogs.map((log) => log.field));
+    const fields = new Set(auditLogs.map(log => log.field));
     return Array.from(fields).sort();
   }, [auditLogs]);
 
   // フィルタリング
   const filteredLogs = useMemo(() => {
     return auditLogs
-      .filter((log) => {
+      .filter(log => {
         // フィールドフィルタ
         if (fieldFilter && log.field !== fieldFilter) return false;
 
@@ -120,7 +120,9 @@ export function AuditLogViewer({ onOpenReservation }: AuditLogViewerProps) {
   };
 
   // フィールドに応じた色
-  const getFieldColor = (field: string): 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning' => {
+  const getFieldColor = (
+    field: string
+  ): 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning' => {
     const colors: Record<string, 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning'> = {
       staff: 'primary',
       detailStatus: 'warning',
@@ -153,7 +155,7 @@ export function AuditLogViewer({ onOpenReservation }: AuditLogViewerProps) {
               label="検索"
               placeholder="予約ID、変更者など"
               value={searchText}
-              onChange={(e) => {
+              onChange={e => {
                 setSearchText(e.target.value);
                 setPage(0);
               }}
@@ -164,13 +166,13 @@ export function AuditLogViewer({ onOpenReservation }: AuditLogViewerProps) {
               <Select
                 value={fieldFilter}
                 label="フィールド"
-                onChange={(e) => {
+                onChange={e => {
                   setFieldFilter(e.target.value);
                   setPage(0);
                 }}
               >
                 <MenuItem value="">すべて</MenuItem>
-                {uniqueFields.map((field) => (
+                {uniqueFields.map(field => (
                   <MenuItem key={field} value={field}>
                     {getFieldLabel(field)}
                   </MenuItem>
@@ -208,7 +210,7 @@ export function AuditLogViewer({ onOpenReservation }: AuditLogViewerProps) {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  paginatedLogs.map((log) => (
+                  paginatedLogs.map(log => (
                     <TableRow key={log.id} hover>
                       <TableCell>
                         <Typography variant="body2" sx={{ whiteSpace: 'nowrap' }}>
@@ -223,11 +225,7 @@ export function AuditLogViewer({ onOpenReservation }: AuditLogViewerProps) {
                         </Typography>
                       </TableCell>
                       <TableCell>
-                        <Chip
-                          label={getFieldLabel(log.field)}
-                          size="small"
-                          color={getFieldColor(log.field)}
-                        />
+                        <Chip label={getFieldLabel(log.field)} size="small" color={getFieldColor(log.field)} />
                       </TableCell>
                       <TableCell>
                         <Typography variant="body2" color="text.secondary">
@@ -235,9 +233,7 @@ export function AuditLogViewer({ onOpenReservation }: AuditLogViewerProps) {
                         </Typography>
                       </TableCell>
                       <TableCell>
-                        <Typography variant="body2">
-                          {formatValue(log.newValue)}
-                        </Typography>
+                        <Typography variant="body2">{formatValue(log.newValue)}</Typography>
                       </TableCell>
                       <TableCell>
                         <Typography variant="body2">{log.changedBy}</Typography>
@@ -245,10 +241,7 @@ export function AuditLogViewer({ onOpenReservation }: AuditLogViewerProps) {
                       <TableCell align="center">
                         {onOpenReservation && (
                           <Tooltip title="予約詳細を開く">
-                            <IconButton
-                              size="small"
-                              onClick={() => onOpenReservation(log.reservationId)}
-                            >
+                            <IconButton size="small" onClick={() => onOpenReservation(log.reservationId)}>
                               <OpenInNewIcon fontSize="small" />
                             </IconButton>
                           </Tooltip>
@@ -268,15 +261,13 @@ export function AuditLogViewer({ onOpenReservation }: AuditLogViewerProps) {
             page={page}
             onPageChange={(_, newPage) => setPage(newPage)}
             rowsPerPage={rowsPerPage}
-            onRowsPerPageChange={(e) => {
+            onRowsPerPageChange={e => {
               setRowsPerPage(parseInt(e.target.value, 10));
               setPage(0);
             }}
             rowsPerPageOptions={[10, 25, 50, 100]}
             labelRowsPerPage="表示件数:"
-            labelDisplayedRows={({ from, to, count }) =>
-              `${from}-${to} / ${count}件`
-            }
+            labelDisplayedRows={({ from, to, count }) => `${from}-${to} / ${count}件`}
           />
         </CardContent>
       </Card>

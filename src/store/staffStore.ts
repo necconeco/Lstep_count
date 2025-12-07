@@ -62,11 +62,7 @@ function generateStaffId(): string {
  * 担当者名が既存リストに含まれるかチェック（エイリアスも考慮）
  */
 function findExistingStaff(staffList: StaffMaster[], name: string): StaffMaster | undefined {
-  return staffList.find(
-    (staff) =>
-      staff.staffName === name ||
-      staff.aliases.some((alias) => alias === name)
-  );
+  return staffList.find(staff => staff.staffName === name || staff.aliases.some(alias => alias === name));
 }
 
 // ============================================================================
@@ -106,7 +102,7 @@ export const useStaffStore = create<StaffStoreState>((set, get) => ({
   /**
    * 担当者追加
    */
-  addStaff: async (staffData) => {
+  addStaff: async staffData => {
     const { staffList } = get();
     const now = new Date();
 
@@ -140,7 +136,7 @@ export const useStaffStore = create<StaffStoreState>((set, get) => ({
    */
   updateStaff: async (staffId, updates) => {
     const { staffList } = get();
-    const existingStaff = staffList.find((s) => s.staffId === staffId);
+    const existingStaff = staffList.find(s => s.staffId === staffId);
     if (!existingStaff) {
       set({ error: '担当者が見つかりません' });
       return;
@@ -158,9 +154,7 @@ export const useStaffStore = create<StaffStoreState>((set, get) => ({
 
     try {
       await repository.saveStaff(updatedStaff);
-      const newList = staffList.map((s) =>
-        s.staffId === staffId ? updatedStaff : s
-      );
+      const newList = staffList.map(s => (s.staffId === staffId ? updatedStaff : s));
       set({ staffList: newList.sort((a, b) => a.sortOrder - b.sortOrder) });
     } catch (error) {
       set({
@@ -172,11 +166,11 @@ export const useStaffStore = create<StaffStoreState>((set, get) => ({
   /**
    * 担当者削除
    */
-  deleteStaff: async (staffId) => {
+  deleteStaff: async staffId => {
     const { staffList } = get();
     try {
       await repository.deleteStaff(staffId);
-      set({ staffList: staffList.filter((s) => s.staffId !== staffId) });
+      set({ staffList: staffList.filter(s => s.staffId !== staffId) });
     } catch (error) {
       set({
         error: error instanceof Error ? error.message : '担当者の削除に失敗しました',
@@ -187,14 +181,14 @@ export const useStaffStore = create<StaffStoreState>((set, get) => ({
   /**
    * CSVから担当者を自動抽出してマージ
    */
-  extractAndMergeFromCSV: async (staffNames) => {
+  extractAndMergeFromCSV: async staffNames => {
     const { staffList } = get();
     const now = new Date();
     let added = 0;
     let skipped = 0;
 
     // 重複を除去
-    const uniqueNames = [...new Set(staffNames.filter((name) => name && name.trim()))];
+    const uniqueNames = [...new Set(staffNames.filter(name => name && name.trim()))];
 
     const newStaffList: StaffMaster[] = [];
 
@@ -206,7 +200,7 @@ export const useStaffStore = create<StaffStoreState>((set, get) => ({
       }
 
       // 新規追加する担当者がnewStaffListにも存在しないかチェック
-      const alreadyAdded = newStaffList.find((s) => s.staffName === name);
+      const alreadyAdded = newStaffList.find(s => s.staffName === name);
       if (alreadyAdded) {
         skipped++;
         continue;
@@ -227,10 +221,8 @@ export const useStaffStore = create<StaffStoreState>((set, get) => ({
 
     if (newStaffList.length > 0) {
       try {
-        // バッチ保存
-        for (const staff of newStaffList) {
-          await repository.saveStaff(staff);
-        }
+        // バッチ保存（N+1問題解消）
+        await repository.saveStaffBatch(newStaffList);
         set({
           staffList: [...staffList, ...newStaffList].sort((a, b) => a.sortOrder - b.sortOrder),
         });
@@ -247,14 +239,14 @@ export const useStaffStore = create<StaffStoreState>((set, get) => ({
   /**
    * IDで担当者を取得
    */
-  getStaffById: (staffId) => {
-    return get().staffList.find((s) => s.staffId === staffId);
+  getStaffById: staffId => {
+    return get().staffList.find(s => s.staffId === staffId);
   },
 
   /**
    * 名前で担当者を取得（エイリアスも検索）
    */
-  getStaffByName: (name) => {
+  getStaffByName: name => {
     return findExistingStaff(get().staffList, name);
   },
 
@@ -262,7 +254,7 @@ export const useStaffStore = create<StaffStoreState>((set, get) => ({
    * アクティブな担当者リストを取得
    */
   getActiveStaffList: () => {
-    return get().staffList.filter((s) => s.isActive);
+    return get().staffList.filter(s => s.isActive);
   },
 
   /**

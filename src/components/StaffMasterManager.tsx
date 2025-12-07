@@ -59,16 +59,7 @@ interface StaffFormData {
 // ============================================================================
 
 export function StaffMasterManager() {
-  const {
-    staffList,
-    isLoading,
-    error,
-    initialize,
-    addStaff,
-    updateStaff,
-    deleteStaff,
-    clearError,
-  } = useStaffStore();
+  const { staffList, isLoading, error, initialize, addStaff, updateStaff, deleteStaff, clearError } = useStaffStore();
 
   // ダイアログ状態
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -153,7 +144,7 @@ export function StaffMasterManager() {
   const handleRemoveAlias = (alias: string) => {
     setFormData({
       ...formData,
-      aliases: formData.aliases.filter((a) => a !== alias),
+      aliases: formData.aliases.filter(a => a !== alias),
     });
   };
 
@@ -214,11 +205,7 @@ export function StaffMasterManager() {
                 担当者マスター管理
               </Typography>
             </Box>
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={handleOpenAddDialog}
-            >
+            <Button variant="contained" startIcon={<AddIcon />} onClick={handleOpenAddDialog}>
               担当者を追加
             </Button>
           </Box>
@@ -256,7 +243,7 @@ export function StaffMasterManager() {
                       <TableCell>
                         {staff.aliases.length > 0 ? (
                           <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
-                            {staff.aliases.map((alias) => (
+                            {staff.aliases.map(alias => (
                               <Chip key={alias} label={alias} size="small" variant="outlined" />
                             ))}
                           </Stack>
@@ -280,11 +267,7 @@ export function StaffMasterManager() {
                           </IconButton>
                         </Tooltip>
                         <Tooltip title="削除">
-                          <IconButton
-                            size="small"
-                            color="error"
-                            onClick={() => handleOpenDeleteConfirm(staff)}
-                          >
+                          <IconButton size="small" color="error" onClick={() => handleOpenDeleteConfirm(staff)}>
                             <DeleteIcon fontSize="small" />
                           </IconButton>
                         </Tooltip>
@@ -306,7 +289,7 @@ export function StaffMasterManager() {
             <TextField
               label="担当者名"
               value={formData.staffName}
-              onChange={(e) => setFormData({ ...formData, staffName: e.target.value })}
+              onChange={e => setFormData({ ...formData, staffName: e.target.value })}
               fullWidth
               required
               autoFocus
@@ -324,8 +307,8 @@ export function StaffMasterManager() {
                   size="small"
                   placeholder="エイリアスを入力"
                   value={aliasInput}
-                  onChange={(e) => setAliasInput(e.target.value)}
-                  onKeyPress={(e) => {
+                  onChange={e => setAliasInput(e.target.value)}
+                  onKeyPress={e => {
                     if (e.key === 'Enter') {
                       e.preventDefault();
                       handleAddAlias();
@@ -339,13 +322,8 @@ export function StaffMasterManager() {
               </Box>
               {formData.aliases.length > 0 && (
                 <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
-                  {formData.aliases.map((alias) => (
-                    <Chip
-                      key={alias}
-                      label={alias}
-                      onDelete={() => handleRemoveAlias(alias)}
-                      size="small"
-                    />
+                  {formData.aliases.map(alias => (
+                    <Chip key={alias} label={alias} onDelete={() => handleRemoveAlias(alias)} size="small" />
                   ))}
                 </Stack>
               )}
@@ -355,7 +333,7 @@ export function StaffMasterManager() {
               control={
                 <Switch
                   checked={formData.isActive}
-                  onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+                  onChange={e => setFormData({ ...formData, isActive: e.target.checked })}
                 />
               }
               label="有効（無効にすると集計・選択肢から除外されます）"
@@ -365,7 +343,7 @@ export function StaffMasterManager() {
               label="表示順"
               type="number"
               value={formData.sortOrder}
-              onChange={(e) => setFormData({ ...formData, sortOrder: parseInt(e.target.value, 10) || 0 })}
+              onChange={e => setFormData({ ...formData, sortOrder: parseInt(e.target.value, 10) || 0 })}
               fullWidth
               helperText="数値が小さいほど上に表示されます"
             />
@@ -383,9 +361,7 @@ export function StaffMasterManager() {
       <Dialog open={deleteConfirmOpen} onClose={() => setDeleteConfirmOpen(false)}>
         <DialogTitle>担当者の削除</DialogTitle>
         <DialogContent>
-          <Typography>
-            担当者「{staffToDelete?.staffName}」を削除しますか？
-          </Typography>
+          <Typography>担当者「{staffToDelete?.staffName}」を削除しますか？</Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
             この操作は取り消せません。既存の予約データには影響しません。
           </Typography>
@@ -405,11 +381,7 @@ export function StaffMasterManager() {
         onClose={() => setSnackbar({ ...snackbar, open: false })}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       >
-        <Alert
-          onClose={() => setSnackbar({ ...snackbar, open: false })}
-          severity={snackbar.severity}
-          variant="filled"
-        >
+        <Alert onClose={() => setSnackbar({ ...snackbar, open: false })} severity={snackbar.severity} variant="filled">
           {snackbar.message}
         </Alert>
       </Snackbar>

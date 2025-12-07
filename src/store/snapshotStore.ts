@@ -9,12 +9,7 @@
  */
 
 import { create } from 'zustand';
-import type {
-  AggregationSnapshot,
-  SnapshotFolder,
-  SnapshotType,
-  TargetDateType,
-} from '../domain/types';
+import type { AggregationSnapshot, SnapshotFolder, SnapshotType, TargetDateType } from '../domain/types';
 import * as repository from '../infrastructure/repository';
 
 // ============================================================================
@@ -137,7 +132,7 @@ export const useSnapshotStore = create<SnapshotStoreState>((set, get) => ({
   /**
    * スナップショット保存
    */
-  saveSnapshot: async (params) => {
+  saveSnapshot: async params => {
     const now = new Date();
     const id = generateSnapshotId();
 
@@ -159,7 +154,7 @@ export const useSnapshotStore = create<SnapshotStoreState>((set, get) => ({
 
     try {
       await repository.saveSnapshot(snapshot);
-      set((state) => ({
+      set(state => ({
         snapshots: [snapshot, ...state.snapshots],
       }));
       return id;
@@ -174,11 +169,11 @@ export const useSnapshotStore = create<SnapshotStoreState>((set, get) => ({
   /**
    * スナップショット削除
    */
-  deleteSnapshot: async (id) => {
+  deleteSnapshot: async id => {
     try {
       await repository.deleteSnapshot(id);
-      set((state) => ({
-        snapshots: state.snapshots.filter((s) => s.id !== id),
+      set(state => ({
+        snapshots: state.snapshots.filter(s => s.id !== id),
       }));
     } catch (error) {
       set({
@@ -192,7 +187,7 @@ export const useSnapshotStore = create<SnapshotStoreState>((set, get) => ({
    */
   updateSnapshotLabel: async (id, newLabel) => {
     const { snapshots } = get();
-    const snapshot = snapshots.find((s) => s.id === id);
+    const snapshot = snapshots.find(s => s.id === id);
     if (!snapshot) {
       set({ error: 'スナップショットが見つかりません' });
       return;
@@ -206,8 +201,8 @@ export const useSnapshotStore = create<SnapshotStoreState>((set, get) => ({
 
     try {
       await repository.saveSnapshot(updated);
-      set((state) => ({
-        snapshots: state.snapshots.map((s) => (s.id === id ? updated : s)),
+      set(state => ({
+        snapshots: state.snapshots.map(s => (s.id === id ? updated : s)),
       }));
     } catch (error) {
       set({
@@ -219,9 +214,9 @@ export const useSnapshotStore = create<SnapshotStoreState>((set, get) => ({
   /**
    * ピン留めトグル
    */
-  togglePin: async (id) => {
+  togglePin: async id => {
     const { snapshots } = get();
-    const snapshot = snapshots.find((s) => s.id === id);
+    const snapshot = snapshots.find(s => s.id === id);
     if (!snapshot) {
       set({ error: 'スナップショットが見つかりません' });
       return;
@@ -235,8 +230,8 @@ export const useSnapshotStore = create<SnapshotStoreState>((set, get) => ({
 
     try {
       await repository.saveSnapshot(updated);
-      set((state) => ({
-        snapshots: state.snapshots.map((s) => (s.id === id ? updated : s)),
+      set(state => ({
+        snapshots: state.snapshots.map(s => (s.id === id ? updated : s)),
       }));
     } catch (error) {
       set({
@@ -250,7 +245,7 @@ export const useSnapshotStore = create<SnapshotStoreState>((set, get) => ({
    */
   moveToFolder: async (id, folderName) => {
     const { snapshots } = get();
-    const snapshot = snapshots.find((s) => s.id === id);
+    const snapshot = snapshots.find(s => s.id === id);
     if (!snapshot) {
       set({ error: 'スナップショットが見つかりません' });
       return;
@@ -264,8 +259,8 @@ export const useSnapshotStore = create<SnapshotStoreState>((set, get) => ({
 
     try {
       await repository.saveSnapshot(updated);
-      set((state) => ({
-        snapshots: state.snapshots.map((s) => (s.id === id ? updated : s)),
+      set(state => ({
+        snapshots: state.snapshots.map(s => (s.id === id ? updated : s)),
       }));
     } catch (error) {
       set({
@@ -277,9 +272,9 @@ export const useSnapshotStore = create<SnapshotStoreState>((set, get) => ({
   /**
    * フォルダ作成
    */
-  createFolder: async (name) => {
+  createFolder: async name => {
     const { folders } = get();
-    if (folders.some((f) => f.folderName === name)) {
+    if (folders.some(f => f.folderName === name)) {
       set({ error: '同名のフォルダが既に存在します' });
       return;
     }
@@ -295,7 +290,7 @@ export const useSnapshotStore = create<SnapshotStoreState>((set, get) => ({
 
     try {
       await repository.saveFolder(folder);
-      set((state) => ({
+      set(state => ({
         folders: [...state.folders, folder],
       }));
     } catch (error) {
@@ -308,16 +303,16 @@ export const useSnapshotStore = create<SnapshotStoreState>((set, get) => ({
   /**
    * フォルダ削除
    */
-  deleteFolder: async (name) => {
+  deleteFolder: async name => {
     const { snapshots, folders } = get();
-    const folder = folders.find((f) => f.folderName === name);
+    const folder = folders.find(f => f.folderName === name);
     if (!folder) {
       set({ error: 'フォルダが見つかりません' });
       return;
     }
 
     // フォルダ内のスナップショットを未分類に移動
-    const snapshotsInFolder = snapshots.filter((s) => s.folderName === name);
+    const snapshotsInFolder = snapshots.filter(s => s.folderName === name);
     for (const snapshot of snapshotsInFolder) {
       const updated: AggregationSnapshot = {
         ...snapshot,
@@ -329,11 +324,9 @@ export const useSnapshotStore = create<SnapshotStoreState>((set, get) => ({
 
     try {
       await repository.deleteFolder(folder.folderId);
-      set((state) => ({
-        folders: state.folders.filter((f) => f.folderName !== name),
-        snapshots: state.snapshots.map((s) =>
-          s.folderName === name ? { ...s, folderName: null } : s
-        ),
+      set(state => ({
+        folders: state.folders.filter(f => f.folderName !== name),
+        snapshots: state.snapshots.map(s => (s.folderName === name ? { ...s, folderName: null } : s)),
       }));
     } catch (error) {
       set({
@@ -347,13 +340,13 @@ export const useSnapshotStore = create<SnapshotStoreState>((set, get) => ({
    */
   renameFolder: async (oldName, newName) => {
     const { folders, snapshots } = get();
-    const folder = folders.find((f) => f.folderName === oldName);
+    const folder = folders.find(f => f.folderName === oldName);
     if (!folder) {
       set({ error: 'フォルダが見つかりません' });
       return;
     }
 
-    if (folders.some((f) => f.folderName === newName)) {
+    if (folders.some(f => f.folderName === newName)) {
       set({ error: '同名のフォルダが既に存在します' });
       return;
     }
@@ -365,7 +358,7 @@ export const useSnapshotStore = create<SnapshotStoreState>((set, get) => ({
     };
 
     // スナップショットのフォルダ名を更新
-    const updatedSnapshots = snapshots.filter((s) => s.folderName === oldName);
+    const updatedSnapshots = snapshots.filter(s => s.folderName === oldName);
     for (const snapshot of updatedSnapshots) {
       const updated: AggregationSnapshot = {
         ...snapshot,
@@ -377,11 +370,9 @@ export const useSnapshotStore = create<SnapshotStoreState>((set, get) => ({
 
     try {
       await repository.saveFolder(newFolder);
-      set((state) => ({
-        folders: state.folders.map((f) => (f.folderName === oldName ? newFolder : f)),
-        snapshots: state.snapshots.map((s) =>
-          s.folderName === oldName ? { ...s, folderName: newName } : s
-        ),
+      set(state => ({
+        folders: state.folders.map(f => (f.folderName === oldName ? newFolder : f)),
+        snapshots: state.snapshots.map(s => (s.folderName === oldName ? { ...s, folderName: newName } : s)),
       }));
     } catch (error) {
       set({
@@ -394,20 +385,20 @@ export const useSnapshotStore = create<SnapshotStoreState>((set, get) => ({
   // ゲッター
   // ============================================================================
 
-  getSnapshotById: (id) => {
-    return get().snapshots.find((s) => s.id === id);
+  getSnapshotById: id => {
+    return get().snapshots.find(s => s.id === id);
   },
 
-  getSnapshotsByFolder: (folderName) => {
-    return get().snapshots.filter((s) => s.folderName === folderName);
+  getSnapshotsByFolder: folderName => {
+    return get().snapshots.filter(s => s.folderName === folderName);
   },
 
-  getSnapshotsByType: (type) => {
-    return get().snapshots.filter((s) => s.type === type);
+  getSnapshotsByType: type => {
+    return get().snapshots.filter(s => s.type === type);
   },
 
   getPinnedSnapshots: () => {
-    return get().snapshots.filter((s) => s.isPinned);
+    return get().snapshots.filter(s => s.isPinned);
   },
 
   clearError: () => {

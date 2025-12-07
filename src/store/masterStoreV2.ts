@@ -150,22 +150,13 @@ export const useMasterStoreV2 = create<MasterStoreV2State>((set, get) => ({
       const inputRecords = csvRecords.map(csvRecordToInput);
 
       // 2. Domain層: フル履歴マスターにマージ
-      const updatedFullHistory = batchMergeFullHistoryMasters(
-        fullHistoryMasters,
-        inputRecords
-      );
+      const updatedFullHistory = batchMergeFullHistoryMasters(fullHistoryMasters, inputRecords);
 
       // 3. Domain層: 実施マスターを導出
-      const updatedImplementation = deriveImplementationMasters(
-        updatedFullHistory,
-        implementationMasters
-      );
+      const updatedImplementation = deriveImplementationMasters(updatedFullHistory, implementationMasters);
 
       // 4. Infrastructure層: IndexedDBに保存
-      await masterRepository.saveAllMastersBatch(
-        updatedFullHistory,
-        updatedImplementation
-      );
+      await masterRepository.saveAllMastersBatch(updatedFullHistory, updatedImplementation);
 
       // 5. ストアを更新
       set({

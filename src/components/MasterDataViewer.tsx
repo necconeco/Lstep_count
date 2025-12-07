@@ -43,15 +43,8 @@ import type { FlattenedRecord, MasterDataSummary } from '../domain/masterTypes';
 type ViewMode = 'all' | 'implemented';
 
 export const MasterDataViewer = () => {
-  const {
-    fullHistoryMasters,
-    loadMasters,
-    clearMasters,
-    getFlattenedRecords,
-    getSummary,
-    exportToCSV,
-    isLoading,
-  } = useMasterStoreV2();
+  const { fullHistoryMasters, loadMasters, clearMasters, getFlattenedRecords, getSummary, exportToCSV, isLoading } =
+    useMasterStoreV2();
 
   const [clearDialogOpen, setClearDialogOpen] = useState(false);
   const [page, setPage] = useState(0);
@@ -88,7 +81,7 @@ export const MasterDataViewer = () => {
 
     const lowerSearch = searchText.toLowerCase();
     return modeFilteredRecords.filter(
-      (record) =>
+      record =>
         record.friendId.toLowerCase().includes(lowerSearch) ||
         record.reservationId.toLowerCase().includes(lowerSearch) ||
         record.name.toLowerCase().includes(lowerSearch) ||
@@ -155,25 +148,19 @@ export const MasterDataViewer = () => {
   /**
    * 1ページあたりの行数変更ハンドラ
    */
-  const handleChangeRowsPerPage = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
-      setRowsPerPage(parseInt(event.target.value, 10));
-      setPage(0);
-    },
-    []
-  );
+  const handleChangeRowsPerPage = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
+  }, []);
 
   /**
    * 表示モード変更ハンドラ
    */
-  const handleViewModeChange = useCallback(
-    (_event: React.MouseEvent<HTMLElement>, newMode: ViewMode | null) => {
-      if (newMode !== null) {
-        setViewMode(newMode);
-      }
-    },
-    []
-  );
+  const handleViewModeChange = useCallback((_event: React.MouseEvent<HTMLElement>, newMode: ViewMode | null) => {
+    if (newMode !== null) {
+      setViewMode(newMode);
+    }
+  }, []);
 
   // データがない場合は表示しない
   if (fullHistoryMasters.size === 0 && !isLoading) {
@@ -197,20 +184,10 @@ export const MasterDataViewer = () => {
           履歴一覧（フル履歴マスター）
         </Typography>
         <Box sx={{ display: 'flex', gap: 2 }}>
-          <Button
-            variant="outlined"
-            color="primary"
-            startIcon={<DownloadIcon />}
-            onClick={handleDownloadCSV}
-          >
+          <Button variant="outlined" color="primary" startIcon={<DownloadIcon />} onClick={handleDownloadCSV}>
             CSVダウンロード
           </Button>
-          <Button
-            variant="outlined"
-            color="error"
-            startIcon={<DeleteForeverIcon />}
-            onClick={handleClearClick}
-          >
+          <Button variant="outlined" color="error" startIcon={<DeleteForeverIcon />} onClick={handleClearClick}>
             全削除（初期化）
           </Button>
         </Box>
@@ -219,12 +196,11 @@ export const MasterDataViewer = () => {
       {/* 統計サマリー */}
       <Alert severity="info" sx={{ mb: 3 }}>
         <Typography variant="body2">
-          <strong>ユニークユーザー:</strong> {summary.totalUsers}人 |
-          <strong> 総レコード:</strong> {summary.totalRecords}件 |
-          <strong> 実施:</strong> {summary.implementationCount}件
-          （初回: {summary.firstTimeCount}件 / 2回目以降: {summary.repeatCount}件）|
-          <strong> キャンセル:</strong> {summary.cancellationCount}件 |
-          <strong> 予約中:</strong> {summary.pendingCount}件
+          <strong>ユニークユーザー:</strong> {summary.totalUsers}人 |<strong> 総レコード:</strong>{' '}
+          {summary.totalRecords}件 |<strong> 実施:</strong> {summary.implementationCount}件 （初回:{' '}
+          {summary.firstTimeCount}件 / 2回目以降: {summary.repeatCount}件）|
+          <strong> キャンセル:</strong> {summary.cancellationCount}件 |<strong> 予約中:</strong> {summary.pendingCount}
+          件
         </Typography>
         <Typography variant="body2" sx={{ mt: 0.5 }}>
           CSVの全行（キャンセル含む）を年度を跨いでマージ。予約1件=1行で表示。visitIndexは実施行のみに付与。
@@ -234,12 +210,7 @@ export const MasterDataViewer = () => {
       {/* フィルターバー */}
       <Box sx={{ mb: 2, display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
         {/* 表示モード切替 */}
-        <ToggleButtonGroup
-          value={viewMode}
-          exclusive
-          onChange={handleViewModeChange}
-          size="small"
-        >
+        <ToggleButtonGroup value={viewMode} exclusive onChange={handleViewModeChange} size="small">
           <ToggleButton value="all">
             <Tooltip title="全履歴（キャンセル含む）">
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
@@ -263,7 +234,7 @@ export const MasterDataViewer = () => {
           size="small"
           placeholder="友だちID、予約ID、名前、担当者で検索..."
           value={searchText}
-          onChange={(e) => setSearchText(e.target.value)}
+          onChange={e => setSearchText(e.target.value)}
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
@@ -276,8 +247,7 @@ export const MasterDataViewer = () => {
 
         {/* 検索結果件数 */}
         <Typography variant="body2" color="text.secondary">
-          表示: {filteredRecords.length}件
-          {viewMode === 'implemented' && ` / 実施${summary.implementationCount}件`}
+          表示: {filteredRecords.length}件{viewMode === 'implemented' && ` / 実施${summary.implementationCount}件`}
           {viewMode === 'all' && ` / 全${summary.totalRecords}件`}
         </Typography>
       </Box>
@@ -304,11 +274,12 @@ export const MasterDataViewer = () => {
                   key={`${record.friendId}-${record.reservationId}-${index}`}
                   hover
                   sx={{
-                    backgroundColor: record.status === 'キャンセル済み'
-                      ? 'rgba(211, 47, 47, 0.04)'
-                      : record.isImplemented
-                      ? 'rgba(46, 125, 50, 0.04)'
-                      : 'inherit',
+                    backgroundColor:
+                      record.status === 'キャンセル済み'
+                        ? 'rgba(211, 47, 47, 0.04)'
+                        : record.isImplemented
+                          ? 'rgba(46, 125, 50, 0.04)'
+                          : 'inherit',
                   }}
                 >
                   <TableCell>
@@ -341,13 +312,11 @@ export const MasterDataViewer = () => {
                   </TableCell>
                   <TableCell align="center">
                     {record.isImplemented ? (
-                      <Chip
-                        label={record.visitIndex}
-                        size="small"
-                        color="primary"
-                      />
+                      <Chip label={record.visitIndex} size="small" color="primary" />
                     ) : (
-                      <Typography variant="body2" color="text.secondary">-</Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        -
+                      </Typography>
                     )}
                   </TableCell>
                   <TableCell>
@@ -356,15 +325,13 @@ export const MasterDataViewer = () => {
                         label={record.visitLabel}
                         size="small"
                         color={
-                          record.visitLabel === '初回'
-                            ? 'success'
-                            : record.visitLabel === '2回目'
-                            ? 'info'
-                            : 'default'
+                          record.visitLabel === '初回' ? 'success' : record.visitLabel === '2回目' ? 'info' : 'default'
                         }
                       />
                     ) : (
-                      <Typography variant="body2" color="text.secondary">-</Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        -
+                      </Typography>
                     )}
                   </TableCell>
                   <TableCell>{record.staff || '-'}</TableCell>
@@ -384,9 +351,7 @@ export const MasterDataViewer = () => {
           onRowsPerPageChange={handleChangeRowsPerPage}
           rowsPerPageOptions={[10, 25, 50, 100, 200]}
           labelRowsPerPage="表示件数:"
-          labelDisplayedRows={({ from, to, count }) =>
-            `${from}-${to} / ${count}件`
-          }
+          labelDisplayedRows={({ from, to, count }) => `${from}-${to} / ${count}件`}
         />
       </Paper>
 

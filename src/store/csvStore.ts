@@ -31,10 +31,8 @@ export const useCsvStore = create<CsvStoreState>((set, get) => ({
   },
 
   updateRecord: (予約ID: string, updates: Partial<CsvRecord>) => {
-    set((state) => ({
-      csvData: state.csvData.map((record) =>
-        record.予約ID === 予約ID ? { ...record, ...updates } : record
-      ),
+    set(state => ({
+      csvData: state.csvData.map(record => (record.予約ID === 予約ID ? { ...record, ...updates } : record)),
     }));
   },
 

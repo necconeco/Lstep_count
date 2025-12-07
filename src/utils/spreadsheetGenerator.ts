@@ -20,14 +20,41 @@ export function generateSpreadsheet(data: SpreadsheetOutputData, month: string):
   const sheetData: unknown[][] = [
     // ヘッダー行
     [
-      '', '', '', '', '', '', '', '', '', '', // A~J列（空）
-      '', '', '', '', '', '', '', '', '', '', // K~T列（空）
-      '', '', '', '', '', '', '', // U~AA列（空）
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '', // A~J列（空）
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '', // K~T列（空）
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '', // U~AA列（空）
       '初回予約合計', // AB列
       '初回予約率(%)', // AC列
       '初回実施合計', // AD列
       '初回実施率(%)', // AE列
-      '', '', '', '', // AF~AI列（空）
+      '',
+      '',
+      '',
+      '', // AF~AI列（空）
       '2回目以降予約合計', // AJ列
       '2回目以降予約率(%)', // AK列
       '2回目以降実施合計', // AL列
@@ -35,14 +62,41 @@ export function generateSpreadsheet(data: SpreadsheetOutputData, month: string):
     ],
     // データ行（集計月のデータ）
     [
-      '', '', '', '', '', '', '', '', '', '', // A~J列（空）
-      '', '', '', '', '', '', '', '', '', '', // K~T列（空）
-      '', '', '', '', '', '', '', // U~AA列（空）
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '', // A~J列（空）
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '', // K~T列（空）
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '', // U~AA列（空）
       data.AB, // 初回予約合計
       data.AC, // 初回予約率(%)
       data.AD, // 初回実施合計
       data.AE, // 初回実施率(%)
-      '', '', '', '', // AF~AI列（空）
+      '',
+      '',
+      '',
+      '', // AF~AI列（空）
       data.AJ, // 2回目以降予約合計
       data.AK, // 2回目以降予約率(%)
       data.AL, // 2回目以降実施合計
@@ -53,14 +107,41 @@ export function generateSpreadsheet(data: SpreadsheetOutputData, month: string):
   // TTL行（合計行）の追加
   // 注意: 予約率と実施率は平均値として計算（合計ではない）
   const ttlRow = [
-    '', '', '', '', '', '', '', '', '', '', // A~J列（空）
-    '', '', '', '', '', '', '', '', '', '', // K~T列（空）
-    '', '', '', '', '', '', '', // U~AA列（空）
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '', // A~J列（空）
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '', // K~T列（空）
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '', // U~AA列（空）
     data.AB, // TTL: 初回予約合計
     data.AC, // TTL: 初回予約率(%)
     data.AD, // TTL: 初回実施合計
     data.AE, // TTL: 初回実施率(%)
-    '', '', '', '', // AF~AI列（空）
+    '',
+    '',
+    '',
+    '', // AF~AI列（空）
     data.AJ, // TTL: 2回目以降予約合計
     data.AK, // TTL: 2回目以降予約率(%)
     data.AL, // TTL: 2回目以降実施合計
@@ -97,7 +178,7 @@ export function generateSpreadsheet(data: SpreadsheetOutputData, month: string):
 
   // セルスタイルの設定（ヘッダー行とTTL行を太字に）
   const headerCells = ['AB1', 'AC1', 'AD1', 'AE1', 'AJ1', 'AK1', 'AL1', 'AM1'];
-  headerCells.forEach((cell) => {
+  headerCells.forEach(cell => {
     if (worksheet[cell]) {
       worksheet[cell].s = {
         font: { bold: true },
@@ -110,7 +191,7 @@ export function generateSpreadsheet(data: SpreadsheetOutputData, month: string):
   const valueCells = ['AB2', 'AD2', 'AJ2', 'AL2']; // 合計セル（整数）
   const rateCells = ['AC2', 'AE2', 'AK2', 'AM2']; // 率セル（%）
 
-  valueCells.forEach((cell) => {
+  valueCells.forEach(cell => {
     if (worksheet[cell]) {
       worksheet[cell].t = 'n'; // 数値型
       worksheet[cell].z = '#,##0'; // 整数表示
@@ -120,7 +201,7 @@ export function generateSpreadsheet(data: SpreadsheetOutputData, month: string):
     }
   });
 
-  rateCells.forEach((cell) => {
+  rateCells.forEach(cell => {
     if (worksheet[cell]) {
       worksheet[cell].t = 'n'; // 数値型
       worksheet[cell].z = '0.0"%"'; // 小数点1桁 + %
@@ -132,7 +213,7 @@ export function generateSpreadsheet(data: SpreadsheetOutputData, month: string):
 
   // TTL行のセルスタイル
   const ttlCells = ['AA3', 'AB3', 'AC3', 'AD3', 'AE3', 'AJ3', 'AK3', 'AL3', 'AM3'];
-  ttlCells.forEach((cell) => {
+  ttlCells.forEach(cell => {
     if (worksheet[cell]) {
       if (cell === 'AA3') {
         // TTLラベル
@@ -194,14 +275,10 @@ export function generateCSV(data: SpreadsheetOutputData, month: string): void {
   ].join(',');
 
   // CSVデータ行
-  const dataRow = [data.AB, data.AC, data.AD, data.AE, data.AJ, data.AK, data.AL, data.AM].join(
-    ','
-  );
+  const dataRow = [data.AB, data.AC, data.AD, data.AE, data.AJ, data.AK, data.AL, data.AM].join(',');
 
   // TTL行
-  const ttlRow = [data.AB, data.AC, data.AD, data.AE, data.AJ, data.AK, data.AL, data.AM].join(
-    ','
-  );
+  const ttlRow = [data.AB, data.AC, data.AD, data.AE, data.AJ, data.AK, data.AL, data.AM].join(',');
 
   // CSV文字列を構築
   const csvContent = `${header}\n${dataRow}\nTTL,${ttlRow}`;

@@ -69,16 +69,16 @@ interface StaffAggregationResult {
   totalCount: number;
   implementedCount: number;
   cancelCount: number;
-  previousDayCancelCount: number;  // 前日キャンセル件数
-  sameDayCancelCount: number;      // 当日キャンセル件数
+  previousDayCancelCount: number; // 前日キャンセル件数
+  sameDayCancelCount: number; // 当日キャンセル件数
   firstVisitCount: number;
   secondVisitCount: number;
   thirdOrMoreCount: number;
   omakaseAssignedCount: number;
   uniqueUsers: number;
   groupedCount: number;
-  implementationRate: number;      // 実施率(%)
-  firstToSecondCVR: number;        // 初回→2回目CVR(%)
+  implementationRate: number; // 実施率(%)
+  firstToSecondCVR: number; // 初回→2回目CVR(%)
 }
 
 /**
@@ -88,22 +88,25 @@ function calculateStaffAggregation(
   records: ReservationHistory[],
   implementationRule: ImplementationRule = 'includeLateCancel'
 ): StaffAggregationResult[] {
-  const staffMap = new Map<string, {
-    staffName: string;
-    totalCount: number;
-    implementedCount: number;
-    cancelCount: number;
-    previousDayCancelCount: number;
-    sameDayCancelCount: number;
-    firstVisitCount: number;
-    secondVisitCount: number;
-    thirdOrMoreCount: number;
-    omakaseAssignedCount: number;
-    uniqueUsers: Set<string>;
-    firstVisitUsers: Set<string>;  // 初回来店したユーザー
-    secondVisitUsers: Set<string>; // 2回目来店したユーザー
-    groupedCount: number;
-  }>();
+  const staffMap = new Map<
+    string,
+    {
+      staffName: string;
+      totalCount: number;
+      implementedCount: number;
+      cancelCount: number;
+      previousDayCancelCount: number;
+      sameDayCancelCount: number;
+      firstVisitCount: number;
+      secondVisitCount: number;
+      thirdOrMoreCount: number;
+      omakaseAssignedCount: number;
+      uniqueUsers: Set<string>;
+      firstVisitUsers: Set<string>; // 初回来店したユーザー
+      secondVisitUsers: Set<string>; // 2回目来店したユーザー
+      groupedCount: number;
+    }
+  >();
 
   const processedGroups = new Set<string>();
 
@@ -173,17 +176,17 @@ function calculateStaffAggregation(
 
   // 配列に変換して実施数降順でソート
   return Array.from(staffMap.values())
-    .map((entry) => {
+    .map(entry => {
       // 実施率
-      const implementationRate = entry.totalCount > 0
-        ? Math.round((entry.implementedCount / entry.totalCount) * 1000) / 10
-        : 0;
+      const implementationRate =
+        entry.totalCount > 0 ? Math.round((entry.implementedCount / entry.totalCount) * 1000) / 10 : 0;
 
       // 初回→2回目CVR（初回ユーザーのうち2回目も来た人の割合）
       // 注: この担当者経由で初回来店した人が、その後2回目も来た割合
-      const firstToSecondCVR = entry.firstVisitUsers.size > 0
-        ? Math.round((entry.secondVisitUsers.size / entry.firstVisitUsers.size) * 1000) / 10
-        : 0;
+      const firstToSecondCVR =
+        entry.firstVisitUsers.size > 0
+          ? Math.round((entry.secondVisitUsers.size / entry.firstVisitUsers.size) * 1000) / 10
+          : 0;
 
       return {
         staffName: entry.staffName,
@@ -211,8 +214,16 @@ function calculateStaffAggregation(
 
 // グラフ用カラーパレット
 const CHART_COLORS = [
-  '#4CAF50', '#2196F3', '#FF9800', '#9C27B0', '#E91E63',
-  '#00BCD4', '#FFC107', '#795548', '#607D8B', '#3F51B5',
+  '#4CAF50',
+  '#2196F3',
+  '#FF9800',
+  '#9C27B0',
+  '#E91E63',
+  '#00BCD4',
+  '#FFC107',
+  '#795548',
+  '#607D8B',
+  '#3F51B5',
 ];
 
 export function StaffAggregationView(_props: StaffAggregationViewProps) {
@@ -246,7 +257,7 @@ export function StaffAggregationView(_props: StaffAggregationViewProps) {
       return records;
     }
 
-    return records.filter((record) => {
+    return records.filter(record => {
       // 基準日タイプに応じて使用する日付を切り替え
       const date = dateBaseType === 'session' ? record.sessionDate : record.applicationDate;
 
@@ -310,12 +321,10 @@ export function StaffAggregationView(_props: StaffAggregationViewProps) {
 
   // 全体の実施率・CVR
   const overallStats = useMemo(() => {
-    const implementationRate = totals.totalCount > 0
-      ? Math.round((totals.implementedCount / totals.totalCount) * 1000) / 10
-      : 0;
-    const firstToSecondCVR = totals.firstVisitCount > 0
-      ? Math.round((totals.secondVisitCount / totals.firstVisitCount) * 1000) / 10
-      : 0;
+    const implementationRate =
+      totals.totalCount > 0 ? Math.round((totals.implementedCount / totals.totalCount) * 1000) / 10 : 0;
+    const firstToSecondCVR =
+      totals.firstVisitCount > 0 ? Math.round((totals.secondVisitCount / totals.firstVisitCount) * 1000) / 10 : 0;
     return { implementationRate, firstToSecondCVR };
   }, [totals]);
 
@@ -337,7 +346,7 @@ export function StaffAggregationView(_props: StaffAggregationViewProps) {
       'ユニークユーザー',
     ].join(',');
 
-    const rows = staffAggregation.map((s) =>
+    const rows = staffAggregation.map(s =>
       [
         s.staffName,
         s.totalCount,
@@ -410,31 +419,11 @@ export function StaffAggregationView(_props: StaffAggregationViewProps) {
 
           {/* サマリー（期間は共通フィルタバーで設定） */}
           <Stack direction="row" spacing={2} sx={{ mb: 3 }} flexWrap="wrap" useFlexGap>
-            <Chip
-              label={`基準日: ${DATE_BASE_TYPE_LABELS[dateBaseType]}`}
-              variant="outlined"
-              color="info"
-            />
-            <Chip
-              label={`対象レコード: ${filteredRecords.length}件`}
-              color="primary"
-              variant="outlined"
-            />
-            <Chip
-              label={`担当者数: ${staffAggregation.length}人`}
-              color="secondary"
-              variant="outlined"
-            />
-            <Chip
-              label={`全体実施率: ${overallStats.implementationRate}%`}
-              color="success"
-              variant="outlined"
-            />
-            <Chip
-              label={`初回→2回目CVR: ${overallStats.firstToSecondCVR}%`}
-              color="info"
-              variant="outlined"
-            />
+            <Chip label={`基準日: ${DATE_BASE_TYPE_LABELS[dateBaseType]}`} variant="outlined" color="info" />
+            <Chip label={`対象レコード: ${filteredRecords.length}件`} color="primary" variant="outlined" />
+            <Chip label={`担当者数: ${staffAggregation.length}人`} color="secondary" variant="outlined" />
+            <Chip label={`全体実施率: ${overallStats.implementationRate}%`} color="success" variant="outlined" />
+            <Chip label={`初回→2回目CVR: ${overallStats.firstToSecondCVR}%`} color="info" variant="outlined" />
           </Stack>
 
           {/* タブ切り替え */}
@@ -447,162 +436,151 @@ export function StaffAggregationView(_props: StaffAggregationViewProps) {
 
           {/* テーブルビュー */}
           {activeTab === 0 && (
-          <TableContainer component={Paper} variant="outlined">
-            <Table size="small">
-              <TableHead>
-                <TableRow sx={{ backgroundColor: 'grey.100' }}>
-                  <TableCell>担当者</TableCell>
-                  <TableCell align="right">予約数</TableCell>
-                  <TableCell align="right">実施数</TableCell>
-                  <TableCell align="right">キャンセル</TableCell>
-                  <TableCell align="right">
-                    <Tooltip title="前日キャンセル">
-                      <span>前日C</span>
-                    </Tooltip>
-                  </TableCell>
-                  <TableCell align="right">
-                    <Tooltip title="当日キャンセル">
-                      <span>当日C</span>
-                    </Tooltip>
-                  </TableCell>
-                  <TableCell align="right">実施率</TableCell>
-                  <TableCell align="right">初回</TableCell>
-                  <TableCell align="right">2回目</TableCell>
-                  <TableCell align="right">3回目〜</TableCell>
-                  <TableCell align="right">
-                    <Tooltip title="初回来店者が2回目も来店した率">
-                      <span>CVR</span>
-                    </Tooltip>
-                  </TableCell>
-                  <TableCell align="right">おまかせ</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {staffAggregation.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={12} align="center">
-                      <Typography color="text.secondary" sx={{ py: 3 }}>
-                        データがありません
-                      </Typography>
+            <TableContainer component={Paper} variant="outlined">
+              <Table size="small">
+                <TableHead>
+                  <TableRow sx={{ backgroundColor: 'grey.100' }}>
+                    <TableCell>担当者</TableCell>
+                    <TableCell align="right">予約数</TableCell>
+                    <TableCell align="right">実施数</TableCell>
+                    <TableCell align="right">キャンセル</TableCell>
+                    <TableCell align="right">
+                      <Tooltip title="前日キャンセル">
+                        <span>前日C</span>
+                      </Tooltip>
                     </TableCell>
+                    <TableCell align="right">
+                      <Tooltip title="当日キャンセル">
+                        <span>当日C</span>
+                      </Tooltip>
+                    </TableCell>
+                    <TableCell align="right">実施率</TableCell>
+                    <TableCell align="right">初回</TableCell>
+                    <TableCell align="right">2回目</TableCell>
+                    <TableCell align="right">3回目〜</TableCell>
+                    <TableCell align="right">
+                      <Tooltip title="初回来店者が2回目も来店した率">
+                        <span>CVR</span>
+                      </Tooltip>
+                    </TableCell>
+                    <TableCell align="right">おまかせ</TableCell>
                   </TableRow>
-                ) : (
-                  <>
-                    {staffAggregation.map((staff) => (
-                      <TableRow key={staff.staffName} hover>
-                        <TableCell>
-                          <Typography fontWeight="medium">
-                            {staff.staffName}
-                          </Typography>
-                        </TableCell>
-                        <TableCell align="right">{staff.totalCount}</TableCell>
-                        <TableCell align="right">
-                          <Typography color="success.main" fontWeight="medium">
-                            {staff.implementedCount}
-                          </Typography>
-                        </TableCell>
-                        <TableCell align="right">
-                          <Typography color="text.secondary">
-                            {staff.cancelCount}
-                          </Typography>
-                        </TableCell>
-                        <TableCell align="right">
-                          <Typography color="warning.main" fontSize="0.875rem">
-                            {staff.previousDayCancelCount}
-                          </Typography>
-                        </TableCell>
-                        <TableCell align="right">
-                          <Typography color="error.main" fontSize="0.875rem">
-                            {staff.sameDayCancelCount}
-                          </Typography>
-                        </TableCell>
-                        <TableCell align="right">
-                          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 1 }}>
-                            <LinearProgress
-                              variant="determinate"
-                              value={staff.implementationRate}
-                              sx={{ width: 40, height: 6, borderRadius: 1 }}
-                            />
-                            <Typography fontSize="0.875rem">{staff.implementationRate}%</Typography>
-                          </Box>
-                        </TableCell>
-                        <TableCell align="right">{staff.firstVisitCount}</TableCell>
-                        <TableCell align="right">{staff.secondVisitCount}</TableCell>
-                        <TableCell align="right">{staff.thirdOrMoreCount}</TableCell>
-                        <TableCell align="right">
-                          <Typography color="info.main" fontSize="0.875rem">
-                            {staff.firstToSecondCVR}%
-                          </Typography>
-                        </TableCell>
-                        <TableCell align="right">
-                          {staff.omakaseAssignedCount > 0 && (
-                            <Chip
-                              label={staff.omakaseAssignedCount}
-                              size="small"
-                              color="info"
-                              variant="outlined"
-                            />
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-
-                    {/* 合計行 */}
-                    <TableRow sx={{ backgroundColor: 'grey.50' }}>
-                      <TableCell>
-                        <Typography fontWeight="bold">合計</Typography>
-                      </TableCell>
-                      <TableCell align="right">
-                        <Typography fontWeight="bold">{totals.totalCount}</Typography>
-                      </TableCell>
-                      <TableCell align="right">
-                        <Typography fontWeight="bold" color="success.main">
-                          {totals.implementedCount}
+                </TableHead>
+                <TableBody>
+                  {staffAggregation.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={12} align="center">
+                        <Typography color="text.secondary" sx={{ py: 3 }}>
+                          データがありません
                         </Typography>
-                      </TableCell>
-                      <TableCell align="right">
-                        <Typography fontWeight="bold" color="text.secondary">
-                          {totals.cancelCount}
-                        </Typography>
-                      </TableCell>
-                      <TableCell align="right">
-                        <Typography fontWeight="bold" color="warning.main">
-                          {totals.previousDayCancelCount}
-                        </Typography>
-                      </TableCell>
-                      <TableCell align="right">
-                        <Typography fontWeight="bold" color="error.main">
-                          {totals.sameDayCancelCount}
-                        </Typography>
-                      </TableCell>
-                      <TableCell align="right">
-                        <Typography fontWeight="bold">
-                          {overallStats.implementationRate}%
-                        </Typography>
-                      </TableCell>
-                      <TableCell align="right">
-                        <Typography fontWeight="bold">{totals.firstVisitCount}</Typography>
-                      </TableCell>
-                      <TableCell align="right">
-                        <Typography fontWeight="bold">{totals.secondVisitCount}</Typography>
-                      </TableCell>
-                      <TableCell align="right">
-                        <Typography fontWeight="bold">{totals.thirdOrMoreCount}</Typography>
-                      </TableCell>
-                      <TableCell align="right">
-                        <Typography fontWeight="bold" color="info.main">
-                          {overallStats.firstToSecondCVR}%
-                        </Typography>
-                      </TableCell>
-                      <TableCell align="right">
-                        <Typography fontWeight="bold">{totals.omakaseAssignedCount}</Typography>
                       </TableCell>
                     </TableRow>
-                  </>
-                )}
-              </TableBody>
-            </Table>
-          </TableContainer>
+                  ) : (
+                    <>
+                      {staffAggregation.map(staff => (
+                        <TableRow key={staff.staffName} hover>
+                          <TableCell>
+                            <Typography fontWeight="medium">{staff.staffName}</Typography>
+                          </TableCell>
+                          <TableCell align="right">{staff.totalCount}</TableCell>
+                          <TableCell align="right">
+                            <Typography color="success.main" fontWeight="medium">
+                              {staff.implementedCount}
+                            </Typography>
+                          </TableCell>
+                          <TableCell align="right">
+                            <Typography color="text.secondary">{staff.cancelCount}</Typography>
+                          </TableCell>
+                          <TableCell align="right">
+                            <Typography color="warning.main" fontSize="0.875rem">
+                              {staff.previousDayCancelCount}
+                            </Typography>
+                          </TableCell>
+                          <TableCell align="right">
+                            <Typography color="error.main" fontSize="0.875rem">
+                              {staff.sameDayCancelCount}
+                            </Typography>
+                          </TableCell>
+                          <TableCell align="right">
+                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 1 }}>
+                              <LinearProgress
+                                variant="determinate"
+                                value={staff.implementationRate}
+                                sx={{ width: 40, height: 6, borderRadius: 1 }}
+                              />
+                              <Typography fontSize="0.875rem">{staff.implementationRate}%</Typography>
+                            </Box>
+                          </TableCell>
+                          <TableCell align="right">{staff.firstVisitCount}</TableCell>
+                          <TableCell align="right">{staff.secondVisitCount}</TableCell>
+                          <TableCell align="right">{staff.thirdOrMoreCount}</TableCell>
+                          <TableCell align="right">
+                            <Typography color="info.main" fontSize="0.875rem">
+                              {staff.firstToSecondCVR}%
+                            </Typography>
+                          </TableCell>
+                          <TableCell align="right">
+                            {staff.omakaseAssignedCount > 0 && (
+                              <Chip label={staff.omakaseAssignedCount} size="small" color="info" variant="outlined" />
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+
+                      {/* 合計行 */}
+                      <TableRow sx={{ backgroundColor: 'grey.50' }}>
+                        <TableCell>
+                          <Typography fontWeight="bold">合計</Typography>
+                        </TableCell>
+                        <TableCell align="right">
+                          <Typography fontWeight="bold">{totals.totalCount}</Typography>
+                        </TableCell>
+                        <TableCell align="right">
+                          <Typography fontWeight="bold" color="success.main">
+                            {totals.implementedCount}
+                          </Typography>
+                        </TableCell>
+                        <TableCell align="right">
+                          <Typography fontWeight="bold" color="text.secondary">
+                            {totals.cancelCount}
+                          </Typography>
+                        </TableCell>
+                        <TableCell align="right">
+                          <Typography fontWeight="bold" color="warning.main">
+                            {totals.previousDayCancelCount}
+                          </Typography>
+                        </TableCell>
+                        <TableCell align="right">
+                          <Typography fontWeight="bold" color="error.main">
+                            {totals.sameDayCancelCount}
+                          </Typography>
+                        </TableCell>
+                        <TableCell align="right">
+                          <Typography fontWeight="bold">{overallStats.implementationRate}%</Typography>
+                        </TableCell>
+                        <TableCell align="right">
+                          <Typography fontWeight="bold">{totals.firstVisitCount}</Typography>
+                        </TableCell>
+                        <TableCell align="right">
+                          <Typography fontWeight="bold">{totals.secondVisitCount}</Typography>
+                        </TableCell>
+                        <TableCell align="right">
+                          <Typography fontWeight="bold">{totals.thirdOrMoreCount}</Typography>
+                        </TableCell>
+                        <TableCell align="right">
+                          <Typography fontWeight="bold" color="info.main">
+                            {overallStats.firstToSecondCVR}%
+                          </Typography>
+                        </TableCell>
+                        <TableCell align="right">
+                          <Typography fontWeight="bold">{totals.omakaseAssignedCount}</Typography>
+                        </TableCell>
+                      </TableRow>
+                    </>
+                  )}
+                </TableBody>
+              </Table>
+            </TableContainer>
           )}
 
           {/* グラフビュー */}
@@ -615,7 +593,7 @@ export function StaffAggregationView(_props: StaffAggregationViewProps) {
                 </Typography>
                 <ResponsiveContainer width="100%" height={300}>
                   <BarChart
-                    data={staffAggregation.filter((s) => s.staffName !== '(未割当)')}
+                    data={staffAggregation.filter(s => s.staffName !== '(未割当)')}
                     margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
                   >
                     <CartesianGrid strokeDasharray="3 3" />
@@ -627,10 +605,7 @@ export function StaffAggregationView(_props: StaffAggregationViewProps) {
                       height={80}
                       tick={{ fontSize: 12 }}
                     />
-                    <YAxis
-                      domain={[0, 100]}
-                      tickFormatter={(v) => `${v}%`}
-                    />
+                    <YAxis domain={[0, 100]} tickFormatter={v => `${v}%`} />
                     <RechartsTooltip
                       formatter={(value: number, name: string) => {
                         if (name === 'implementationRate') return [`${value}%`, '実施率'];
@@ -638,14 +613,12 @@ export function StaffAggregationView(_props: StaffAggregationViewProps) {
                       }}
                     />
                     <Legend />
-                    <Bar
-                      dataKey="implementationRate"
-                      name="実施率"
-                      fill="#4CAF50"
-                    >
-                      {staffAggregation.filter((s) => s.staffName !== '(未割当)').map((_, index) => (
-                        <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
-                      ))}
+                    <Bar dataKey="implementationRate" name="実施率" fill="#4CAF50">
+                      {staffAggregation
+                        .filter(s => s.staffName !== '(未割当)')
+                        .map((_, index) => (
+                          <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                        ))}
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
@@ -658,7 +631,7 @@ export function StaffAggregationView(_props: StaffAggregationViewProps) {
                 </Typography>
                 <ResponsiveContainer width="100%" height={300}>
                   <BarChart
-                    data={staffAggregation.filter((s) => s.staffName !== '(未割当)' && s.firstVisitCount > 0)}
+                    data={staffAggregation.filter(s => s.staffName !== '(未割当)' && s.firstVisitCount > 0)}
                     margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
                   >
                     <CartesianGrid strokeDasharray="3 3" />
@@ -670,10 +643,7 @@ export function StaffAggregationView(_props: StaffAggregationViewProps) {
                       height={80}
                       tick={{ fontSize: 12 }}
                     />
-                    <YAxis
-                      domain={[0, 100]}
-                      tickFormatter={(v) => `${v}%`}
-                    />
+                    <YAxis domain={[0, 100]} tickFormatter={v => `${v}%`} />
                     <RechartsTooltip
                       formatter={(value: number, name: string) => {
                         if (name === 'firstToSecondCVR') return [`${value}%`, '初回→2回目CVR'];
@@ -681,14 +651,12 @@ export function StaffAggregationView(_props: StaffAggregationViewProps) {
                       }}
                     />
                     <Legend />
-                    <Bar
-                      dataKey="firstToSecondCVR"
-                      name="初回→2回目CVR"
-                      fill="#2196F3"
-                    >
-                      {staffAggregation.filter((s) => s.staffName !== '(未割当)' && s.firstVisitCount > 0).map((_, index) => (
-                        <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
-                      ))}
+                    <Bar dataKey="firstToSecondCVR" name="初回→2回目CVR" fill="#2196F3">
+                      {staffAggregation
+                        .filter(s => s.staffName !== '(未割当)' && s.firstVisitCount > 0)
+                        .map((_, index) => (
+                          <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                        ))}
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
@@ -701,7 +669,7 @@ export function StaffAggregationView(_props: StaffAggregationViewProps) {
                 </Typography>
                 <ResponsiveContainer width="100%" height={300}>
                   <BarChart
-                    data={staffAggregation.filter((s) => s.staffName !== '(未割当)')}
+                    data={staffAggregation.filter(s => s.staffName !== '(未割当)')}
                     margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
                   >
                     <CartesianGrid strokeDasharray="3 3" />
@@ -727,9 +695,7 @@ export function StaffAggregationView(_props: StaffAggregationViewProps) {
 
           {activeTab === 1 && staffAggregation.length === 0 && (
             <Paper variant="outlined" sx={{ p: 4, textAlign: 'center' }}>
-              <Typography color="text.secondary">
-                データがありません
-              </Typography>
+              <Typography color="text.secondary">データがありません</Typography>
             </Paper>
           )}
         </CardContent>

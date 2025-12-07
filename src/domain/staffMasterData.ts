@@ -43,9 +43,9 @@ export const OMAKASE_PATTERNS: readonly RegExp[] = [
  * → staffId = null, wasOmakase = false
  */
 export const COMMENT_PATTERNS: readonly RegExp[] = [
-  /^※/,           // 「※」で始まる
-  /時間変更/,      // 時間変更の可能性
-  /別日調整/,      // 別日調整依頼
+  /^※/, // 「※」で始まる
+  /時間変更/, // 時間変更の可能性
+  /別日調整/, // 別日調整依頼
 ];
 
 // ============================================================================
@@ -59,16 +59,16 @@ export const COMMENT_PATTERNS: readonly RegExp[] = [
  * - 全角スペース→半角スペース
  */
 function normalizeString(str: string): string {
-  return str
-    .trim()
-    // 全角英数字→半角
-    .replace(/[Ａ-Ｚａ-ｚ０-９]/g, (s) =>
-      String.fromCharCode(s.charCodeAt(0) - 0xFEE0)
-    )
-    // 全角ピリオド→半角
-    .replace(/．/g, '.')
-    // 全角スペース→半角
-    .replace(/\u3000/g, ' ');
+  return (
+    str
+      .trim()
+      // 全角英数字→半角
+      .replace(/[Ａ-Ｚａ-ｚ０-９]/g, s => String.fromCharCode(s.charCodeAt(0) - 0xfee0))
+      // 全角ピリオド→半角
+      .replace(/．/g, '.')
+      // 全角スペース→半角
+      .replace(/\u3000/g, ' ')
+  );
 }
 
 /**

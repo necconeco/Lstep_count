@@ -57,11 +57,7 @@ export function isImplemented(
  * フォールバックキーを生成（重複判定用）
  * reservationIdがない場合のフォールバック: friendId + date + applicationDate
  */
-export function generateFallbackKey(
-  friendId: string,
-  date: Date,
-  applicationDate: string
-): string {
+export function generateFallbackKey(friendId: string, date: Date, applicationDate: string): string {
   return `${friendId}_${formatDate(date)}_${applicationDate}`;
 }
 
@@ -82,10 +78,7 @@ export function getRecordKey(record: { reservationId: string; fallbackKey?: stri
 /**
  * CSVレコードをFullHistoryRecordに変換
  */
-export function csvToFullHistoryRecord(
-  csv: CsvInputRecord,
-  visitIndex: number = 0
-): FullHistoryRecord {
+export function csvToFullHistoryRecord(csv: CsvInputRecord, visitIndex: number = 0): FullHistoryRecord {
   const implemented = isImplemented(csv.status, csv.visitStatus, csv.detailStatus);
 
   return {
@@ -131,9 +124,7 @@ export function mergeFullHistoryRecords(
   }
 
   // 日付順にソート
-  const mergedRecords = Array.from(recordMap.values()).sort(
-    (a, b) => a.date.getTime() - b.date.getTime()
-  );
+  const mergedRecords = Array.from(recordMap.values()).sort((a, b) => a.date.getTime() - b.date.getTime());
 
   // visitIndex を再計算
   return recalculateVisitIndex(mergedRecords);
@@ -301,9 +292,7 @@ export function deriveImplementationMasters(
  * @param masters - フル履歴マスター（Map）
  * @returns フラット化されたレコード配列（日付降順）
  */
-export function flattenFullHistoryMasters(
-  masters: Map<string, FullHistoryMaster>
-): FlattenedRecord[] {
+export function flattenFullHistoryMasters(masters: Map<string, FullHistoryMaster>): FlattenedRecord[] {
   const flattened: FlattenedRecord[] = [];
 
   for (const [, master] of masters) {
@@ -334,9 +323,7 @@ export function flattenFullHistoryMasters(
 /**
  * マスターデータの統計サマリーを生成
  */
-export function getMasterDataSummary(
-  fullHistoryMasters: Map<string, FullHistoryMaster>
-): MasterDataSummary {
+export function getMasterDataSummary(fullHistoryMasters: Map<string, FullHistoryMaster>): MasterDataSummary {
   let totalRecords = 0;
   let implementationCount = 0;
   let cancellationCount = 0;

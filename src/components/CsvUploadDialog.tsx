@@ -16,11 +16,7 @@ import {
   LinearProgress,
   Chip,
 } from '@mui/material';
-import {
-  Upload as UploadIcon,
-  CheckCircle as CheckIcon,
-  CloudUpload as CloudUploadIcon,
-} from '@mui/icons-material';
+import { Upload as UploadIcon, CheckCircle as CheckIcon, CloudUpload as CloudUploadIcon } from '@mui/icons-material';
 import { useHistoryStore } from '../store/historyStore';
 import { parseCSV, validateCSVFile } from '../utils/csvParser';
 
@@ -153,8 +149,8 @@ export const CsvUploadDialog = ({ open, onClose }: CsvUploadDialogProps) => {
       <DialogContent>
         <Alert severity="info" sx={{ mb: 3 }}>
           <Typography variant="body2">
-            LステップのCSVをアップロードしてください。
-            複数回アップロードすると、データが<strong>蓄積</strong>されます（重複は自動排除）。
+            LステップのCSVをアップロードしてください。 複数回アップロードすると、データが<strong>蓄積</strong>
+            されます（重複は自動排除）。
           </Typography>
         </Alert>
 
@@ -169,11 +165,7 @@ export const CsvUploadDialog = ({ open, onClose }: CsvUploadDialogProps) => {
             border: '2px dashed',
             borderColor: isDragging ? 'primary.main' : uploadSuccess ? 'success.main' : 'grey.400',
             borderRadius: 2,
-            backgroundColor: isDragging
-              ? 'action.hover'
-              : uploadSuccess
-              ? 'success.50'
-              : 'grey.50',
+            backgroundColor: isDragging ? 'action.hover' : uploadSuccess ? 'success.50' : 'grey.50',
             cursor: 'pointer',
             transition: 'all 0.2s',
             minHeight: 180,

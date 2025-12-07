@@ -45,8 +45,8 @@ export type CancelTiming = 'same-day' | 'previous-day' | 'early' | 'none';
 export const CANCEL_TIMING_LABELS: Record<CancelTiming, string> = {
   'same-day': '当日キャンセル',
   'previous-day': '前日キャンセル',
-  'early': 'キャンセル',
-  'none': '',
+  early: 'キャンセル',
+  none: '',
 };
 
 /**
@@ -71,31 +71,31 @@ export interface ReservationHistory {
   name: string;
 
   // 日付（2種類）
-  sessionDate: Date;            // 実施日（CSVの「予約日」）
-  applicationDate: Date;        // 申込日時
+  sessionDate: Date; // 実施日（CSVの「予約日」）
+  applicationDate: Date; // 申込日時
 
   // ステータス
   status: ReservationStatus;
   visitStatus: VisitStatus;
-  isImplemented: boolean;       // 実施済みフラグ（計算済み）
+  isImplemented: boolean; // 実施済みフラグ（計算済み）
 
   // オプション情報
   staff: string | null;
-  detailStatus: string | null;  // 前日キャンセル・当日キャンセル等
-  course: string | null;        // コース名
+  detailStatus: string | null; // 前日キャンセル・当日キャンセル等
+  course: string | null; // コース名
   reservationSlot: string | null; // 予約枠（G列の元データ）
 
   // 計算済みフィールド（キャッシュ）
-  visitIndex: number;           // この人の何回目か（実施時のみ、未実施は0）
-  visitLabel: VisitLabel;       // 初回/2回目/3回目以降
+  visitIndex: number; // この人の何回目か（実施時のみ、未実施は0）
+  visitLabel: VisitLabel; // 初回/2回目/3回目以降
 
   // 手動オーバーライド
-  isExcluded: boolean;          // 集計から除外するかどうか（デフォルト: false）
+  isExcluded: boolean; // 集計から除外するかどうか（デフォルト: false）
   isImplementedManual: boolean | null; // 手動で実施/未実施を上書き（null=自動判定）
 
   // 追加フィールド（手動調整・統合機能用）
-  wasOmakase: boolean;          // CSVで担当者が「おまかせ」だった
-  groupId: string | null;       // 同日複数申込の統合ID（形式: friendId_YYYY-MM-DD）
+  wasOmakase: boolean; // CSVで担当者が「おまかせ」だった
+  groupId: string | null; // 同日複数申込の統合ID（形式: friendId_YYYY-MM-DD）
 
   // メタ情報
   createdAt: Date;
@@ -109,14 +109,14 @@ export interface CsvInputRecord {
   reservationId: string;
   friendId: string;
   name: string;
-  sessionDate: Date;            // 予約日
-  applicationDate: Date;        // 申込日時
+  sessionDate: Date; // 予約日
+  applicationDate: Date; // 申込日時
   status: ReservationStatus;
   visitStatus: VisitStatus;
   staff: string | null;
   detailStatus: string | null;
-  wasOmakase: boolean;            // おまかせ予約だったか
-  course: string | null;          // コース名
+  wasOmakase: boolean; // おまかせ予約だったか
+  course: string | null; // コース名
   reservationSlot: string | null; // 予約枠（G列の元データ）
 }
 
@@ -133,7 +133,7 @@ export interface UserVisitCount {
   friendId: string;
 
   // カウント情報
-  implementationCount: number;  // 実施回数（累計）
+  implementationCount: number; // 実施回数（累計）
   lastSessionDate: Date | null; // 最終実施日
 
   // メタ情報
@@ -154,8 +154,8 @@ export interface CampaignMaster {
   campaignId: string;
 
   // 基本情報
-  campaignName: string;         // 例: "キャリア相談11月"
-  description?: string;         // 説明（オプション）
+  campaignName: string; // 例: "キャリア相談11月"
+  description?: string; // 説明（オプション）
 
   // 対象期間
   targetPeriodFrom: Date;
@@ -165,10 +165,10 @@ export interface CampaignMaster {
   targetDateType: TargetDateType;
 
   // オプション
-  fiscalYear?: number;          // 年度
+  fiscalYear?: number; // 年度
 
   // メタ情報
-  isActive: boolean;            // 有効/無効
+  isActive: boolean; // 有効/無効
   createdAt: Date;
   updatedAt: Date;
 }
@@ -220,22 +220,22 @@ export interface AggregationSummary {
   dateType: TargetDateType;
 
   // 全体集計
-  totalRecords: number;         // 総レコード数
+  totalRecords: number; // 総レコード数
   totalImplementations: number; // 実施数
-  totalCancellations: number;   // キャンセル数
-  implementationRate: number;   // 実施率(%)
+  totalCancellations: number; // キャンセル数
+  implementationRate: number; // 実施率(%)
 
   // 初回/2回目内訳
-  firstTimeCount: number;       // 初回数
-  repeatCount: number;          // 2回目以降数
-  firstTimeRate: number;        // 初回率(%)
+  firstTimeCount: number; // 初回数
+  repeatCount: number; // 2回目以降数
+  firstTimeRate: number; // 初回率(%)
 }
 
 /**
  * 日別集計
  */
 export interface DailyAggregation {
-  date: string;                 // YYYY-MM-DD
+  date: string; // YYYY-MM-DD
   totalRecords: number;
   implementations: number;
   cancellations: number;
@@ -254,8 +254,8 @@ export interface FlatRecord {
   reservationId: string;
   friendId: string;
   name: string;
-  sessionDateStr: string;       // YYYY-MM-DD形式
-  applicationDateStr: string;   // YYYY-MM-DD HH:mm形式
+  sessionDateStr: string; // YYYY-MM-DD形式
+  applicationDateStr: string; // YYYY-MM-DD HH:mm形式
   status: ReservationStatus;
   visitStatus: VisitStatus;
   isImplemented: boolean;
@@ -263,9 +263,9 @@ export interface FlatRecord {
   detailStatus: string | null;
   visitIndex: number;
   visitLabel: VisitLabel | '-';
-  isExcluded: boolean;          // 集計から除外するかどうか
-  wasOmakase: boolean;          // おまかせ予約だったか（担当者手動割当用）
-  course: string | null;        // コース名
+  isExcluded: boolean; // 集計から除外するかどうか
+  wasOmakase: boolean; // おまかせ予約だったか（担当者手動割当用）
+  course: string | null; // コース名
   reservationSlot: string | null; // 予約枠（G列の元データ）
 }
 
@@ -310,19 +310,19 @@ export interface CampaignStoreState {
  */
 export interface AuditLog {
   // 主キー
-  id: string;                     // UUID
+  id: string; // UUID
 
   // 対象情報
-  reservationId: string;          // 対象の予約ID
+  reservationId: string; // 対象の予約ID
 
   // 変更内容
-  field: string;                  // 変更フィールド名（staff / isCancelled / isImplemented / groupId 等）
-  oldValue: unknown;              // 変更前の値
-  newValue: unknown;              // 変更後の値
+  field: string; // 変更フィールド名（staff / isCancelled / isImplemented / groupId 等）
+  oldValue: unknown; // 変更前の値
+  newValue: unknown; // 変更後の値
 
   // メタ情報
-  changedAt: Date;                // 変更日時
-  changedBy: string;              // 変更者（当面 'goma'）
+  changedAt: Date; // 変更日時
+  changedBy: string; // 変更者（当面 'goma'）
 }
 
 // ============================================================================
@@ -335,15 +335,15 @@ export interface AuditLog {
  */
 export interface StaffMaster {
   // 主キー
-  staffId: string;                // UUID
+  staffId: string; // UUID
 
   // 基本情報
-  staffName: string;              // 表示名（正規化後）
-  aliases: string[];              // 表記揺れ一覧（CSVで検出された名前）
+  staffName: string; // 表示名（正規化後）
+  aliases: string[]; // 表記揺れ一覧（CSVで検出された名前）
 
   // 状態
-  isActive: boolean;              // 有効/無効
-  sortOrder: number;              // 表示順
+  isActive: boolean; // 有効/無効
+  sortOrder: number; // 表示順
 
   // メタ情報
   createdAt: Date;
@@ -364,24 +364,24 @@ export type SnapshotType = 'monthly' | 'campaign' | 'staff';
  */
 export interface AggregationSnapshot {
   // 主キー
-  id: string;                     // UUID
+  id: string; // UUID
 
   // 基本情報
-  type: SnapshotType;             // 集計タイプ
-  label: string;                  // 表示名（例: "2025-11 月次（実施日）"）
+  type: SnapshotType; // 集計タイプ
+  label: string; // 表示名（例: "2025-11 月次（実施日）"）
 
   // 集計条件
-  dateBaseType: TargetDateType;   // 基準日タイプ
-  periodFrom: Date;               // 期間開始
-  periodTo: Date;                 // 期間終了
-  campaignId?: string;            // キャンペーン集計の場合のみ
+  dateBaseType: TargetDateType; // 基準日タイプ
+  periodFrom: Date; // 期間開始
+  periodTo: Date; // 期間終了
+  campaignId?: string; // キャンペーン集計の場合のみ
 
   // 集計結果
-  payload: unknown;               // 集計結果JSON
+  payload: unknown; // 集計結果JSON
 
   // 管理機能
-  folderName: string | null;      // フォルダ/カテゴリー名（null = ルート）
-  isPinned: boolean;              // ピン留め（お気に入り）
+  folderName: string | null; // フォルダ/カテゴリー名（null = ルート）
+  isPinned: boolean; // ピン留め（お気に入り）
 
   // メタ情報
   createdAt: Date;
@@ -398,13 +398,13 @@ export interface AggregationSnapshot {
  */
 export interface SnapshotFolder {
   // 主キー
-  folderId: string;               // UUID
+  folderId: string; // UUID
 
   // 基本情報
-  folderName: string;             // フォルダ名
+  folderName: string; // フォルダ名
 
   // 表示設定
-  sortOrder: number;              // 表示順
+  sortOrder: number; // 表示順
 
   // メタ情報
   createdAt: Date;
@@ -418,14 +418,14 @@ export interface SnapshotFolder {
  * 担当者別集計サマリー
  */
 export interface StaffAggregationSummary {
-  staffName: string;              // 担当者名
-  totalCount: number;             // 総件数
-  implementedCount: number;       // 実施件数
-  cancelCount: number;            // キャンセル件数
-  firstVisitCount: number;        // 初回
-  secondVisitCount: number;       // 2回目
-  thirdOrMoreCount: number;       // 3回目以降
-  omakaseAssignedCount: number;   // おまかせからの配分件数
-  uniqueUsers: number;            // ユニークユーザー数
-  groupedCount: number;           // groupIdでまとめた件数
+  staffName: string; // 担当者名
+  totalCount: number; // 総件数
+  implementedCount: number; // 実施件数
+  cancelCount: number; // キャンセル件数
+  firstVisitCount: number; // 初回
+  secondVisitCount: number; // 2回目
+  thirdOrMoreCount: number; // 3回目以降
+  omakaseAssignedCount: number; // おまかせからの配分件数
+  uniqueUsers: number; // ユニークユーザー数
+  groupedCount: number; // groupIdでまとめた件数
 }

@@ -86,10 +86,7 @@ function getCurrentFiscalYear(fiscalYearStartMonth: number): number {
 /**
  * 年度の開始日と終了日を取得
  */
-function getFiscalYearRange(
-  fiscalYear: number,
-  fiscalYearStartMonth: number
-): { from: Date; to: Date } {
+function getFiscalYearRange(fiscalYear: number, fiscalYearStartMonth: number): { from: Date; to: Date } {
   // 開始日: fiscalYear年のfiscalYearStartMonth月1日
   const from = new Date(fiscalYear, fiscalYearStartMonth - 1, 1);
 
@@ -137,17 +134,17 @@ export const useUiStore = create<UiState>((set, get) => ({
   mergeSameDayReservations: false, // デフォルトは統合しない
 
   // アクション
-  setView: (view) => set({ view }),
+  setView: view => set({ view }),
 
-  setDateBaseType: (dateBaseType) => set({ dateBaseType }),
+  setDateBaseType: dateBaseType => set({ dateBaseType }),
 
-  setPeriodPreset: (periodPreset) => set({ periodPreset }),
+  setPeriodPreset: periodPreset => set({ periodPreset }),
 
   setPeriodRange: (from, to) => set({ periodFrom: from, periodTo: to }),
 
-  setImplementationRule: (implementationRule) => set({ implementationRule }),
+  setImplementationRule: implementationRule => set({ implementationRule }),
 
-  setMergeSameDayReservations: (mergeSameDayReservations) => set({ mergeSameDayReservations }),
+  setMergeSameDayReservations: mergeSameDayReservations => set({ mergeSameDayReservations }),
 
   // ヘルパー: 有効な期間を取得
   getEffectivePeriod: () => {

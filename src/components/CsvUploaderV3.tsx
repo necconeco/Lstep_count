@@ -6,16 +6,7 @@
  * - 蓄積型（何度もアップロード可能）
  */
 import { useCallback, useState, useEffect } from 'react';
-import {
-  Box,
-  Button,
-  Paper,
-  Typography,
-  Alert,
-  CircularProgress,
-  Chip,
-  LinearProgress,
-} from '@mui/material';
+import { Box, Button, Paper, Typography, Alert, CircularProgress, Chip, LinearProgress } from '@mui/material';
 import {
   Upload as UploadIcon,
   CheckCircle as CheckIcon,
@@ -26,14 +17,7 @@ import { useHistoryStore } from '../store/historyStore';
 import { parseCSV, validateCSVFile } from '../utils/csvParser';
 
 export const CsvUploaderV3 = () => {
-  const {
-    histories,
-    userCounts,
-    isLoading,
-    error: storeError,
-    initialize,
-    mergeCsvData,
-  } = useHistoryStore();
+  const { histories, userCounts, isLoading, error: storeError, initialize, mergeCsvData } = useHistoryStore();
 
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [lastUploadedFile, setLastUploadedFile] = useState<string | null>(null);
@@ -105,8 +89,8 @@ export const CsvUploaderV3 = () => {
 
       <Alert severity="info" sx={{ mb: 3 }}>
         <Typography variant="body2">
-          LステップのCSVをアップロードしてください。
-          複数回アップロードすると、データが<strong>蓄積</strong>されます（重複は自動排除）。
+          LステップのCSVをアップロードしてください。 複数回アップロードすると、データが<strong>蓄積</strong>
+          されます（重複は自動排除）。
         </Typography>
       </Alert>
 
@@ -175,7 +159,7 @@ export const CsvUploaderV3 = () => {
                 type="file"
                 accept=".csv"
                 hidden
-                onChange={(e) => {
+                onChange={e => {
                   const file = e.target.files?.[0];
                   if (file) handleFileUpload(file);
                   // 同じファイルを再選択できるようにリセット

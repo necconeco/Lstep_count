@@ -36,6 +36,7 @@ import {
   formatDate,
 } from '../domain/logic';
 import * as repository from '../infrastructure/repository';
+import { broadcastSync, onSyncMessage, initTabSync, type SyncMessage } from '../utils/tabSync';
 
 // ============================================================================
 // ストア型定義
@@ -74,11 +75,7 @@ export interface HistoryStoreState {
   getHistory: (reservationId: string) => ReservationHistory | undefined;
 
   // フィルタ・集計
-  getFilteredRecords: (
-    periodFrom: Date,
-    periodTo: Date,
-    dateType: TargetDateType
-  ) => ReservationHistory[];
+  getFilteredRecords: (periodFrom: Date, periodTo: Date, dateType: TargetDateType) => ReservationHistory[];
   getFilteredByCampaign: (campaignId: string) => ReservationHistory[];
   getSummary: (
     periodFrom: Date,
@@ -98,6 +95,9 @@ export interface HistoryStoreState {
   exportToCSV: () => string;
   exportToJSON: () => string;
 
+  // バックアップ・リストア
+  importFromJSON: (jsonStr: string) => Promise<{ success: boolean; message: string }>;
+
   // 除外フラグ操作
   toggleExcluded: (reservationId: string) => Promise<void>;
   setExcluded: (reservationId: string, isExcluded: boolean) => Promise<void>;
@@ -107,13 +107,15 @@ export interface HistoryStoreState {
   // ============================================================================
 
   /**
-   * おまかせ予約に担当者を割り当て
+   * 予約に担当者を割り当て（おまかせ以外も可能）
    */
-  assignStaffToOmakase: (
-    reservationId: string,
-    staffName: string,
-    changedBy?: string
-  ) => Promise<void>;
+  assignStaff: (reservationId: string, staffName: string | null, changedBy?: string) => Promise<void>;
+
+  /**
+   * おまかせ予約に担当者を割り当て
+   * @deprecated assignStaffを使用してください
+   */
+  assignStaffToOmakase: (reservationId: string, staffName: string, changedBy?: string) => Promise<void>;
 
   /**
    * 詳細ステータスを変更（前日キャンセル/当日キャンセル/通常キャンセル）
@@ -141,11 +143,7 @@ export interface HistoryStoreState {
   /**
    * 同日の予約を統合（groupId設定）
    */
-  mergeReservations: (
-    reservationIds: string[],
-    primaryReservationId: string,
-    changedBy?: string
-  ) => Promise<void>;
+  mergeReservations: (reservationIds: string[], primaryReservationId: string, changedBy?: string) => Promise<void>;
 
   /**
    * 予約の統合を解除
@@ -190,8 +188,8 @@ function csvRecordToInput(record: CsvRecord): CsvInputRecord {
     visitStatus: record['来店/来場'],
     staff: record.担当者 || null,
     detailStatus: record.詳細ステータス || null,
-    wasOmakase: record.wasOmakase ?? false,  // おまかせ予約フラグ
-    course: (record['コース'] as string) || null,         // コース名
+    wasOmakase: record.wasOmakase ?? false, // おまかせ予約フラグ
+    course: (record['コース'] as string) || null, // コース名
     reservationSlot: (record['予約枠'] as string) || null, // 予約枠（G列の元データ）
   };
 }
@@ -260,6 +258,22 @@ export const useHistoryStore = create<HistoryStoreState>((set, get) => ({
   initialize: async () => {
     set({ isLoading: true, error: null });
     try {
+      // タブ同期を初期化
+      initTabSync();
+
+      // 他タブからの同期メッセージをリッスン
+      onSyncMessage('*', (message: SyncMessage) => {
+        // 他タブでデータが変更されたらリロード
+        if (
+          message.type === 'DATA_CHANGED' ||
+          message.type === 'HISTORY_UPDATED' ||
+          message.type === 'BACKUP_RESTORED' ||
+          message.type === 'DATA_CLEARED'
+        ) {
+          get().loadData();
+        }
+      });
+
       // デフォルトキャンペーンを登録
       await repository.initializeDefaultCampaigns();
       // データ読み込み
@@ -323,6 +337,9 @@ export const useHistoryStore = create<HistoryStoreState>((set, get) => ({
         userCounts: merged.userCounts,
         isLoading: false,
       });
+
+      // 他タブに同期通知
+      broadcastSync('DATA_CHANGED', { count: merged.histories.size, source: 'csv_merge' });
     } catch (error) {
       console.error('CSVマージエラー:', error);
       set({
@@ -375,6 +392,9 @@ export const useHistoryStore = create<HistoryStoreState>((set, get) => ({
         userCounts: new Map(),
         isLoading: false,
       });
+
+      // 他タブに同期通知
+      broadcastSync('DATA_CLEARED');
     } catch (error) {
       set({
         error: error instanceof Error ? error.message : 'クリアに失敗しました',
@@ -386,14 +406,14 @@ export const useHistoryStore = create<HistoryStoreState>((set, get) => ({
   /**
    * キャンペーン選択
    */
-  selectCampaign: (campaignId) => {
+  selectCampaign: campaignId => {
     set({ selectedCampaignId: campaignId });
   },
 
   /**
    * キャンペーン追加
    */
-  addCampaign: async (campaignData) => {
+  addCampaign: async campaignData => {
     const now = new Date();
     const campaign: CampaignMaster = {
       ...campaignData,
@@ -420,17 +440,17 @@ export const useHistoryStore = create<HistoryStoreState>((set, get) => ({
 
   getUserCount: () => get().userCounts.size,
 
-  getImplementationCount: (friendId) => {
+  getImplementationCount: friendId => {
     const userCount = get().userCounts.get(friendId);
     return userCount?.implementationCount ?? 0;
   },
 
-  getNextVisitLabel: (friendId) => {
+  getNextVisitLabel: friendId => {
     const count = get().getImplementationCount(friendId);
     return getVisitLabel(count + 1);
   },
 
-  getHistory: (reservationId) => {
+  getHistory: reservationId => {
     return get().histories.get(reservationId);
   },
 
@@ -442,8 +462,8 @@ export const useHistoryStore = create<HistoryStoreState>((set, get) => ({
     return filterByPeriod(get().histories, periodFrom, periodTo, dateType);
   },
 
-  getFilteredByCampaign: (campaignId) => {
-    const campaign = get().campaigns.find((c) => c.campaignId === campaignId);
+  getFilteredByCampaign: campaignId => {
+    const campaign = get().campaigns.find(c => c.campaignId === campaignId);
     if (!campaign) return [];
     return filterByCampaign(get().histories, campaign);
   },
@@ -491,6 +511,104 @@ export const useHistoryStore = create<HistoryStoreState>((set, get) => ({
     };
 
     return JSON.stringify(exportData, null, 2);
+  },
+
+  /**
+   * JSONからデータをインポート（完全復元モード）
+   * 現在のデータを全削除してからJSONのデータを復元
+   */
+  importFromJSON: async (jsonStr: string) => {
+    set({ isLoading: true, error: null });
+
+    try {
+      // JSONパース
+      const parsed = JSON.parse(jsonStr);
+
+      // バージョンチェック
+      if (!parsed.version || !parsed.data) {
+        return { success: false, message: 'JSONフォーマットが不正です。バージョン情報またはデータが見つかりません。' };
+      }
+
+      const { histories, userCounts, campaigns, auditLogs } = parsed.data;
+
+      // 必須データの存在チェック
+      if (!Array.isArray(histories)) {
+        return { success: false, message: 'historiesデータが不正です。' };
+      }
+      if (!Array.isArray(userCounts)) {
+        return { success: false, message: 'userCountsデータが不正です。' };
+      }
+
+      // 日付文字列をDateオブジェクトに変換
+      const restoredHistories = new Map<string, ReservationHistory>();
+      for (const h of histories) {
+        const restored: ReservationHistory = {
+          ...h,
+          sessionDate: new Date(h.sessionDate),
+          applicationDate: new Date(h.applicationDate),
+          createdAt: new Date(h.createdAt),
+          updatedAt: new Date(h.updatedAt),
+        };
+        restoredHistories.set(restored.reservationId, restored);
+      }
+
+      const restoredUserCounts = new Map<string, UserVisitCount>();
+      for (const u of userCounts) {
+        const restored: UserVisitCount = {
+          ...u,
+          lastVisitDate: u.lastVisitDate ? new Date(u.lastVisitDate) : null,
+        };
+        restoredUserCounts.set(restored.friendId, restored);
+      }
+
+      const restoredCampaigns: CampaignMaster[] = (campaigns || []).map((c: CampaignMaster) => ({
+        ...c,
+        targetPeriodFrom: new Date(c.targetPeriodFrom),
+        targetPeriodTo: new Date(c.targetPeriodTo),
+        createdAt: new Date(c.createdAt),
+        updatedAt: new Date(c.updatedAt),
+      }));
+
+      const restoredAuditLogs: AuditLog[] = (auditLogs || []).map((a: AuditLog) => ({
+        ...a,
+        changedAt: new Date(a.changedAt),
+      }));
+
+      // 現在のデータを全削除
+      await repository.clearAllData();
+
+      // 復元したデータを保存
+      await Promise.all([
+        repository.saveHistoriesBatch(restoredHistories),
+        repository.saveUserCountsBatch(restoredUserCounts),
+        ...restoredCampaigns.map(c => repository.saveCampaign(c)),
+        ...restoredAuditLogs.map(a => repository.saveAuditLog(a)),
+      ]);
+
+      // ストア更新
+      set({
+        histories: restoredHistories,
+        userCounts: restoredUserCounts,
+        campaigns: restoredCampaigns,
+        auditLogs: restoredAuditLogs,
+        isLoading: false,
+      });
+
+      // 他タブに同期通知
+      broadcastSync('BACKUP_RESTORED', { count: restoredHistories.size });
+
+      return {
+        success: true,
+        message: `復元完了: 履歴 ${restoredHistories.size}件、ユーザー ${restoredUserCounts.size}件、キャンペーン ${restoredCampaigns.length}件、監査ログ ${restoredAuditLogs.length}件`,
+      };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'JSONのインポートに失敗しました';
+      set({
+        error: message,
+        isLoading: false,
+      });
+      return { success: false, message };
+    }
   },
 
   // ============================================================================
@@ -545,10 +663,7 @@ export const useHistoryStore = create<HistoryStoreState>((set, get) => ({
     newHistories.set(reservationId, updatedHistory);
 
     try {
-      await Promise.all([
-        repository.saveHistoriesBatch(newHistories),
-        repository.saveAuditLog(auditLog),
-      ]);
+      await Promise.all([repository.saveHistoriesBatch(newHistories), repository.saveAuditLog(auditLog)]);
       set({
         histories: newHistories,
         auditLogs: [...auditLogs, auditLog],
@@ -565,9 +680,9 @@ export const useHistoryStore = create<HistoryStoreState>((set, get) => ({
   // ============================================================================
 
   /**
-   * おまかせ予約に担当者を割り当て
+   * 予約に担当者を割り当て（汎用版）
    */
-  assignStaffToOmakase: async (reservationId, staffName, changedBy = 'user') => {
+  assignStaff: async (reservationId, staffName, changedBy = 'user') => {
     const { histories, auditLogs } = get();
     const history = histories.get(reservationId);
     if (!history) {
@@ -575,13 +690,11 @@ export const useHistoryStore = create<HistoryStoreState>((set, get) => ({
       return;
     }
 
-    if (!history.wasOmakase) {
-      set({ error: 'この予約はおまかせ予約ではありません' });
-      return;
-    }
-
     const now = new Date();
     const oldValue = history.staff;
+
+    // 値が変わっていない場合はスキップ
+    if (oldValue === staffName) return;
 
     // 監査ログを作成
     const auditLog: AuditLog = {
@@ -605,19 +718,28 @@ export const useHistoryStore = create<HistoryStoreState>((set, get) => ({
     newHistories.set(reservationId, updatedHistory);
 
     try {
-      await Promise.all([
-        repository.saveHistoriesBatch(newHistories),
-        repository.saveAuditLog(auditLog),
-      ]);
+      await Promise.all([repository.saveHistoriesBatch(newHistories), repository.saveAuditLog(auditLog)]);
       set({
         histories: newHistories,
         auditLogs: [...auditLogs, auditLog],
       });
+
+      // 他タブに同期通知
+      broadcastSync('HISTORY_UPDATED', { source: 'assign_staff' });
     } catch (error) {
       set({
         error: error instanceof Error ? error.message : '担当者の割り当てに失敗しました',
       });
     }
+  },
+
+  /**
+   * おまかせ予約に担当者を割り当て
+   * @deprecated assignStaffを使用してください
+   */
+  assignStaffToOmakase: async (reservationId, staffName, changedBy = 'user') => {
+    // 後方互換性のためassignStaffを呼び出す
+    await get().assignStaff(reservationId, staffName, changedBy);
   },
 
   /**
@@ -664,10 +786,7 @@ export const useHistoryStore = create<HistoryStoreState>((set, get) => ({
     newHistories.set(reservationId, updatedHistory);
 
     try {
-      await Promise.all([
-        repository.saveHistoriesBatch(newHistories),
-        repository.saveAuditLog(auditLog),
-      ]);
+      await Promise.all([repository.saveHistoriesBatch(newHistories), repository.saveAuditLog(auditLog)]);
       set({
         histories: newHistories,
         auditLogs: [...auditLogs, auditLog],
@@ -728,10 +847,7 @@ export const useHistoryStore = create<HistoryStoreState>((set, get) => ({
     newHistories.set(reservationId, updatedHistory);
 
     try {
-      await Promise.all([
-        repository.saveHistoriesBatch(newHistories),
-        repository.saveAuditLog(auditLog),
-      ]);
+      await Promise.all([repository.saveHistoriesBatch(newHistories), repository.saveAuditLog(auditLog)]);
       set({
         histories: newHistories,
         auditLogs: [...auditLogs, auditLog],
@@ -785,10 +901,7 @@ export const useHistoryStore = create<HistoryStoreState>((set, get) => ({
     newHistories.set(reservationId, updatedHistory);
 
     try {
-      await Promise.all([
-        repository.saveHistoriesBatch(newHistories),
-        repository.saveAuditLog(auditLog),
-      ]);
+      await Promise.all([repository.saveHistoriesBatch(newHistories), repository.saveAuditLog(auditLog)]);
       set({
         histories: newHistories,
         auditLogs: [...auditLogs, auditLog],
@@ -867,7 +980,7 @@ export const useHistoryStore = create<HistoryStoreState>((set, get) => ({
     try {
       await Promise.all([
         repository.saveHistoriesBatch(newHistories),
-        ...newAuditLogs.map((log) => repository.saveAuditLog(log)),
+        ...newAuditLogs.map(log => repository.saveAuditLog(log)),
       ]);
       set({
         histories: newHistories,
@@ -928,7 +1041,7 @@ export const useHistoryStore = create<HistoryStoreState>((set, get) => ({
     try {
       await Promise.all([
         repository.saveHistoriesBatch(newHistories),
-        ...newAuditLogs.map((log) => repository.saveAuditLog(log)),
+        ...newAuditLogs.map(log => repository.saveAuditLog(log)),
       ]);
       set({
         histories: newHistories,
@@ -948,19 +1061,17 @@ export const useHistoryStore = create<HistoryStoreState>((set, get) => ({
   /**
    * 監査ログを取得（予約ID指定）
    */
-  getAuditLogsByReservation: (reservationId) => {
-    return get().auditLogs
-      .filter((log) => log.reservationId === reservationId)
+  getAuditLogsByReservation: reservationId => {
+    return get()
+      .auditLogs.filter(log => log.reservationId === reservationId)
       .sort((a, b) => b.changedAt.getTime() - a.changedAt.getTime());
   },
 
   /**
    * 全監査ログを取得（最新順）
    */
-  getAllAuditLogs: (limit) => {
-    const logs = get().auditLogs.sort(
-      (a, b) => b.changedAt.getTime() - a.changedAt.getTime()
-    );
+  getAllAuditLogs: limit => {
+    const logs = get().auditLogs.sort((a, b) => b.changedAt.getTime() - a.changedAt.getTime());
     return limit ? logs.slice(0, limit) : logs;
   },
 

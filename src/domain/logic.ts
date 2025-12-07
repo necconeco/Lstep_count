@@ -178,9 +178,7 @@ export function shouldCountAsImplemented(
 
   // 3. 自動判定（実施判定ルール + CSV元データ）
   // 前日/当日キャンセルの扱い
-  const isLateCancel =
-    reservation.detailStatus === '前日キャンセル' ||
-    reservation.detailStatus === '当日キャンセル';
+  const isLateCancel = reservation.detailStatus === '前日キャンセル' || reservation.detailStatus === '当日キャンセル';
 
   if (isLateCancel) {
     // includeLateCancel: 前日/当日キャンセルも実施扱い
@@ -221,14 +219,14 @@ export function csvToHistory(
     isImplemented: implemented,
     staff: csv.staff,
     detailStatus: csv.detailStatus,
-    course: csv.course,                               // コース名
-    reservationSlot: csv.reservationSlot,             // 予約枠（G列）
+    course: csv.course, // コース名
+    reservationSlot: csv.reservationSlot, // 予約枠（G列）
     visitIndex: implemented ? visitIndex : 0,
     visitLabel: implemented ? getVisitLabel(visitIndex) : '初回',
-    isExcluded: existingIsExcluded,                   // 既存の除外フラグを引き継ぐ
+    isExcluded: existingIsExcluded, // 既存の除外フラグを引き継ぐ
     isImplementedManual: existingIsImplementedManual, // 既存の手動実施フラグを引き継ぐ
-    wasOmakase: csv.wasOmakase,                       // おまかせ予約フラグ
-    groupId: existingGroupId,                          // 同日統合ID（既存を引き継ぐ）
+    wasOmakase: csv.wasOmakase, // おまかせ予約フラグ
+    groupId: existingGroupId, // 同日統合ID（既存を引き継ぐ）
     createdAt: now,
     updatedAt: now,
   };
@@ -257,9 +255,7 @@ export function mergeCsvToHistories(
   const userCounts = new Map(existingUserCounts);
 
   // 日付順にソート（古い順）
-  const sortedRecords = [...csvRecords].sort(
-    (a, b) => a.sessionDate.getTime() - b.sessionDate.getTime()
-  );
+  const sortedRecords = [...csvRecords].sort((a, b) => a.sessionDate.getTime() - b.sessionDate.getTime());
 
   for (const csv of sortedRecords) {
     const existingHistory = histories.get(csv.reservationId);
@@ -304,7 +300,14 @@ export function mergeCsvToHistories(
     const existingIsExcluded = existingHistory?.isExcluded ?? false;
     const existingGroupId = existingHistory?.groupId ?? null;
     const existingIsImplementedManual = existingHistory?.isImplementedManual ?? null;
-    const history = csvToHistory(csv, visitIndex, now, existingIsExcluded, existingGroupId, existingIsImplementedManual);
+    const history = csvToHistory(
+      csv,
+      visitIndex,
+      now,
+      existingIsExcluded,
+      existingGroupId,
+      existingIsImplementedManual
+    );
     if (existingHistory) {
       history.createdAt = existingHistory.createdAt; // 作成日は保持
     }
@@ -320,9 +323,7 @@ export function mergeCsvToHistories(
  * 全履歴のvisitIndexを再計算
  * （ユーザーカウントも再構築）
  */
-export function recalculateAllVisitIndexes(
-  histories: Map<string, ReservationHistory>
-): {
+export function recalculateAllVisitIndexes(histories: Map<string, ReservationHistory>): {
   histories: Map<string, ReservationHistory>;
   userCounts: Map<string, UserVisitCount>;
 } {
@@ -391,9 +392,7 @@ export function filterByPeriod(
   periodToEnd.setHours(23, 59, 59, 999);
 
   for (const history of histories.values()) {
-    const targetDate = dateType === 'application'
-      ? history.applicationDate
-      : history.sessionDate;
+    const targetDate = dateType === 'application' ? history.applicationDate : history.sessionDate;
 
     if (targetDate >= periodFrom && targetDate <= periodToEnd) {
       results.push(history);
@@ -410,12 +409,7 @@ export function filterByCampaign(
   histories: Map<string, ReservationHistory>,
   campaign: CampaignMaster
 ): ReservationHistory[] {
-  return filterByPeriod(
-    histories,
-    campaign.targetPeriodFrom,
-    campaign.targetPeriodTo,
-    campaign.targetDateType
-  );
+  return filterByPeriod(histories, campaign.targetPeriodFrom, campaign.targetPeriodTo, campaign.targetDateType);
 }
 
 /**
@@ -430,10 +424,7 @@ export function filterByCampaign(
  * @param records 対象レコード
  * @param merge trueの場合、同日予約を統合する
  */
-export function applySameDayMerge(
-  records: ReservationHistory[],
-  merge: boolean
-): ReservationHistory[] {
+export function applySameDayMerge(records: ReservationHistory[], merge: boolean): ReservationHistory[] {
   if (!merge) {
     // 統合しない場合はそのまま返す
     return records;
@@ -517,12 +508,8 @@ export function calculateSummary(
 
   // 除外されていないレコードのみカウント
   const totalRecords = records.filter(r => !r.isExcluded).length;
-  const implementationRate = totalRecords > 0
-    ? Math.round((totalImplementations / totalRecords) * 1000) / 10
-    : 0;
-  const firstTimeRate = totalImplementations > 0
-    ? Math.round((firstTimeCount / totalImplementations) * 1000) / 10
-    : 0;
+  const implementationRate = totalRecords > 0 ? Math.round((totalImplementations / totalRecords) * 1000) / 10 : 0;
+  const firstTimeRate = totalImplementations > 0 ? Math.round((firstTimeCount / totalImplementations) * 1000) / 10 : 0;
 
   return {
     periodFrom,
@@ -558,9 +545,7 @@ export function calculateDailyAggregation(
       continue;
     }
 
-    const targetDate = dateType === 'application'
-      ? record.applicationDate
-      : record.sessionDate;
+    const targetDate = dateType === 'application' ? record.applicationDate : record.sessionDate;
     const dateStr = formatDate(targetDate);
 
     let daily = dailyMap.get(dateStr);
@@ -627,9 +612,7 @@ export function historyToFlatRecord(history: ReservationHistory): FlatRecord {
 /**
  * 履歴Mapをフラットレコード配列に変換（日付降順）
  */
-export function historiesToFlatRecords(
-  histories: Map<string, ReservationHistory>
-): FlatRecord[] {
+export function historiesToFlatRecords(histories: Map<string, ReservationHistory>): FlatRecord[] {
   return Array.from(histories.values())
     .sort((a, b) => b.sessionDate.getTime() - a.sessionDate.getTime())
     .map(historyToFlatRecord);
@@ -658,7 +641,7 @@ export function flatRecordsToCSV(records: FlatRecord[]): string {
     '詳細ステータス',
   ].join(',');
 
-  const rows = records.map((record) => {
+  const rows = records.map(record => {
     return [
       escapeCSV(record.reservationId),
       escapeCSV(record.friendId),

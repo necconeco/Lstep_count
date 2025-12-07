@@ -47,6 +47,7 @@ import {
   Schedule as PreviousDayCancelIcon,
   Block as BlockIcon,
   DataObject as JsonIcon,
+  PersonOff as PersonOffIcon,
 } from '@mui/icons-material';
 import { useHistoryStore } from '../store/historyStore';
 import { useUiStore, DATE_BASE_TYPE_LABELS, PERIOD_PRESET_LABELS } from '../store/uiStore';
@@ -58,17 +59,20 @@ import { CANCEL_TIMING_LABELS } from '../domain/types';
 /**
  * ステータスフィルタタイプ
  */
-type StatusFilter = 'all' | 'implemented' | 'cancelled' | 'sameDayCancel' | 'previousDayCancel' | 'excluded';
+type StatusFilter =
+  | 'all'
+  | 'implemented'
+  | 'cancelled'
+  | 'sameDayCancel'
+  | 'previousDayCancel'
+  | 'excluded'
+  | 'unassigned';
 
 /**
  * レコードのキャンセルタイミングを取得
  */
 function getRecordCancelTiming(record: FlatRecord): CancelTiming {
-  return getCancelTimingFromStrings(
-    record.sessionDateStr,
-    record.applicationDateStr,
-    record.status
-  );
+  return getCancelTimingFromStrings(record.sessionDateStr, record.applicationDateStr, record.status);
 }
 
 /**
@@ -150,11 +154,9 @@ export const HistoryViewer = () => {
       return allRecords;
     }
 
-    return allRecords.filter((record) => {
+    return allRecords.filter(record => {
       // 基準日を決定
-      const targetDateStr = dateBaseType === 'application'
-        ? record.applicationDateStr
-        : record.sessionDateStr;
+      const targetDateStr = dateBaseType === 'application' ? record.applicationDateStr : record.sessionDateStr;
 
       // YYYY-MM-DD形式からDateに変換
       const datePart = targetDateStr.split(' ')[0];
@@ -177,13 +179,15 @@ export const HistoryViewer = () => {
   // 統計情報（フィルタ後のレコードに基づく）
   const stats = useMemo(() => {
     const total = periodFilteredRecords.length;
-    const implemented = periodFilteredRecords.filter((r) => r.isImplemented).length;
-    const cancelled = periodFilteredRecords.filter((r) => r.status === 'キャンセル済み').length;
-    const sameDayCancel = periodFilteredRecords.filter((r) => isSameDayCancel(r)).length;
-    const previousDayCancel = periodFilteredRecords.filter((r) => isPreviousDayCancel(r)).length;
-    const firstTime = periodFilteredRecords.filter((r) => r.visitIndex === 1).length;
+    const implemented = periodFilteredRecords.filter(r => r.isImplemented).length;
+    const cancelled = periodFilteredRecords.filter(r => r.status === 'キャンセル済み').length;
+    const sameDayCancel = periodFilteredRecords.filter(r => isSameDayCancel(r)).length;
+    const previousDayCancel = periodFilteredRecords.filter(r => isPreviousDayCancel(r)).length;
+    const firstTime = periodFilteredRecords.filter(r => r.visitIndex === 1).length;
     const repeat = implemented - firstTime;
-    const excluded = periodFilteredRecords.filter((r) => r.isExcluded).length;
+    const excluded = periodFilteredRecords.filter(r => r.isExcluded).length;
+    // 未割当: staffがnull/空、または「おまかせ」で担当者未設定
+    const unassigned = periodFilteredRecords.filter(r => !r.staff || r.staff.trim() === '').length;
 
     // 全体の統計（フィルタ前）
     const totalAll = allRecords.length;
@@ -200,6 +204,7 @@ export const HistoryViewer = () => {
       firstTime,
       repeat,
       excluded,
+      unassigned,
     };
   }, [periodFilteredRecords, allRecords.length, userCounts.size]);
 
@@ -207,15 +212,17 @@ export const HistoryViewer = () => {
   const statusFilteredRecords = useMemo(() => {
     switch (statusFilter) {
       case 'implemented':
-        return periodFilteredRecords.filter((r) => r.isImplemented);
+        return periodFilteredRecords.filter(r => r.isImplemented);
       case 'cancelled':
-        return periodFilteredRecords.filter((r) => r.status === 'キャンセル済み');
+        return periodFilteredRecords.filter(r => r.status === 'キャンセル済み');
       case 'sameDayCancel':
-        return periodFilteredRecords.filter((r) => isSameDayCancel(r));
+        return periodFilteredRecords.filter(r => isSameDayCancel(r));
       case 'previousDayCancel':
-        return periodFilteredRecords.filter((r) => isPreviousDayCancel(r));
+        return periodFilteredRecords.filter(r => isPreviousDayCancel(r));
       case 'excluded':
-        return periodFilteredRecords.filter((r) => r.isExcluded);
+        return periodFilteredRecords.filter(r => r.isExcluded);
+      case 'unassigned':
+        return periodFilteredRecords.filter(r => !r.staff || r.staff.trim() === '');
       case 'all':
       default:
         return periodFilteredRecords;
@@ -228,7 +235,7 @@ export const HistoryViewer = () => {
 
     const lowerSearch = searchText.toLowerCase();
     return statusFilteredRecords.filter(
-      (record) =>
+      record =>
         record.friendId.toLowerCase().includes(lowerSearch) ||
         record.reservationId.toLowerCase().includes(lowerSearch) ||
         record.name.toLowerCase().includes(lowerSearch) ||
@@ -309,13 +316,10 @@ export const HistoryViewer = () => {
     setPage(newPage);
   }, []);
 
-  const handleChangeRowsPerPage = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
-      setRowsPerPage(parseInt(event.target.value, 10));
-      setPage(0);
-    },
-    []
-  );
+  const handleChangeRowsPerPage = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
+  }, []);
 
   const handleStatusFilterChange = useCallback(
     (_event: React.MouseEvent<HTMLElement>, newFilter: StatusFilter | null) => {
@@ -357,7 +361,7 @@ export const HistoryViewer = () => {
    */
   const selectedRecord = useMemo(() => {
     if (!selectedReservationId) return null;
-    return allRecords.find((r) => r.reservationId === selectedReservationId) || null;
+    return allRecords.find(r => r.reservationId === selectedReservationId) || null;
   }, [selectedReservationId, allRecords]);
 
   // データがない場合
@@ -382,29 +386,14 @@ export const HistoryViewer = () => {
           履歴一覧
         </Typography>
         <Box sx={{ display: 'flex', gap: 1 }}>
-          <Button
-            variant="outlined"
-            size="small"
-            startIcon={<RefreshIcon />}
-            onClick={handleRecalculate}
-          >
+          <Button variant="outlined" size="small" startIcon={<RefreshIcon />} onClick={handleRecalculate}>
             再計算
           </Button>
-          <Button
-            variant="outlined"
-            color="primary"
-            startIcon={<DownloadIcon />}
-            onClick={handleDownloadCSV}
-          >
+          <Button variant="outlined" color="primary" startIcon={<DownloadIcon />} onClick={handleDownloadCSV}>
             CSV出力
           </Button>
           <Tooltip title="全データをJSON形式でバックアップ">
-            <Button
-              variant="outlined"
-              color="secondary"
-              startIcon={<JsonIcon />}
-              onClick={handleDownloadJSON}
-            >
+            <Button variant="outlined" color="secondary" startIcon={<JsonIcon />} onClick={handleDownloadJSON}>
               JSONバックアップ
             </Button>
           </Tooltip>
@@ -424,17 +413,8 @@ export const HistoryViewer = () => {
         <Box sx={{ mb: 1 }}>
           <Typography variant="body2" component="span">
             <strong>フィルタ条件:</strong>{' '}
-            <Chip
-              size="small"
-              label={`基準: ${DATE_BASE_TYPE_LABELS[dateBaseType]}`}
-              sx={{ mr: 0.5 }}
-            />
-            <Chip
-              size="small"
-              label={PERIOD_PRESET_LABELS[periodPreset]}
-              color="primary"
-              variant="outlined"
-            />
+            <Chip size="small" label={`基準: ${DATE_BASE_TYPE_LABELS[dateBaseType]}`} sx={{ mr: 0.5 }} />
+            <Chip size="small" label={PERIOD_PRESET_LABELS[periodPreset]} color="primary" variant="outlined" />
             {stats.totalRecords !== stats.totalAll && (
               <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
                 （全{stats.totalAll}件中 {stats.totalRecords}件を表示）
@@ -443,8 +423,7 @@ export const HistoryViewer = () => {
           </Typography>
         </Box>
         <Typography variant="body2">
-          <strong>期間内:</strong> {stats.totalRecords}件 |
-          <strong> 実施:</strong>{' '}
+          <strong>期間内:</strong> {stats.totalRecords}件 |<strong> 実施:</strong>{' '}
           <Chip
             size="small"
             label={`${stats.implemented}件`}
@@ -463,7 +442,8 @@ export const HistoryViewer = () => {
           />
           {(stats.sameDayCancel > 0 || stats.previousDayCancel > 0) && (
             <Typography variant="caption" color="text.secondary">
-              {' '}(前日: {stats.previousDayCancel} / 当日: {stats.sameDayCancel})
+              {' '}
+              (前日: {stats.previousDayCancel} / 当日: {stats.sameDayCancel})
             </Typography>
           )}
           {stats.excluded > 0 && (
@@ -479,18 +459,26 @@ export const HistoryViewer = () => {
               />
             </>
           )}
+          {stats.unassigned > 0 && (
+            <>
+              {' | '}
+              <strong style={{ color: '#ed6c02' }}>未割当:</strong>{' '}
+              <Chip
+                size="small"
+                label={`${stats.unassigned}件`}
+                color="warning"
+                variant="outlined"
+                sx={{ height: 20, fontSize: '0.75rem' }}
+              />
+            </>
+          )}
         </Typography>
       </Alert>
 
       {/* フィルターバー */}
       <Box sx={{ mb: 2, display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
         {/* ステータスフィルタ */}
-        <ToggleButtonGroup
-          value={statusFilter}
-          exclusive
-          onChange={handleStatusFilterChange}
-          size="small"
-        >
+        <ToggleButtonGroup value={statusFilter} exclusive onChange={handleStatusFilterChange} size="small">
           <ToggleButton value="all">
             <Tooltip title="全履歴（キャンセル含む）">
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
@@ -539,6 +527,14 @@ export const HistoryViewer = () => {
               </Box>
             </Tooltip>
           </ToggleButton>
+          <ToggleButton value="unassigned">
+            <Tooltip title="担当者が未割当のレコード">
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                <PersonOffIcon fontSize="small" />
+                未割当
+              </Box>
+            </Tooltip>
+          </ToggleButton>
         </ToggleButtonGroup>
 
         {/* テキスト検索 */}
@@ -546,7 +542,7 @@ export const HistoryViewer = () => {
           size="small"
           placeholder="友だちID、名前で検索..."
           value={searchText}
-          onChange={(e) => setSearchText(e.target.value)}
+          onChange={e => setSearchText(e.target.value)}
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
@@ -559,8 +555,7 @@ export const HistoryViewer = () => {
 
         {/* 件数表示 */}
         <Typography variant="body2" color="text.secondary">
-          表示: {filteredRecords.length}件
-          {statusFilter !== 'all' && ` / 全${stats.totalRecords}件`}
+          表示: {filteredRecords.length}件{statusFilter !== 'all' && ` / 全${stats.totalRecords}件`}
         </Typography>
       </Box>
 
@@ -569,7 +564,9 @@ export const HistoryViewer = () => {
           <Table size="small" stickyHeader>
             <TableHead>
               <TableRow>
-                <TableCell align="center" sx={{ width: 60 }}>集計</TableCell>
+                <TableCell align="center" sx={{ width: 60 }}>
+                  集計
+                </TableCell>
                 <TableCell>友だちID</TableCell>
                 <TableCell>名前</TableCell>
                 <TableCell>予約ID</TableCell>
@@ -593,10 +590,10 @@ export const HistoryViewer = () => {
                     backgroundColor: record.isExcluded
                       ? 'rgba(158, 158, 158, 0.15)'
                       : record.status === 'キャンセル済み'
-                      ? 'rgba(211, 47, 47, 0.04)'
-                      : record.isImplemented
-                      ? 'rgba(46, 125, 50, 0.04)'
-                      : 'inherit',
+                        ? 'rgba(211, 47, 47, 0.04)'
+                        : record.isImplemented
+                          ? 'rgba(46, 125, 50, 0.04)'
+                          : 'inherit',
                     opacity: record.isExcluded ? 0.7 : 1,
                     textDecoration: record.isExcluded ? 'line-through' : 'none',
                     '&:hover': {
@@ -606,34 +603,26 @@ export const HistoryViewer = () => {
                 >
                   {/* 集計対象トグル */}
                   <TableCell align="center" sx={{ py: 0 }}>
-                    <Tooltip
-                      title={record.isExcluded ? '集計に含める' : '集計から除外'}
-                    >
+                    <Tooltip title={record.isExcluded ? '集計に含める' : '集計から除外'}>
                       <Chip
                         icon={record.isExcluded ? <IncludeIcon /> : <ExcludeIcon />}
                         label={record.isExcluded ? '除外中' : '対象'}
                         size="small"
                         color={record.isExcluded ? 'default' : 'success'}
                         variant={record.isExcluded ? 'outlined' : 'filled'}
-                        onClick={(e) => handleToggleExcluded(record.reservationId, e)}
+                        onClick={e => handleToggleExcluded(record.reservationId, e)}
                         sx={{ cursor: 'pointer' }}
                       />
                     </Tooltip>
                   </TableCell>
                   <TableCell>
-                    <Typography
-                      variant="body2"
-                      sx={{ fontFamily: 'monospace', fontSize: '0.75rem' }}
-                    >
+                    <Typography variant="body2" sx={{ fontFamily: 'monospace', fontSize: '0.75rem' }}>
                       {record.friendId}
                     </Typography>
                   </TableCell>
                   <TableCell>{record.name}</TableCell>
                   <TableCell>
-                    <Typography
-                      variant="body2"
-                      sx={{ fontFamily: 'monospace', fontSize: '0.75rem' }}
-                    >
+                    <Typography variant="body2" sx={{ fontFamily: 'monospace', fontSize: '0.75rem' }}>
                       {record.reservationId || '-'}
                     </Typography>
                   </TableCell>
@@ -690,11 +679,7 @@ export const HistoryViewer = () => {
                         label={record.visitLabel}
                         size="small"
                         color={
-                          record.visitLabel === '初回'
-                            ? 'success'
-                            : record.visitLabel === '2回目'
-                            ? 'info'
-                            : 'default'
+                          record.visitLabel === '初回' ? 'success' : record.visitLabel === '2回目' ? 'info' : 'default'
                         }
                       />
                     ) : (
@@ -742,11 +727,7 @@ export const HistoryViewer = () => {
       </Dialog>
 
       {/* 詳細ドロワー */}
-      <ReservationDetailDrawer
-        open={drawerOpen}
-        onClose={handleDrawerClose}
-        record={selectedRecord}
-      />
+      <ReservationDetailDrawer open={drawerOpen} onClose={handleDrawerClose} record={selectedRecord} />
     </Box>
   );
 };

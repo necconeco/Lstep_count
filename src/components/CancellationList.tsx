@@ -1,7 +1,20 @@
 /**
  * キャンセル一覧コンポーネント
  */
-import { Box, Card, CardContent, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Chip } from '@mui/material';
+import {
+  Box,
+  Card,
+  CardContent,
+  Typography,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  Chip,
+} from '@mui/material';
 import { EventBusy as EventBusyIcon } from '@mui/icons-material';
 import { useReviewStore } from '../store/reviewStore';
 
@@ -35,7 +48,7 @@ export const CancellationList = () => {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {cancellationRecords.map((cancellation) => (
+                {cancellationRecords.map(cancellation => (
                   <TableRow key={cancellation.record.予約ID} hover>
                     <TableCell>{cancellation.record.予約ID}</TableCell>
                     <TableCell>{cancellation.record.予約日}</TableCell>

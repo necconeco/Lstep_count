@@ -42,14 +42,14 @@ export const DailyChart = () => {
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis
                 dataKey="date"
-                tickFormatter={(value) => {
+                tickFormatter={value => {
                   const date = new Date(value);
                   return `${date.getMonth() + 1}/${date.getDate()}`;
                 }}
               />
               <YAxis />
               <Tooltip
-                labelFormatter={(value) => {
+                labelFormatter={value => {
                   const date = new Date(value);
                   return `${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()}`;
                 }}
@@ -94,14 +94,14 @@ export const DailyChart = () => {
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis
                 dataKey="date"
-                tickFormatter={(value) => {
+                tickFormatter={value => {
                   const date = new Date(value);
                   return `${date.getMonth() + 1}/${date.getDate()}`;
                 }}
               />
               <YAxis />
               <Tooltip
-                labelFormatter={(value) => {
+                labelFormatter={value => {
                   const date = new Date(value);
                   return `${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()}`;
                 }}

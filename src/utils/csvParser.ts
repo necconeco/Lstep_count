@@ -21,8 +21,8 @@ const COLUMN_MAPPING: Record<string, string> = {
   名前: '名前',
 
   // 申込日時関連（全角・半角・スペースのバリエーション）
-  '申し込み日時': '申込日時',
-  '申込日時': '申込日時',
+  申し込み日時: '申込日時',
+  申込日時: '申込日時',
 
   // 予約枠
   予約枠: '_予約枠',
@@ -48,7 +48,7 @@ async function readFileWithEncoding(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
 
-    reader.onload = (event) => {
+    reader.onload = event => {
       const arrayBuffer = event.target?.result as ArrayBuffer;
       if (!arrayBuffer) {
         reject(new Error('ファイルの読み込みに失敗しました'));
@@ -111,148 +111,136 @@ export async function parseCSV(file: File): Promise<ParseResult> {
     // ファイルをShift-JIS/UTF-8で読み込み
     const csvText = await readFileWithEncoding(file);
 
-    return new Promise((resolve) => {
+    return new Promise(resolve => {
       Papa.parse<Record<string, string>>(csvText, {
         header: true,
         skipEmptyLines: true,
         transformHeader: (header: string) => header.trim(),
         transform: (value: string) => value.trim(),
-        complete: (results) => {
-        try {
-          // ヘッダー検証（カラムマッピングを考慮）
-          const headers = results.meta.fields || [];
+        complete: results => {
+          try {
+            // ヘッダー検証（カラムマッピングを考慮）
+            const headers = results.meta.fields || [];
 
-          // カラムマッピングを適用したヘッダーを作成
-          const mappedHeaders = headers.map((h) => COLUMN_MAPPING[h] || h);
+            // カラムマッピングを適用したヘッダーを作成
+            const mappedHeaders = headers.map(h => COLUMN_MAPPING[h] || h);
 
-          // 必須カラムのチェック
-          const missingColumns = REQUIRED_COLUMNS.filter((col) => !mappedHeaders.includes(col));
+            // 必須カラムのチェック
+            const missingColumns = REQUIRED_COLUMNS.filter(col => !mappedHeaders.includes(col));
 
-          if (missingColumns.length > 0) {
-            console.error('[CSV Parser] 期待されるカラム:', REQUIRED_COLUMNS);
-            errors.push(`必須カラムが不足しています: ${missingColumns.join(', ')}`);
-            errors.push(`デバッグ: 検出されたヘッダー: ${headers.join(', ')}`);
+            if (missingColumns.length > 0) {
+              console.error('[CSV Parser] 期待されるカラム:', REQUIRED_COLUMNS);
+              errors.push(`必須カラムが不足しています: ${missingColumns.join(', ')}`);
+              errors.push(`デバッグ: 検出されたヘッダー: ${headers.join(', ')}`);
+              resolve({
+                success: false,
+                data: [],
+                errors,
+                warnings,
+              });
+              return;
+            }
+
+            // データ変換
+            const data: CsvRecord[] = [];
+
+            results.data.forEach((row, index) => {
+              // カラムマッピングを適用した行データを作成
+              const mappedRow: Record<string, string> = {};
+              Object.keys(row).forEach(key => {
+                const mappedKey = COLUMN_MAPPING[key] || key;
+                mappedRow[mappedKey] = row[key] || '';
+              });
+
+              // 必須フィールドチェック
+              const missingFields = REQUIRED_COLUMNS.filter(col => !mappedRow[col]);
+              if (missingFields.length > 0) {
+                warnings.push(`行${index + 2}: 必須フィールドが空です: ${missingFields.join(', ')}`);
+                return; // このレコードはスキップ
+              }
+
+              // ステータスバリデーション
+              const status = mappedRow['ステータス'];
+              if (status !== '予約済み' && status !== 'キャンセル済み') {
+                warnings.push(`行${index + 2}: 不明なステータス「${status}」`);
+              }
+
+              // 来店/来場バリデーション
+              const visit = mappedRow['来店/来場'];
+              if (visit !== '済み' && visit !== 'なし') {
+                warnings.push(`行${index + 2}: 不明な来店/来場ステータス「${visit}」`);
+              }
+
+              // 予約IDを自動生成（存在しない場合）
+              const reservationId = mappedRow['予約ID'] || `AUTO_${String(index + 1).padStart(5, '0')}`;
+
+              // 担当者名を予約枠から抽出（おまかせ判定も含む）
+              // 新ロジック: 正式担当者10名 / おまかせパターン / 備考コメントを判定
+              const staffInfo = classifyReservationSlot(mappedRow['_予約枠']);
+              const staffName = mappedRow['担当者'] || staffInfo.staffName || undefined;
+              const wasOmakase = staffInfo.wasOmakase;
+
+              // CsvRecordに変換
+              const csvRecord: CsvRecord = {
+                予約ID: reservationId,
+                友だちID: mappedRow['友だちID'] || '',
+                予約日: mappedRow['予約日'] || '',
+                ステータス: status === '予約済み' || status === 'キャンセル済み' ? status : '予約済み', // デフォルト
+                '来店/来場': visit === '済み' || visit === 'なし' ? visit : 'なし', // デフォルト
+                名前: mappedRow['名前'] || '',
+                申込日時: mappedRow['申込日時'] || '',
+                メモ: mappedRow['メモ'],
+                担当者: staffName,
+                wasOmakase, // おまかせ予約フラグ
+              };
+
+              // その他のフィールドも追加（内部処理用フィールドを除く）
+              Object.keys(mappedRow).forEach(key => {
+                if (!REQUIRED_COLUMNS.includes(key) && key !== 'メモ' && key !== '担当者' && !key.startsWith('_')) {
+                  csvRecord[key] = mappedRow[key];
+                }
+              });
+
+              data.push(csvRecord);
+            });
+
+            // パースエラーチェック
+            if (results.errors.length > 0) {
+              results.errors.forEach(error => {
+                warnings.push(`パースエラー (行${error.row}): ${error.message}`);
+              });
+            }
+
+            resolve({
+              success: data.length > 0,
+              data,
+              errors: data.length === 0 ? ['有効なデータが見つかりませんでした'] : [],
+              warnings,
+            });
+          } catch (error) {
+            errors.push(error instanceof Error ? error.message : 'CSVパース中に予期しないエラーが発生しました');
             resolve({
               success: false,
               data: [],
               errors,
               warnings,
             });
-            return;
           }
-
-          // データ変換
-          const data: CsvRecord[] = [];
-
-          results.data.forEach((row, index) => {
-            // カラムマッピングを適用した行データを作成
-            const mappedRow: Record<string, string> = {};
-            Object.keys(row).forEach((key) => {
-              const mappedKey = COLUMN_MAPPING[key] || key;
-              mappedRow[mappedKey] = row[key] || '';
-            });
-
-            // 必須フィールドチェック
-            const missingFields = REQUIRED_COLUMNS.filter((col) => !mappedRow[col]);
-            if (missingFields.length > 0) {
-              warnings.push(`行${index + 2}: 必須フィールドが空です: ${missingFields.join(', ')}`);
-              return; // このレコードはスキップ
-            }
-
-            // ステータスバリデーション
-            const status = mappedRow['ステータス'];
-            if (status !== '予約済み' && status !== 'キャンセル済み') {
-              warnings.push(`行${index + 2}: 不明なステータス「${status}」`);
-            }
-
-            // 来店/来場バリデーション
-            const visit = mappedRow['来店/来場'];
-            if (visit !== '済み' && visit !== 'なし') {
-              warnings.push(`行${index + 2}: 不明な来店/来場ステータス「${visit}」`);
-            }
-
-            // 予約IDを自動生成（存在しない場合）
-            const reservationId = mappedRow['予約ID'] || `AUTO_${String(index + 1).padStart(5, '0')}`;
-
-            // 担当者名を予約枠から抽出（おまかせ判定も含む）
-            // 新ロジック: 正式担当者10名 / おまかせパターン / 備考コメントを判定
-            const staffInfo = classifyReservationSlot(mappedRow['_予約枠']);
-            const staffName = mappedRow['担当者'] || staffInfo.staffName || undefined;
-            const wasOmakase = staffInfo.wasOmakase;
-
-            // CsvRecordに変換
-            const csvRecord: CsvRecord = {
-              予約ID: reservationId,
-              友だちID: mappedRow['友だちID'] || '',
-              予約日: mappedRow['予約日'] || '',
-              ステータス:
-                status === '予約済み' || status === 'キャンセル済み' ? status : '予約済み', // デフォルト
-              '来店/来場': visit === '済み' || visit === 'なし' ? visit : 'なし', // デフォルト
-              名前: mappedRow['名前'] || '',
-              申込日時: mappedRow['申込日時'] || '',
-              メモ: mappedRow['メモ'],
-              担当者: staffName,
-              wasOmakase,  // おまかせ予約フラグ
-            };
-
-            // その他のフィールドも追加（内部処理用フィールドを除く）
-            Object.keys(mappedRow).forEach((key) => {
-              if (
-                !REQUIRED_COLUMNS.includes(key) &&
-                key !== 'メモ' &&
-                key !== '担当者' &&
-                !key.startsWith('_')
-              ) {
-                csvRecord[key] = mappedRow[key];
-              }
-            });
-
-            data.push(csvRecord);
-          });
-
-          // パースエラーチェック
-          if (results.errors.length > 0) {
-            results.errors.forEach((error) => {
-              warnings.push(`パースエラー (行${error.row}): ${error.message}`);
-            });
-          }
-
-          resolve({
-            success: data.length > 0,
-            data,
-            errors: data.length === 0 ? ['有効なデータが見つかりませんでした'] : [],
-            warnings,
-          });
-        } catch (error) {
-          errors.push(
-            error instanceof Error ? error.message : 'CSVパース中に予期しないエラーが発生しました'
-          );
+        },
+        error: (error: Error) => {
+          errors.push(`ファイル読み込みエラー: ${error.message}`);
           resolve({
             success: false,
             data: [],
             errors,
             warnings,
           });
-        }
-      },
-      error: (error: Error) => {
-        errors.push(`ファイル読み込みエラー: ${error.message}`);
-        resolve({
-          success: false,
-          data: [],
-          errors,
-          warnings,
-        });
-      },
-    });
+        },
+      });
     });
   } catch (error) {
     // readFileWithEncodingでのエラーをキャッチ
-    errors.push(
-      error instanceof Error
-        ? error.message
-        : 'ファイルのエンコーディング処理中にエラーが発生しました'
-    );
+    errors.push(error instanceof Error ? error.message : 'ファイルのエンコーディング処理中にエラーが発生しました');
     return {
       success: false,
       data: [],

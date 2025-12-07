@@ -21,7 +21,7 @@ async function openDatabase(): Promise<IDBDatabase> {
 
     const request = indexedDB.open(DB_NAME, DB_VERSION);
 
-    request.onerror = (event) => {
+    request.onerror = event => {
       console.error('[openDatabase] IndexedDB open error:', request.error);
       console.error('[openDatabase] Error event:', event);
       console.error('[openDatabase] Error name:', request.error?.name);
@@ -37,7 +37,7 @@ async function openDatabase(): Promise<IDBDatabase> {
       resolve(request.result);
     };
 
-    request.onupgradeneeded = (event) => {
+    request.onupgradeneeded = event => {
       const db = (event.target as IDBOpenDBRequest).result;
 
       // 旧ストア（user-history-master）がなければ作成
@@ -65,9 +65,7 @@ async function openDatabase(): Promise<IDBDatabase> {
     };
 
     request.onblocked = () => {
-      console.warn(
-        '[openDatabase] IndexedDB open blocked - 他のタブでデータベースが開かれている可能性があります'
-      );
+      console.warn('[openDatabase] IndexedDB open blocked - 他のタブでデータベースが開かれている可能性があります');
     };
   });
 }
@@ -85,11 +83,11 @@ export async function getAllMasterData(): Promise<Map<string, UserHistoryMaster>
     return new Promise((resolve, reject) => {
       request.onsuccess = () => {
         const data = new Map<string, UserHistoryMaster>();
-        (request.result as UserHistoryMaster[]).forEach((record) => {
+        (request.result as UserHistoryMaster[]).forEach(record => {
           // Date型に変換（implementationHistory と allHistory 内のdateも変換）
           // 旧データ互換性: allHistory が存在しない場合は空配列
           const allHistory = record.allHistory
-            ? record.allHistory.map((h) => ({
+            ? record.allHistory.map(h => ({
                 ...h,
                 date: new Date(h.date),
               }))
@@ -98,13 +96,11 @@ export async function getAllMasterData(): Promise<Map<string, UserHistoryMaster>
           data.set(record.friendId, {
             ...record,
             allHistory,
-            implementationHistory: record.implementationHistory.map((h) => ({
+            implementationHistory: record.implementationHistory.map(h => ({
               ...h,
               date: new Date(h.date),
             })),
-            lastImplementationDate: record.lastImplementationDate
-              ? new Date(record.lastImplementationDate)
-              : null,
+            lastImplementationDate: record.lastImplementationDate ? new Date(record.lastImplementationDate) : null,
             createdAt: new Date(record.createdAt),
             updatedAt: new Date(record.updatedAt),
           });
@@ -138,7 +134,7 @@ export async function getMasterRecord(friendId: string): Promise<UserHistoryMast
           const record = request.result as UserHistoryMaster;
           // 旧データ互換性: allHistory が存在しない場合は空配列
           const allHistory = record.allHistory
-            ? record.allHistory.map((h) => ({
+            ? record.allHistory.map(h => ({
                 ...h,
                 date: new Date(h.date),
               }))
@@ -147,13 +143,11 @@ export async function getMasterRecord(friendId: string): Promise<UserHistoryMast
           resolve({
             ...record,
             allHistory,
-            implementationHistory: record.implementationHistory.map((h) => ({
+            implementationHistory: record.implementationHistory.map(h => ({
               ...h,
               date: new Date(h.date),
             })),
-            lastImplementationDate: record.lastImplementationDate
-              ? new Date(record.lastImplementationDate)
-              : null,
+            lastImplementationDate: record.lastImplementationDate ? new Date(record.lastImplementationDate) : null,
             createdAt: new Date(record.createdAt),
             updatedAt: new Date(record.updatedAt),
           });
@@ -200,9 +194,7 @@ export async function saveMasterRecord(record: UserHistoryMaster): Promise<void>
 /**
  * 複数の履歴マスタデータを一括保存
  */
-export async function saveMasterDataBatch(
-  records: Map<string, UserHistoryMaster>
-): Promise<void> {
+export async function saveMasterDataBatch(records: Map<string, UserHistoryMaster>): Promise<void> {
   if (records.size === 0) {
     return;
   }
@@ -252,9 +244,7 @@ export async function saveMasterDataBatch(
     });
   } catch (error) {
     console.error('[saveMasterDataBatch] Exception:', error);
-    throw error instanceof Error
-      ? error
-      : new Error('履歴マスタデータの一括保存に失敗しました');
+    throw error instanceof Error ? error : new Error('履歴マスタデータの一括保存に失敗しました');
   }
 }
 

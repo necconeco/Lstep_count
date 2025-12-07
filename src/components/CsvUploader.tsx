@@ -5,16 +5,7 @@
  * V2: 2系統マスター対応（フル履歴マスター / 実施マスター）
  */
 import { useCallback, useState, useEffect } from 'react';
-import {
-  Box,
-  Button,
-  Paper,
-  Typography,
-  Alert,
-  CircularProgress,
-  Chip,
-  Grid,
-} from '@mui/material';
+import { Box, Button, Paper, Typography, Alert, CircularProgress, Chip, Grid } from '@mui/material';
 import {
   Upload as UploadIcon,
   CheckCircle as CheckIcon,
@@ -254,11 +245,7 @@ export const CsvUploader = () => {
             ) : fullHistoryMasters.size > 0 ? (
               <Box>
                 <CheckIcon color="success" sx={{ fontSize: 40, mb: 2 }} />
-                <Chip
-                  label={`${masterDataCount}件のユーザー履歴を読み込み済み`}
-                  color="success"
-                  sx={{ mb: 2 }}
-                />
+                <Chip label={`${masterDataCount}件のユーザー履歴を読み込み済み`} color="success" sx={{ mb: 2 }} />
                 {masterFileName && (
                   <Typography variant="caption" display="block" color="text.secondary">
                     {masterFileName}
@@ -270,7 +257,7 @@ export const CsvUploader = () => {
                     type="file"
                     accept=".csv"
                     hidden
-                    onChange={(e) => {
+                    onChange={e => {
                       const file = e.target.files?.[0];
                       if (file) handleMasterFile(file);
                     }}
@@ -284,7 +271,7 @@ export const CsvUploader = () => {
                   type="file"
                   accept=".csv"
                   hidden
-                  onChange={(e) => {
+                  onChange={e => {
                     const file = e.target.files?.[0];
                     if (file) handleMasterFile(file);
                   }}
@@ -349,7 +336,7 @@ export const CsvUploader = () => {
                     type="file"
                     accept=".csv"
                     hidden
-                    onChange={(e) => {
+                    onChange={e => {
                       const file = e.target.files?.[0];
                       if (file) handleMonthlyFile(file);
                     }}
@@ -368,7 +355,7 @@ export const CsvUploader = () => {
                   type="file"
                   accept=".csv"
                   hidden
-                  onChange={(e) => {
+                  onChange={e => {
                     const file = e.target.files?.[0];
                     if (file) handleMonthlyFile(file);
                   }}

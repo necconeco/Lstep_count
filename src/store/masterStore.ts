@@ -25,7 +25,13 @@ export const useMasterStore = create<MasterStoreState>((set, get) => ({
     }
   },
 
-  updateMasterData: async (friendId: string, implementationDate: Date, reservationId = '', status = '', staff?: string) => {
+  updateMasterData: async (
+    friendId: string,
+    implementationDate: Date,
+    reservationId = '',
+    status = '',
+    staff?: string
+  ) => {
     try {
       const { masterData } = get();
       const existing = masterData.get(friendId);
@@ -127,10 +133,7 @@ export const useMasterStore = create<MasterStoreState>((set, get) => ({
       await loadMasterData();
     } catch (error) {
       set({
-        error:
-          error instanceof Error
-            ? error.message
-            : 'マスターデータの更新処理に失敗しました',
+        error: error instanceof Error ? error.message : 'マスターデータの更新処理に失敗しました',
       });
       throw error;
     }

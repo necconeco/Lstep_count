@@ -35,6 +35,7 @@ import {
   Collapse,
   Alert,
   Snackbar,
+  Paper,
 } from '@mui/material';
 import FolderIcon from '@mui/icons-material/Folder';
 import FolderOpenIcon from '@mui/icons-material/FolderOpen';
@@ -49,7 +50,11 @@ import CreateNewFolderIcon from '@mui/icons-material/CreateNewFolder';
 import CameraAltIcon from '@mui/icons-material/CameraAlt';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import BackupIcon from '@mui/icons-material/Backup';
+import RestoreIcon from '@mui/icons-material/Restore';
+import WarningIcon from '@mui/icons-material/Warning';
 import { useSnapshotStore } from '../store/snapshotStore';
+import { useHistoryStore } from '../store/historyStore';
 import type { AggregationSnapshot, SnapshotFolder } from '../domain/types';
 import { formatDate } from '../domain/logic';
 
@@ -82,13 +87,19 @@ export function SnapshotManager({ onSelectSnapshot }: SnapshotManagerProps) {
     clearError,
   } = useSnapshotStore();
 
+  const { exportToJSON, importFromJSON, histories, isLoading: historyLoading } = useHistoryStore();
+
   // 状態
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set(['pinned']));
   const [menuAnchor, setMenuAnchor] = useState<{ el: HTMLElement; snapshot: AggregationSnapshot } | null>(null);
   const [folderMenuAnchor, setFolderMenuAnchor] = useState<{ el: HTMLElement; folder: SnapshotFolder } | null>(null);
 
   // ダイアログ
-  const [renameDialog, setRenameDialog] = useState<{ open: boolean; snapshot: AggregationSnapshot | null; newLabel: string }>({
+  const [renameDialog, setRenameDialog] = useState<{
+    open: boolean;
+    snapshot: AggregationSnapshot | null;
+    newLabel: string;
+  }>({
     open: false,
     snapshot: null,
     newLabel: '',
@@ -105,10 +116,23 @@ export function SnapshotManager({ onSelectSnapshot }: SnapshotManagerProps) {
     open: false,
     snapshot: null,
   });
-  const [renameFolderDialog, setRenameFolderDialog] = useState<{ open: boolean; folder: SnapshotFolder | null; newName: string }>({
+  const [renameFolderDialog, setRenameFolderDialog] = useState<{
+    open: boolean;
+    folder: SnapshotFolder | null;
+    newName: string;
+  }>({
     open: false,
     folder: null,
     newName: '',
+  });
+  const [restoreConfirmDialog, setRestoreConfirmDialog] = useState<{
+    open: boolean;
+    fileName: string;
+    jsonContent: string;
+  }>({
+    open: false,
+    fileName: '',
+    jsonContent: '',
   });
 
   // スナックバー
@@ -133,17 +157,17 @@ export function SnapshotManager({ onSelectSnapshot }: SnapshotManagerProps) {
 
   // ピン留めされたスナップショット
   const pinnedSnapshots = useMemo(() => {
-    return snapshots.filter((s) => s.isPinned);
+    return snapshots.filter(s => s.isPinned);
   }, [snapshots]);
 
   // 未分類のスナップショット
   const uncategorizedSnapshots = useMemo(() => {
-    return snapshots.filter((s) => !s.isPinned && !s.folderName);
+    return snapshots.filter(s => !s.isPinned && !s.folderName);
   }, [snapshots]);
 
   // フォルダの展開トグル
   const toggleFolder = (folderId: string) => {
-    setExpandedFolders((prev) => {
+    setExpandedFolders(prev => {
       const newSet = new Set(prev);
       if (newSet.has(folderId)) {
         newSet.delete(folderId);
@@ -173,22 +197,20 @@ export function SnapshotManager({ onSelectSnapshot }: SnapshotManagerProps) {
         <Stack direction="row" spacing={0}>
           <Tooltip title={snapshot.isPinned ? 'ピン解除' : 'ピン留め'}>
             <IconButton size="small" onClick={() => togglePin(snapshot.id)}>
-              {snapshot.isPinned ? <PushPinIcon fontSize="small" color="primary" /> : <PushPinOutlinedIcon fontSize="small" />}
+              {snapshot.isPinned ? (
+                <PushPinIcon fontSize="small" color="primary" />
+              ) : (
+                <PushPinOutlinedIcon fontSize="small" />
+              )}
             </IconButton>
           </Tooltip>
-          <IconButton
-            size="small"
-            onClick={(e) => setMenuAnchor({ el: e.currentTarget, snapshot })}
-          >
+          <IconButton size="small" onClick={e => setMenuAnchor({ el: e.currentTarget, snapshot })}>
             <MoreVertIcon fontSize="small" />
           </IconButton>
         </Stack>
       }
     >
-      <ListItemButton
-        onClick={() => onSelectSnapshot?.(snapshot)}
-        sx={{ pr: 10 }}
-      >
+      <ListItemButton onClick={() => onSelectSnapshot?.(snapshot)} sx={{ pr: 10 }}>
         <ListItemIcon sx={{ minWidth: 36 }}>
           <DescriptionIcon fontSize="small" />
         </ListItemIcon>
@@ -256,6 +278,62 @@ export function SnapshotManager({ onSelectSnapshot }: SnapshotManagerProps) {
     setRenameFolderDialog({ open: false, folder: null, newName: '' });
   };
 
+  // バックアップ（JSONエクスポート）
+  const handleBackup = () => {
+    const jsonStr = exportToJSON();
+    const blob = new Blob([jsonStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    const dateStr = new Date().toISOString().split('T')[0] ?? '';
+    const timeStr = (new Date().toTimeString().split(' ')[0] ?? '').replace(/:/g, '');
+    link.download = `lstep_backup_${dateStr}_${timeStr}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+    setSnackbar({ open: true, message: 'バックアップをダウンロードしました', severity: 'success' });
+  };
+
+  // リストアファイル選択
+  const handleRestoreFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.name.endsWith('.json')) {
+      setSnackbar({ open: true, message: 'JSONファイルを選択してください', severity: 'error' });
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = e => {
+      const content = e.target?.result as string;
+      try {
+        // JSONとして有効かチェック
+        JSON.parse(content);
+        setRestoreConfirmDialog({ open: true, fileName: file.name, jsonContent: content });
+      } catch {
+        setSnackbar({ open: true, message: 'JSONファイルの形式が不正です', severity: 'error' });
+      }
+    };
+    reader.onerror = () => {
+      setSnackbar({ open: true, message: 'ファイルの読み込みに失敗しました', severity: 'error' });
+    };
+    reader.readAsText(file);
+
+    // inputをリセット（同じファイルを再選択可能にする）
+    event.target.value = '';
+  };
+
+  // リストア実行
+  const handleRestoreConfirm = async () => {
+    const result = await importFromJSON(restoreConfirmDialog.jsonContent);
+    if (result.success) {
+      setSnackbar({ open: true, message: result.message, severity: 'success' });
+    } else {
+      setSnackbar({ open: true, message: result.message, severity: 'error' });
+    }
+    setRestoreConfirmDialog({ open: false, fileName: '', jsonContent: '' });
+  };
+
   return (
     <Box sx={{ p: 3 }}>
       <Card>
@@ -279,6 +357,38 @@ export function SnapshotManager({ onSelectSnapshot }: SnapshotManagerProps) {
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
             確定した集計結果をスナップショットとして保存・管理できます。
           </Typography>
+
+          {/* バックアップ/リストアセクション */}
+          <Paper variant="outlined" sx={{ p: 2, mb: 3, backgroundColor: 'grey.50' }}>
+            <Typography variant="subtitle2" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <BackupIcon fontSize="small" />
+              データバックアップ / リストア
+            </Typography>
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
+              全履歴データをJSONファイルとしてバックアップ・復元できます。
+              リストアを実行すると現在のデータは完全に置き換えられます。
+            </Typography>
+            <Stack direction="row" spacing={2}>
+              <Button
+                variant="outlined"
+                startIcon={<BackupIcon />}
+                onClick={handleBackup}
+                disabled={histories.size === 0 || historyLoading}
+              >
+                バックアップ
+              </Button>
+              <Button
+                variant="outlined"
+                color="warning"
+                startIcon={<RestoreIcon />}
+                component="label"
+                disabled={historyLoading}
+              >
+                リストア
+                <input type="file" accept=".json" hidden onChange={handleRestoreFileSelect} />
+              </Button>
+            </Stack>
+          </Paper>
 
           {isLoading ? (
             <Typography>読み込み中...</Typography>
@@ -308,15 +418,13 @@ export function SnapshotManager({ onSelectSnapshot }: SnapshotManagerProps) {
               )}
 
               {/* フォルダ */}
-              {folders.map((folder) => {
-                const folderSnapshots = snapshots.filter(
-                  (s) => s.folderName === folder.folderName && !s.isPinned
-                );
+              {folders.map(folder => {
+                const folderSnapshots = snapshots.filter(s => s.folderName === folder.folderName && !s.isPinned);
                 return (
                   <Box key={folder.folderName}>
                     <ListItemButton
                       onClick={() => toggleFolder(folder.folderName)}
-                      onContextMenu={(e) => {
+                      onContextMenu={e => {
                         e.preventDefault();
                         setFolderMenuAnchor({ el: e.currentTarget as HTMLElement, folder });
                       }}
@@ -331,7 +439,7 @@ export function SnapshotManager({ onSelectSnapshot }: SnapshotManagerProps) {
                       <ListItemText primary={`${folder.folderName} (${folderSnapshots.length})`} />
                       <IconButton
                         size="small"
-                        onClick={(e) => {
+                        onClick={e => {
                           e.stopPropagation();
                           setFolderMenuAnchor({ el: e.currentTarget, folder });
                         }}
@@ -385,11 +493,7 @@ export function SnapshotManager({ onSelectSnapshot }: SnapshotManagerProps) {
       </Card>
 
       {/* スナップショットメニュー */}
-      <Menu
-        anchorEl={menuAnchor?.el}
-        open={Boolean(menuAnchor)}
-        onClose={() => setMenuAnchor(null)}
-      >
+      <Menu anchorEl={menuAnchor?.el} open={Boolean(menuAnchor)} onClose={() => setMenuAnchor(null)}>
         <MenuItem
           onClick={() => {
             if (menuAnchor) {
@@ -438,11 +542,7 @@ export function SnapshotManager({ onSelectSnapshot }: SnapshotManagerProps) {
       </Menu>
 
       {/* フォルダメニュー */}
-      <Menu
-        anchorEl={folderMenuAnchor?.el}
-        open={Boolean(folderMenuAnchor)}
-        onClose={() => setFolderMenuAnchor(null)}
-      >
+      <Menu anchorEl={folderMenuAnchor?.el} open={Boolean(folderMenuAnchor)} onClose={() => setFolderMenuAnchor(null)}>
         <MenuItem
           onClick={() => {
             if (folderMenuAnchor) {
@@ -487,14 +587,12 @@ export function SnapshotManager({ onSelectSnapshot }: SnapshotManagerProps) {
             fullWidth
             label="新しい名前"
             value={renameDialog.newLabel}
-            onChange={(e) => setRenameDialog({ ...renameDialog, newLabel: e.target.value })}
+            onChange={e => setRenameDialog({ ...renameDialog, newLabel: e.target.value })}
             sx={{ mt: 1 }}
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setRenameDialog({ open: false, snapshot: null, newLabel: '' })}>
-            キャンセル
-          </Button>
+          <Button onClick={() => setRenameDialog({ open: false, snapshot: null, newLabel: '' })}>キャンセル</Button>
           <Button variant="contained" onClick={handleRename}>
             変更
           </Button>
@@ -510,14 +608,12 @@ export function SnapshotManager({ onSelectSnapshot }: SnapshotManagerProps) {
             fullWidth
             label="フォルダ名"
             value={newFolderDialog.name}
-            onChange={(e) => setNewFolderDialog({ ...newFolderDialog, name: e.target.value })}
+            onChange={e => setNewFolderDialog({ ...newFolderDialog, name: e.target.value })}
             sx={{ mt: 1 }}
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setNewFolderDialog({ open: false, name: '' })}>
-            キャンセル
-          </Button>
+          <Button onClick={() => setNewFolderDialog({ open: false, name: '' })}>キャンセル</Button>
           <Button variant="contained" onClick={handleCreateFolder}>
             作成
           </Button>
@@ -535,11 +631,8 @@ export function SnapshotManager({ onSelectSnapshot }: SnapshotManagerProps) {
               </ListItemIcon>
               <ListItemText primary="未分類" />
             </ListItemButton>
-            {folders.map((folder) => (
-              <ListItemButton
-                key={folder.folderName}
-                onClick={() => handleMoveToFolder(folder.folderName)}
-              >
+            {folders.map(folder => (
+              <ListItemButton key={folder.folderName} onClick={() => handleMoveToFolder(folder.folderName)}>
                 <ListItemIcon>
                   <FolderIcon color="primary" />
                 </ListItemIcon>
@@ -549,9 +642,7 @@ export function SnapshotManager({ onSelectSnapshot }: SnapshotManagerProps) {
           </List>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setMoveFolderDialog({ open: false, snapshot: null })}>
-            キャンセル
-          </Button>
+          <Button onClick={() => setMoveFolderDialog({ open: false, snapshot: null })}>キャンセル</Button>
         </DialogActions>
       </Dialog>
 
@@ -559,17 +650,13 @@ export function SnapshotManager({ onSelectSnapshot }: SnapshotManagerProps) {
       <Dialog open={deleteConfirm.open} onClose={() => setDeleteConfirm({ open: false, snapshot: null })}>
         <DialogTitle>スナップショットの削除</DialogTitle>
         <DialogContent>
-          <Typography>
-            「{deleteConfirm.snapshot?.label}」を削除しますか？
-          </Typography>
+          <Typography>「{deleteConfirm.snapshot?.label}」を削除しますか？</Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
             この操作は取り消せません。
           </Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDeleteConfirm({ open: false, snapshot: null })}>
-            キャンセル
-          </Button>
+          <Button onClick={() => setDeleteConfirm({ open: false, snapshot: null })}>キャンセル</Button>
           <Button variant="contained" color="error" onClick={handleDelete}>
             削除
           </Button>
@@ -577,7 +664,10 @@ export function SnapshotManager({ onSelectSnapshot }: SnapshotManagerProps) {
       </Dialog>
 
       {/* フォルダ名変更ダイアログ */}
-      <Dialog open={renameFolderDialog.open} onClose={() => setRenameFolderDialog({ open: false, folder: null, newName: '' })}>
+      <Dialog
+        open={renameFolderDialog.open}
+        onClose={() => setRenameFolderDialog({ open: false, folder: null, newName: '' })}
+      >
         <DialogTitle>フォルダ名を変更</DialogTitle>
         <DialogContent>
           <TextField
@@ -585,16 +675,52 @@ export function SnapshotManager({ onSelectSnapshot }: SnapshotManagerProps) {
             fullWidth
             label="新しい名前"
             value={renameFolderDialog.newName}
-            onChange={(e) => setRenameFolderDialog({ ...renameFolderDialog, newName: e.target.value })}
+            onChange={e => setRenameFolderDialog({ ...renameFolderDialog, newName: e.target.value })}
             sx={{ mt: 1 }}
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setRenameFolderDialog({ open: false, folder: null, newName: '' })}>
-            キャンセル
-          </Button>
+          <Button onClick={() => setRenameFolderDialog({ open: false, folder: null, newName: '' })}>キャンセル</Button>
           <Button variant="contained" onClick={handleRenameFolder}>
             変更
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* リストア確認ダイアログ */}
+      <Dialog
+        open={restoreConfirmDialog.open}
+        onClose={() => setRestoreConfirmDialog({ open: false, fileName: '', jsonContent: '' })}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <WarningIcon color="warning" />
+          データの復元
+        </DialogTitle>
+        <DialogContent>
+          <Alert severity="warning" sx={{ mb: 2 }}>
+            <Typography variant="body2" fontWeight="bold">
+              この操作は取り消せません！
+            </Typography>
+            <Typography variant="body2">
+              現在の全データ（履歴、ユーザー情報、キャンペーン、監査ログ）が削除され、
+              バックアップファイルのデータに完全に置き換えられます。
+            </Typography>
+          </Alert>
+          <Typography variant="body2" sx={{ mb: 1 }}>
+            <strong>ファイル名:</strong> {restoreConfirmDialog.fileName}
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            実行前に、現在のデータのバックアップを取ることを強くお勧めします。
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setRestoreConfirmDialog({ open: false, fileName: '', jsonContent: '' })}>
+            キャンセル
+          </Button>
+          <Button variant="contained" color="warning" onClick={handleRestoreConfirm} startIcon={<RestoreIcon />}>
+            復元を実行
           </Button>
         </DialogActions>
       </Dialog>
@@ -606,11 +732,7 @@ export function SnapshotManager({ onSelectSnapshot }: SnapshotManagerProps) {
         onClose={() => setSnackbar({ ...snackbar, open: false })}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       >
-        <Alert
-          onClose={() => setSnackbar({ ...snackbar, open: false })}
-          severity={snackbar.severity}
-          variant="filled"
-        >
+        <Alert onClose={() => setSnackbar({ ...snackbar, open: false })} severity={snackbar.severity} variant="filled">
           {snackbar.message}
         </Alert>
       </Snackbar>

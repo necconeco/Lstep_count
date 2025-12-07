@@ -88,7 +88,7 @@ export const SummaryCard = () => {
       <Grid container spacing={2}>
         {/* 初回 */}
         {/* @ts-expect-error MUI v7 Grid API compatibility */}
-            <Grid item xs={12} md={6}>
+        <Grid item xs={12} md={6}>
           <Card elevation={2}>
             <CardContent>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
@@ -126,7 +126,7 @@ export const SummaryCard = () => {
 
         {/* 2回目以降 */}
         {/* @ts-expect-error MUI v7 Grid API compatibility */}
-            <Grid item xs={12} md={6}>
+        <Grid item xs={12} md={6}>
           <Card elevation={2}>
             <CardContent>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>

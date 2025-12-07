@@ -3,14 +3,10 @@
  * 実際の検出ロジック使用
  */
 import { create } from 'zustand';
-import type {
-  ReviewStoreState,
-  CsvRecord,
-  UserHistoryMaster,
-} from '../types';
+import type { ReviewStoreState, CsvRecord, UserHistoryMaster } from '../types';
 import { detectAllReviewRecords, generateCancellationList } from '../utils/reviewDetector';
 
-export const useReviewStore = create<ReviewStoreState>((set) => ({
+export const useReviewStore = create<ReviewStoreState>(set => ({
   reviewRecords: [],
   cancellationRecords: [],
   isProcessing: false,

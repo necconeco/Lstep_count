@@ -12,7 +12,7 @@ import type { CsvRecord } from '../types';
 export function extractAvailableMonths(csvData: CsvRecord[]): string[] {
   const monthSet = new Set<string>();
 
-  csvData.forEach((record) => {
+  csvData.forEach(record => {
     // 予約日から月を抽出（YYYY-MM-DD → YYYY-MM）
     const reservationDate = record.予約日;
     if (reservationDate && typeof reservationDate === 'string') {
@@ -34,17 +34,14 @@ export function extractAvailableMonths(csvData: CsvRecord[]): string[] {
  * @param targetMonth 対象月（YYYY-MM形式）、nullの場合は全データを返す
  * @returns フィルタリングされたCSVレコード配列
  */
-export function filterDataByMonth(
-  csvData: CsvRecord[],
-  targetMonth: string | null
-): CsvRecord[] {
+export function filterDataByMonth(csvData: CsvRecord[], targetMonth: string | null): CsvRecord[] {
   // targetMonthがnullの場合は全データを返す
   if (!targetMonth) {
     return csvData;
   }
 
   // 指定された月のデータのみをフィルタ
-  return csvData.filter((record) => {
+  return csvData.filter(record => {
     const reservationDate = record.予約日;
     if (reservationDate && typeof reservationDate === 'string') {
       const month = reservationDate.substring(0, 7); // YYYY-MM部分を抽出

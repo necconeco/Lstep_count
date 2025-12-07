@@ -20,10 +20,7 @@ import {
   Alert,
   FormControl,
 } from '@mui/material';
-import {
-  TableChart as TableChartIcon,
-  Download as DownloadIcon,
-} from '@mui/icons-material';
+import { TableChart as TableChartIcon, Download as DownloadIcon } from '@mui/icons-material';
 import { useCsvStore } from '../store/csvStore';
 import { useMasterStore } from '../store/masterStore';
 import { exportToCSV } from '../utils/csvExporter';
@@ -100,12 +97,7 @@ export const CsvDataTable = () => {
           <TableChartIcon color="primary" />
           CSVデータ一覧（詳細ステータス編集）
         </Typography>
-        <Button
-          variant="outlined"
-          color="primary"
-          startIcon={<DownloadIcon />}
-          onClick={handleDownloadCSV}
-        >
+        <Button variant="outlined" color="primary" startIcon={<DownloadIcon />} onClick={handleDownloadCSV}>
           全カラムCSV出力
         </Button>
       </Box>
@@ -118,10 +110,10 @@ export const CsvDataTable = () => {
 
       <Alert severity="info" sx={{ mb: 2 }}>
         <strong>編集可能な項目：</strong>
-        <br />
-        • <strong>詳細ステータス</strong>：キャンセル済みレコードのみ編集可能。「前日キャンセル」「当日キャンセル」を選択すると実施扱いとしてカウントされます。
-        <br />
-        • <strong>利用回数</strong>：全レコード編集可能。通常は自動補完されますが、例外的な修正が必要な場合に手動で変更できます。
+        <br />• <strong>詳細ステータス</strong>
+        ：キャンセル済みレコードのみ編集可能。「前日キャンセル」「当日キャンセル」を選択すると実施扱いとしてカウントされます。
+        <br />• <strong>利用回数</strong>
+        ：全レコード編集可能。通常は自動補完されますが、例外的な修正が必要な場合に手動で変更できます。
       </Alert>
 
       <Paper elevation={2} sx={{ p: 3 }}>
@@ -140,7 +132,7 @@ export const CsvDataTable = () => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {filteredData.map((record) => {
+              {filteredData.map(record => {
                 const isキャンセル済み = record.ステータス === 'キャンセル済み';
 
                 return (
@@ -167,7 +159,7 @@ export const CsvDataTable = () => {
                         <FormControl size="small" fullWidth>
                           <Select
                             value={record.詳細ステータス || ''}
-                            onChange={(e) =>
+                            onChange={e =>
                               handleDetailStatusChange(
                                 record.予約ID,
                                 e.target.value as '' | '前日キャンセル' | '当日キャンセル'
@@ -190,11 +182,8 @@ export const CsvDataTable = () => {
                       <FormControl size="small" fullWidth>
                         <Select
                           value={record['キャリア相談のご利用回数を教えてください。'] || ''}
-                          onChange={(e) =>
-                            handleUsageCountChange(
-                              record.予約ID,
-                              e.target.value as '' | '初めて' | '2回目以上'
-                            )
+                          onChange={e =>
+                            handleUsageCountChange(record.予約ID, e.target.value as '' | '初めて' | '2回目以上')
                           }
                           displayEmpty
                         >

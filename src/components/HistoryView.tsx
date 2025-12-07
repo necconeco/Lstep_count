@@ -18,11 +18,7 @@ import {
   IconButton,
   Divider,
 } from '@mui/material';
-import {
-  History as HistoryIcon,
-  Delete as DeleteIcon,
-  Refresh as RefreshIcon,
-} from '@mui/icons-material';
+import { History as HistoryIcon, Delete as DeleteIcon, Refresh as RefreshIcon } from '@mui/icons-material';
 import type { AggregationHistory } from '../types';
 import { getAllHistories, deleteHistory } from '../utils/aggregationHistoryManager';
 
@@ -104,11 +100,7 @@ export const HistoryView = () => {
                   {index > 0 && <Divider />}
                   <ListItem
                     secondaryAction={
-                      <IconButton
-                        edge="end"
-                        aria-label="delete"
-                        onClick={() => handleDelete(history.id)}
-                      >
+                      <IconButton edge="end" aria-label="delete" onClick={() => handleDelete(history.id)}>
                         <DeleteIcon />
                       </IconButton>
                     }
@@ -117,11 +109,7 @@ export const HistoryView = () => {
                       primary={
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                           <Typography variant="subtitle1">{history.month} の集計</Typography>
-                          <Chip
-                            label={`申込: ${history.summary.totalApplications}件`}
-                            size="small"
-                            color="primary"
-                          />
+                          <Chip label={`申込: ${history.summary.totalApplications}件`} size="small" color="primary" />
                           <Chip
                             label={`実施: ${history.summary.totalImplementations}件`}
                             size="small"

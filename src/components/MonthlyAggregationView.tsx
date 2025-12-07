@@ -57,7 +57,15 @@ function getYearMonth(dateStr: string): string {
 
 export const MonthlyAggregationView = () => {
   const { histories } = useHistoryStore();
-  const { dateBaseType, periodPreset, periodFrom, periodTo, implementationRule, mergeSameDayReservations, getEffectivePeriod } = useUiStore();
+  const {
+    dateBaseType,
+    periodPreset,
+    periodFrom,
+    periodTo,
+    implementationRule,
+    mergeSameDayReservations,
+    getEffectivePeriod,
+  } = useUiStore();
 
   // 有効な期間を取得（フィルタ条件の変更を検知）
   const effectivePeriod = useMemo(
@@ -68,7 +76,7 @@ export const MonthlyAggregationView = () => {
 
   // 全履歴レコードを取得
   const allRecords = useMemo(() => {
-    return Array.from(histories.values()).map((history) => ({
+    return Array.from(histories.values()).map(history => ({
       ...history,
       sessionDateStr: formatDate(history.sessionDate),
       applicationDateStr: formatDateTime(history.applicationDate),
@@ -79,7 +87,7 @@ export const MonthlyAggregationView = () => {
   const filteredRecords = useMemo(() => {
     const { from, to } = effectivePeriod;
 
-    return allRecords.filter((record) => {
+    return allRecords.filter(record => {
       // 除外フラグがtrueのレコードは除外
       if (record.isExcluded) return false;
 
@@ -87,9 +95,7 @@ export const MonthlyAggregationView = () => {
       if (!from && !to) return true;
 
       // 基準日を決定
-      const targetDateStr = dateBaseType === 'application'
-        ? record.applicationDateStr
-        : record.sessionDateStr;
+      const targetDateStr = dateBaseType === 'application' ? record.applicationDateStr : record.sessionDateStr;
 
       // YYYY-MM-DD形式からDateに変換
       const datePart = targetDateStr.split(' ')[0];
@@ -127,16 +133,17 @@ export const MonthlyAggregationView = () => {
 
   // 月別にグループ化して集計
   const monthlyData = useMemo<MonthlyData[]>(() => {
-    const monthMap = new Map<string, {
-      records: typeof mergedRecords;
-      userSet: Set<string>;
-    }>();
+    const monthMap = new Map<
+      string,
+      {
+        records: typeof mergedRecords;
+        userSet: Set<string>;
+      }
+    >();
 
     // レコードを月ごとにグループ化
     for (const record of mergedRecords) {
-      const targetDateStr = dateBaseType === 'application'
-        ? record.applicationDateStr
-        : record.sessionDateStr;
+      const targetDateStr = dateBaseType === 'application' ? record.applicationDateStr : record.sessionDateStr;
       const yearMonth = getYearMonth(targetDateStr);
 
       if (!yearMonth) continue;
@@ -157,16 +164,18 @@ export const MonthlyAggregationView = () => {
       const { records, userSet } = data;
 
       // 実施判定ルールに基づいてカウント
-      const implementedRecords = records.filter((r) => shouldCountAsImplemented(r, implementationRule));
+      const implementedRecords = records.filter(r => shouldCountAsImplemented(r, implementationRule));
 
       result.push({
         month,
         totalCount: records.length,
         implementedCount: implementedRecords.length,
-        cancelCount: records.filter((r) => r.status === 'キャンセル済み' && !shouldCountAsImplemented(r, implementationRule)).length,
-        firstVisitCount: implementedRecords.filter((r) => r.visitLabel === '初回').length,
-        secondVisitCount: implementedRecords.filter((r) => r.visitLabel === '2回目').length,
-        thirdPlusVisitCount: implementedRecords.filter((r) => r.visitLabel === '3回目以降').length,
+        cancelCount: records.filter(
+          r => r.status === 'キャンセル済み' && !shouldCountAsImplemented(r, implementationRule)
+        ).length,
+        firstVisitCount: implementedRecords.filter(r => r.visitLabel === '初回').length,
+        secondVisitCount: implementedRecords.filter(r => r.visitLabel === '2回目').length,
+        thirdPlusVisitCount: implementedRecords.filter(r => r.visitLabel === '3回目以降').length,
         uniqueUsers: userSet.size,
       });
     }
@@ -215,10 +224,11 @@ export const MonthlyAggregationView = () => {
     }
 
     // ヘッダー行
-    const header = 'month,totalCount,implementedCount,cancelCount,firstVisitCount,secondVisitCount,thirdOrMoreCount,uniqueUsers';
+    const header =
+      'month,totalCount,implementedCount,cancelCount,firstVisitCount,secondVisitCount,thirdOrMoreCount,uniqueUsers';
 
     // データ行
-    const rows = monthlyData.map((row) => {
+    const rows = monthlyData.map(row => {
       return [
         row.month,
         row.totalCount,
@@ -266,9 +276,7 @@ export const MonthlyAggregationView = () => {
           <CalendarIcon color="primary" />
           月次集計
         </Typography>
-        <Alert severity="info">
-          履歴データがありません。CSVをアップロードしてください。
-        </Alert>
+        <Alert severity="info">履歴データがありません。CSVをアップロードしてください。</Alert>
       </Box>
     );
   }
@@ -295,11 +303,7 @@ export const MonthlyAggregationView = () => {
         <Box sx={{ mb: 1 }}>
           <Typography variant="body2" component="span">
             <strong>集計条件:</strong>{' '}
-            <Chip
-              size="small"
-              label={`基準: ${DATE_BASE_TYPE_LABELS[dateBaseType]}`}
-              sx={{ mr: 0.5 }}
-            />
+            <Chip size="small" label={`基準: ${DATE_BASE_TYPE_LABELS[dateBaseType]}`} sx={{ mr: 0.5 }} />
             <Chip
               size="small"
               label={PERIOD_PRESET_LABELS[periodPreset]}
@@ -320,8 +324,7 @@ export const MonthlyAggregationView = () => {
           </Typography>
         </Box>
         <Typography variant="body2">
-          <strong>表示月数:</strong> {summary.monthCount}ヶ月 |
-          <strong> 総件数:</strong> {summary.totalCount}件 |
+          <strong>表示月数:</strong> {summary.monthCount}ヶ月 |<strong> 総件数:</strong> {summary.totalCount}件 |
           <strong> 実施:</strong>{' '}
           <Chip
             size="small"
@@ -343,9 +346,7 @@ export const MonthlyAggregationView = () => {
       </Alert>
 
       {monthlyData.length === 0 ? (
-        <Alert severity="warning">
-          指定された期間内にデータがありません。フィルタ条件を確認してください。
-        </Alert>
+        <Alert severity="warning">指定された期間内にデータがありません。フィルタ条件を確認してください。</Alert>
       ) : (
         <Paper elevation={2} sx={{ p: 3 }}>
           <TableContainer>
@@ -354,8 +355,7 @@ export const MonthlyAggregationView = () => {
                 <TableRow>
                   <TableCell>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                      <CalendarIcon fontSize="small" />
-                      月
+                      <CalendarIcon fontSize="small" />月
                     </Box>
                   </TableCell>
                   <TableCell align="right">総件数</TableCell>
@@ -373,13 +373,11 @@ export const MonthlyAggregationView = () => {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {monthlyData.map((row) => {
-                  const implementationRate = row.totalCount > 0
-                    ? Math.round((row.implementedCount / row.totalCount) * 100)
-                    : 0;
-                  const firstRate = row.implementedCount > 0
-                    ? Math.round((row.firstVisitCount / row.implementedCount) * 100)
-                    : 0;
+                {monthlyData.map(row => {
+                  const implementationRate =
+                    row.totalCount > 0 ? Math.round((row.implementedCount / row.totalCount) * 100) : 0;
+                  const firstRate =
+                    row.implementedCount > 0 ? Math.round((row.firstVisitCount / row.implementedCount) * 100) : 0;
 
                   return (
                     <TableRow key={row.month} hover>
@@ -389,9 +387,7 @@ export const MonthlyAggregationView = () => {
                         </Typography>
                       </TableCell>
                       <TableCell align="right">
-                        <Typography variant="body2">
-                          {row.totalCount}
-                        </Typography>
+                        <Typography variant="body2">{row.totalCount}</Typography>
                       </TableCell>
                       <TableCell align="right">
                         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 1 }}>
@@ -401,7 +397,9 @@ export const MonthlyAggregationView = () => {
                           <Chip
                             size="small"
                             label={`${implementationRate}%`}
-                            color={implementationRate >= 80 ? 'success' : implementationRate >= 50 ? 'warning' : 'error'}
+                            color={
+                              implementationRate >= 80 ? 'success' : implementationRate >= 50 ? 'warning' : 'error'
+                            }
                             variant="outlined"
                             sx={{ height: 18, fontSize: '0.65rem' }}
                           />
@@ -414,9 +412,7 @@ export const MonthlyAggregationView = () => {
                       </TableCell>
                       <TableCell align="right">
                         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 1 }}>
-                          <Typography variant="body2">
-                            {row.firstVisitCount}
-                          </Typography>
+                          <Typography variant="body2">{row.firstVisitCount}</Typography>
                           {row.implementedCount > 0 && (
                             <Typography variant="caption" color="text.secondary">
                               ({firstRate}%)
@@ -425,14 +421,10 @@ export const MonthlyAggregationView = () => {
                         </Box>
                       </TableCell>
                       <TableCell align="right">
-                        <Typography variant="body2">
-                          {row.secondVisitCount}
-                        </Typography>
+                        <Typography variant="body2">{row.secondVisitCount}</Typography>
                       </TableCell>
                       <TableCell align="right">
-                        <Typography variant="body2">
-                          {row.thirdPlusVisitCount}
-                        </Typography>
+                        <Typography variant="body2">{row.thirdPlusVisitCount}</Typography>
                       </TableCell>
                       <TableCell align="right">
                         <Chip

@@ -7,18 +7,13 @@
  */
 import { useState, useEffect } from 'react';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
-import {
-  CssBaseline,
-  AppBar,
-  Toolbar,
-  Typography,
-  Box,
-} from '@mui/material';
+import { CssBaseline, AppBar, Toolbar, Typography, Box } from '@mui/material';
 import { Assessment as AssessmentIcon } from '@mui/icons-material';
 import { Sidebar, MobileMenuButton, SIDEBAR_WIDTH, type ViewType } from './components/Sidebar';
 import { MainContent } from './components/MainContent';
 import { CsvUploadDialog } from './components/CsvUploadDialog';
 import { useHistoryStore } from './store/historyStore';
+import { startAutoBackup, stopAutoBackup } from './utils/autoBackup';
 
 // MUIテーマ設定
 const theme = createTheme({
@@ -54,12 +49,23 @@ function AppV3() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
 
-  const { initialize } = useHistoryStore();
+  const { initialize, exportToJSON } = useHistoryStore();
 
   // 初回読み込み
   useEffect(() => {
     initialize();
   }, [initialize]);
+
+  // 自動バックアップを開始
+  useEffect(() => {
+    // exportToJSONを使ってデータを取得するバックアップ関数
+    startAutoBackup(() => exportToJSON());
+
+    // クリーンアップ
+    return () => {
+      stopAutoBackup();
+    };
+  }, [exportToJSON]);
 
   const handleMobileDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
@@ -111,10 +117,7 @@ function AppV3() {
         </Box>
 
         {/* CSVアップロードダイアログ */}
-        <CsvUploadDialog
-          open={uploadDialogOpen}
-          onClose={() => setUploadDialogOpen(false)}
-        />
+        <CsvUploadDialog open={uploadDialogOpen} onClose={() => setUploadDialogOpen(false)} />
       </Box>
     </ThemeProvider>
   );

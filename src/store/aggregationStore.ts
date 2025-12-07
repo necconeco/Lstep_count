@@ -4,16 +4,11 @@
  * Phase 6: 履歴保存機能追加
  */
 import { create } from 'zustand';
-import type {
-  AggregationStoreState,
-  CsvRecord,
-  UserHistoryMaster,
-  AggregationHistory,
-} from '../types';
+import type { AggregationStoreState, CsvRecord, UserHistoryMaster, AggregationHistory } from '../types';
 import { aggregateAll } from '../utils/dataAggregator';
 import { saveHistory } from '../utils/aggregationHistoryManager';
 
-export const useAggregationStore = create<AggregationStoreState>((set) => ({
+export const useAggregationStore = create<AggregationStoreState>(set => ({
   summary: null,
   staffResults: [],
   dailyResults: [],
@@ -22,11 +17,7 @@ export const useAggregationStore = create<AggregationStoreState>((set) => ({
   isProcessing: false,
   error: null,
 
-  processData: async (
-    csvData: CsvRecord[],
-    masterData: Map<string, UserHistoryMaster>,
-    allCsvData?: CsvRecord[]
-  ) => {
+  processData: async (csvData: CsvRecord[], masterData: Map<string, UserHistoryMaster>, allCsvData?: CsvRecord[]) => {
     set({ isProcessing: true, error: null });
 
     try {
@@ -34,9 +25,7 @@ export const useAggregationStore = create<AggregationStoreState>((set) => ({
       const results = aggregateAll(csvData, masterData);
 
       // 月別集計は全データで実行（月選択フィルタの影響を受けない）
-      const monthlyResults = allCsvData
-        ? aggregateAll(allCsvData, masterData).monthlyResults
-        : results.monthlyResults;
+      const monthlyResults = allCsvData ? aggregateAll(allCsvData, masterData).monthlyResults : results.monthlyResults;
 
       set({
         summary: results.summary,
