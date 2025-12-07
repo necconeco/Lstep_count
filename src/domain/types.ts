@@ -86,8 +86,8 @@ export interface ReservationHistory {
   reservationSlot: string | null; // 予約枠（G列の元データ）
 
   // 計算済みフィールド（キャッシュ）
-  visitIndex: number; // この人の何回目か（実施時のみ、未実施は0）
-  visitLabel: VisitLabel; // 初回/2回目/3回目以降
+  visitIndex: number | null; // この人の何回目か（実施時のみ、未実施はnull）
+  visitLabel: VisitLabel | null; // 初回/2回目/3回目以降（未実施はnull）
 
   // 手動オーバーライド
   isExcluded: boolean; // 集計から除外するかどうか（デフォルト: false）
@@ -261,8 +261,8 @@ export interface FlatRecord {
   isImplemented: boolean;
   staff: string | null;
   detailStatus: string | null;
-  visitIndex: number;
-  visitLabel: VisitLabel | '-';
+  visitIndex: number | null;
+  visitLabel: VisitLabel | '-' | null;
   isExcluded: boolean; // 集計から除外するかどうか
   wasOmakase: boolean; // おまかせ予約だったか（担当者手動割当用）
   course: string | null; // コース名

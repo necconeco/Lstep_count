@@ -201,13 +201,14 @@ describe('domain/logic', () => {
       expect(history.visitLabel).toBe('初回');
     });
 
-    it('should set visitIndex to 0 for non-implemented', () => {
+    it('should set visitIndex to null for non-implemented', () => {
       const notImplemented: CsvInputRecord = {
         ...baseCsvRecord,
         visitStatus: 'なし',
       };
       const history = csvToHistory(notImplemented, 1, new Date());
-      expect(history.visitIndex).toBe(0);
+      expect(history.visitIndex).toBeNull();
+      expect(history.visitLabel).toBeNull();
     });
 
     it('should preserve existing isExcluded and groupId', () => {

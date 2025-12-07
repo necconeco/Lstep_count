@@ -52,7 +52,7 @@ import {
 import { useHistoryStore } from '../store/historyStore';
 import { useUiStore, DATE_BASE_TYPE_LABELS, PERIOD_PRESET_LABELS } from '../store/uiStore';
 import { ReservationDetailDrawer } from './ReservationDetailDrawer';
-import { getCancelTimingFromStrings, historyToFlatRecord } from '../domain/logic';
+import { getCancelTimingFromStrings, historyToFlatRecord, parseLocalDate } from '../domain/logic';
 import type { FlatRecord, CancelTiming } from '../domain/types';
 import { CANCEL_TIMING_LABELS } from '../domain/types';
 
@@ -116,7 +116,7 @@ export const HistoryViewer = () => {
   } = useHistoryStore();
 
   // UIストアからフィルタ条件を取得
-  const { dateBaseType, periodPreset, periodFrom, periodTo, getEffectivePeriod } = useUiStore();
+  const { dateBaseType, periodPreset, periodFrom, periodTo, getEffectivePeriod, implementationRule, mergeSameDayReservations } = useUiStore();
 
   const [clearDialogOpen, setClearDialogOpen] = useState(false);
   const [page, setPage] = useState(0);
@@ -158,10 +158,10 @@ export const HistoryViewer = () => {
       // 基準日を決定
       const targetDateStr = dateBaseType === 'application' ? record.applicationDateStr : record.sessionDateStr;
 
-      // YYYY-MM-DD形式からDateに変換
+      // YYYY-MM-DD形式からローカルDateに変換（タイムゾーン対応）
       const datePart = targetDateStr.split(' ')[0];
       if (!datePart) return false;
-      const targetDate = new Date(datePart); // 時刻部分を除去
+      const targetDate = parseLocalDate(datePart);
 
       // 期間内かチェック
       if (from && targetDate < from) return false;
@@ -246,7 +246,7 @@ export const HistoryViewer = () => {
   // フィルタ変更時にページをリセット
   useEffect(() => {
     setPage(0);
-  }, [searchText, statusFilter, periodPreset, periodFrom, periodTo, dateBaseType]);
+  }, [searchText, statusFilter, periodPreset, periodFrom, periodTo, dateBaseType, implementationRule, mergeSameDayReservations]);
 
   // 現在のページに表示するレコード
   const paginatedRecords = useMemo(() => {

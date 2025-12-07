@@ -36,6 +36,20 @@ export function formatDate(date: Date): string {
 }
 
 /**
+ * YYYY-MM-DD形式の文字列をローカルタイムゾーンのDateに変換
+ *
+ * new Date("2025-01-15") は UTC として解釈されるため、
+ * ローカルタイムゾーンでの期間比較に使う場合はこの関数を使用する
+ *
+ * @param dateStr YYYY-MM-DD形式の日付文字列
+ * @returns ローカルタイムゾーンの0:00:00に設定されたDate
+ */
+export function parseLocalDate(dateStr: string): Date {
+  const [year, month, day] = dateStr.split('-').map(Number);
+  return new Date(year!, month! - 1, day!);
+}
+
+/**
  * 日付をYYYY-MM-DD HH:mm形式にフォーマット
  */
 export function formatDateTime(date: Date): string {
@@ -200,7 +214,7 @@ export function shouldCountAsImplemented(
  */
 export function csvToHistory(
   csv: CsvInputRecord,
-  visitIndex: number,
+  visitIndex: number | null,
   now: Date,
   existingIsExcluded: boolean = false,
   existingGroupId: string | null = null,
@@ -221,8 +235,8 @@ export function csvToHistory(
     detailStatus: csv.detailStatus,
     course: csv.course, // コース名
     reservationSlot: csv.reservationSlot, // 予約枠（G列）
-    visitIndex: implemented ? visitIndex : 0,
-    visitLabel: implemented ? getVisitLabel(visitIndex) : '初回',
+    visitIndex: implemented && visitIndex !== null ? visitIndex : null,
+    visitLabel: implemented && visitIndex !== null ? getVisitLabel(visitIndex) : null,
     isExcluded: existingIsExcluded, // 既存の除外フラグを引き継ぐ
     isImplementedManual: existingIsImplementedManual, // 既存の手動実施フラグを引き継ぐ
     wasOmakase: csv.wasOmakase, // おまかせ予約フラグ
@@ -277,11 +291,11 @@ export function mergeCsvToHistories(
     const wasImplemented = existingHistory?.isImplemented ?? false;
 
     // visitIndexを決定
-    let visitIndex = 0;
+    let visitIndex: number | null = null;
     if (implemented) {
-      if (wasImplemented) {
+      if (wasImplemented && existingHistory && existingHistory.visitIndex !== null) {
         // 既に実施済みだった場合は既存のvisitIndexを維持
-        visitIndex = existingHistory!.visitIndex;
+        visitIndex = existingHistory.visitIndex;
       } else {
         // 新たに実施になった場合はカウントを増やす
         userCount.implementationCount += 1;
@@ -361,8 +375,8 @@ export function recalculateAllVisitIndexes(histories: Map<string, ReservationHis
     // 更新した履歴を保存
     newHistories.set(history.reservationId, {
       ...history,
-      visitIndex,
-      visitLabel: history.isImplemented ? getVisitLabel(visitIndex) : '初回',
+      visitIndex: history.isImplemented ? visitIndex : null,
+      visitLabel: history.isImplemented ? getVisitLabel(visitIndex) : null,
       updatedAt: now,
     });
 
@@ -601,7 +615,7 @@ export function historyToFlatRecord(history: ReservationHistory): FlatRecord {
     staff: history.staff,
     detailStatus: history.detailStatus,
     visitIndex: history.visitIndex,
-    visitLabel: history.isImplemented ? history.visitLabel : '-',
+    visitLabel: history.visitLabel ?? '-',
     isExcluded: history.isExcluded,
     wasOmakase: history.wasOmakase,
     course: history.course,
@@ -651,8 +665,8 @@ export function flatRecordsToCSV(records: FlatRecord[]): string {
       record.status,
       record.visitStatus,
       record.isImplemented ? 'はい' : 'いいえ',
-      record.visitIndex > 0 ? record.visitIndex.toString() : '-',
-      record.visitLabel,
+      record.visitIndex !== null && record.visitIndex > 0 ? record.visitIndex.toString() : '-',
+      record.visitLabel ?? '-',
       escapeCSV(record.staff || ''),
       escapeCSV(record.detailStatus || ''),
     ].join(',');

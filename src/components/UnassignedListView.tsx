@@ -39,7 +39,7 @@ import {
 import { useHistoryStore } from '../store/historyStore';
 import { useUiStore, DATE_BASE_TYPE_LABELS, PERIOD_PRESET_LABELS } from '../store/uiStore';
 import { ReservationDetailDrawer } from './ReservationDetailDrawer';
-import { historyToFlatRecord } from '../domain/logic';
+import { historyToFlatRecord, parseLocalDate } from '../domain/logic';
 import type { FlatRecord } from '../domain/types';
 import { OFFICIAL_STAFF_MEMBERS } from '../domain/staffMasterData';
 
@@ -95,9 +95,10 @@ export const UnassignedListView = () => {
     return allUnassignedRecords.filter(record => {
       const targetDateStr = dateBaseType === 'application' ? record.applicationDateStr : record.sessionDateStr;
 
+      // YYYY-MM-DD形式からローカルDateに変換（タイムゾーン対応）
       const datePart = targetDateStr.split(' ')[0];
       if (!datePart) return false;
-      const targetDate = new Date(datePart);
+      const targetDate = parseLocalDate(datePart);
 
       if (from && targetDate < from) return false;
       if (to) {

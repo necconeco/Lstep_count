@@ -26,7 +26,7 @@ import {
 } from '@mui/icons-material';
 import { useHistoryStore } from '../store/historyStore';
 import { useUiStore, DATE_BASE_TYPE_LABELS, PERIOD_PRESET_LABELS } from '../store/uiStore';
-import { shouldCountAsImplemented, applySameDayMerge, formatDate, formatDateTime } from '../domain/logic';
+import { shouldCountAsImplemented, applySameDayMerge, formatDate, formatDateTime, parseLocalDate } from '../domain/logic';
 import { IMPLEMENTATION_RULE_LABELS } from '../domain/types';
 
 /**
@@ -97,10 +97,10 @@ export const MonthlyAggregationView = () => {
       // 基準日を決定
       const targetDateStr = dateBaseType === 'application' ? record.applicationDateStr : record.sessionDateStr;
 
-      // YYYY-MM-DD形式からDateに変換
+      // YYYY-MM-DD形式からローカルDateに変換（タイムゾーン対応）
       const datePart = targetDateStr.split(' ')[0];
       if (!datePart) return false;
-      const targetDate = new Date(datePart);
+      const targetDate = parseLocalDate(datePart);
 
       // 期間内かチェック
       if (from && targetDate < from) return false;
