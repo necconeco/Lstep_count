@@ -33,6 +33,8 @@ import {
   PersonOff as PersonOffIcon,
   Search as SearchIcon,
   PersonAdd as PersonAddIcon,
+  FilterList as FilterListIcon,
+  Clear as ClearIcon,
 } from '@mui/icons-material';
 import { useHistoryStore } from '../store/historyStore';
 import { useUiStore, DATE_BASE_TYPE_LABELS, PERIOD_PRESET_LABELS } from '../store/uiStore';
@@ -40,6 +42,21 @@ import { ReservationDetailDrawer } from './ReservationDetailDrawer';
 import { historyToFlatRecord } from '../domain/logic';
 import type { FlatRecord } from '../domain/types';
 import { OFFICIAL_STAFF_MEMBERS } from '../domain/staffMasterData';
+
+/**
+ * 除外ステータスフィルタの種類
+ */
+type ExclusionFilter = 'all' | 'target' | 'excluded' | 'cancelled' | 'prevDay' | 'sameDay' | 'noCourse';
+
+const EXCLUSION_FILTER_OPTIONS: { value: ExclusionFilter; label: string; color?: string }[] = [
+  { value: 'all', label: 'すべて' },
+  { value: 'target', label: '対象のみ', color: '#4caf50' },
+  { value: 'excluded', label: '除外のみ', color: '#f44336' },
+  { value: 'cancelled', label: 'キャンセルのみ', color: '#9c27b0' },
+  { value: 'prevDay', label: '前日キャンセル', color: '#ff9800' },
+  { value: 'sameDay', label: '当日キャンセル', color: '#ff5722' },
+  { value: 'noCourse', label: 'コース未選択', color: '#607d8b' },
+];
 
 export const UnassignedListView = () => {
   const { histories, assignStaff } = useHistoryStore();
@@ -49,6 +66,7 @@ export const UnassignedListView = () => {
   const [rowsPerPage, setRowsPerPage] = useState(25);
   const [searchText, setSearchText] = useState('');
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [exclusionFilter, setExclusionFilter] = useState<ExclusionFilter>('all');
 
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [selectedReservationId, setSelectedReservationId] = useState<string | null>(null);
@@ -172,19 +190,51 @@ export const UnassignedListView = () => {
     );
   }, []);
 
+  // 除外ステータスフィルタ
+  const exclusionFilteredRecords = useMemo(() => {
+    if (exclusionFilter === 'all') return periodFilteredRecords;
+
+    return periodFilteredRecords.filter(record => {
+      switch (exclusionFilter) {
+        case 'target':
+          // 集計対象: 除外でない かつ 前日/当日キャンセルでない
+          return !record.isExcluded &&
+                 record.detailStatus !== '前日キャンセル' &&
+                 record.detailStatus !== '当日キャンセル';
+        case 'excluded':
+          // 手動除外のみ
+          return record.isExcluded;
+        case 'cancelled':
+          // キャンセル済み（ステータスがキャンセル済み）
+          return record.status === 'キャンセル済み';
+        case 'prevDay':
+          // 前日キャンセルのみ
+          return record.detailStatus === '前日キャンセル';
+        case 'sameDay':
+          // 当日キャンセルのみ
+          return record.detailStatus === '当日キャンセル';
+        case 'noCourse':
+          // コース未選択（null, undefined, 空文字, '不明'）
+          return !record.course || record.course.trim() === '' || record.course === '不明';
+        default:
+          return true;
+      }
+    });
+  }, [periodFilteredRecords, exclusionFilter]);
+
   // 検索フィルタ
   const filteredRecords = useMemo(() => {
-    if (!searchText.trim()) return periodFilteredRecords;
+    if (!searchText.trim()) return exclusionFilteredRecords;
 
     const lowerSearch = searchText.toLowerCase();
-    return periodFilteredRecords.filter(
+    return exclusionFilteredRecords.filter(
       record =>
         record.friendId.toLowerCase().includes(lowerSearch) ||
         record.name.toLowerCase().includes(lowerSearch) ||
         (record.course && record.course.toLowerCase().includes(lowerSearch)) ||
         (record.reservationSlot && record.reservationSlot.toLowerCase().includes(lowerSearch))
     );
-  }, [periodFilteredRecords, searchText]);
+  }, [exclusionFilteredRecords, searchText]);
 
   // ページング
   const paginatedRecords = useMemo(() => {
@@ -364,26 +414,94 @@ export const UnassignedListView = () => {
       </Alert>
 
       {/* フィルターバー */}
-      <Box sx={{ mb: 2, display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
-        <TextField
-          size="small"
-          placeholder="名前、コース、予約枠で検索..."
-          value={searchText}
-          onChange={e => setSearchText(e.target.value)}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon />
-              </InputAdornment>
-            ),
-          }}
-          sx={{ width: 300 }}
-        />
+      <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
+        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <FilterListIcon fontSize="small" color="action" />
+            <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 'bold' }}>
+              ステータス:
+            </Typography>
+          </Box>
 
-        <Typography variant="body2" color="text.secondary">
-          表示: {filteredRecords.length}件
-        </Typography>
-      </Box>
+          {/* 除外ステータスフィルタ（チップ形式） */}
+          <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+            {EXCLUSION_FILTER_OPTIONS.map(option => (
+              <Chip
+                key={option.value}
+                label={option.label}
+                size="small"
+                onClick={() => {
+                  setExclusionFilter(option.value);
+                  setPage(0);
+                }}
+                variant={exclusionFilter === option.value ? 'filled' : 'outlined'}
+                sx={{
+                  cursor: 'pointer',
+                  ...(exclusionFilter === option.value && option.color
+                    ? { backgroundColor: option.color, color: 'white' }
+                    : {}),
+                  '&:hover': {
+                    opacity: 0.8,
+                  },
+                }}
+              />
+            ))}
+          </Box>
+
+          {exclusionFilter !== 'all' && (
+            <Tooltip title="フィルタをリセット">
+              <Chip
+                icon={<ClearIcon />}
+                label="リセット"
+                size="small"
+                onClick={() => {
+                  setExclusionFilter('all');
+                  setPage(0);
+                }}
+                color="default"
+                variant="outlined"
+                sx={{ cursor: 'pointer' }}
+              />
+            </Tooltip>
+          )}
+        </Box>
+
+        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap', mt: 2 }}>
+          <TextField
+            size="small"
+            placeholder="名前、コース、予約枠で検索..."
+            value={searchText}
+            onChange={e => {
+              setSearchText(e.target.value);
+              setPage(0);
+            }}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon />
+                </InputAdornment>
+              ),
+              endAdornment: searchText && (
+                <InputAdornment position="end">
+                  <ClearIcon
+                    fontSize="small"
+                    sx={{ cursor: 'pointer', color: 'action.active' }}
+                    onClick={() => setSearchText('')}
+                  />
+                </InputAdornment>
+              ),
+            }}
+            sx={{ width: 300 }}
+          />
+
+          <Typography variant="body2" color="text.secondary">
+            表示: <strong>{filteredRecords.length}</strong>件
+            {exclusionFilter !== 'all' && (
+              <span> / 全{periodFilteredRecords.length}件</span>
+            )}
+          </Typography>
+        </Box>
+      </Paper>
 
       <Paper elevation={2} sx={{ p: 3 }}>
         <TableContainer sx={{ maxHeight: 600 }}>

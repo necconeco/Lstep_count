@@ -356,12 +356,44 @@ export function UserAggregationView() {
     );
   }, [userAggregation]);
 
-  // 全体の実施率
+  // 全体の実施率と移行率
   const overallStats = useMemo(() => {
     const implementationRate =
       totals.totalCount > 0 ? Math.round((totals.implementedCount / totals.totalCount) * 1000) / 10 : 0;
-    return { implementationRate };
-  }, [totals]);
+
+    // 初回→2回目の移行率を計算
+    // 初回が1回以上あるユーザーのうち、2回目以降も来店したユーザーの割合
+    const usersWithFirstVisit = userAggregation.filter(u => u.firstVisitCount >= 1);
+    const usersWithSecondVisit = userAggregation.filter(u => u.secondVisitCount >= 1 || u.thirdOrMoreCount >= 1);
+
+    const firstToSecondRate =
+      usersWithFirstVisit.length > 0
+        ? Math.round((usersWithSecondVisit.length / usersWithFirstVisit.length) * 1000) / 10
+        : 0;
+
+    // 2回目→3回目以降の移行率
+    const usersWithThirdOrMore = userAggregation.filter(u => u.thirdOrMoreCount >= 1);
+    const secondToThirdRate =
+      usersWithSecondVisit.length > 0
+        ? Math.round((usersWithThirdOrMore.length / usersWithSecondVisit.length) * 1000) / 10
+        : 0;
+
+    // リピート率（2回以上来店したユーザー / 全ユーザー）
+    const usersWithRepeat = userAggregation.filter(u => u.cumulativeVisitCount >= 2);
+    const repeatRate =
+      userAggregation.length > 0 ? Math.round((usersWithRepeat.length / userAggregation.length) * 1000) / 10 : 0;
+
+    return {
+      implementationRate,
+      firstToSecondRate,
+      secondToThirdRate,
+      repeatRate,
+      usersWithFirstVisit: usersWithFirstVisit.length,
+      usersWithSecondVisit: usersWithSecondVisit.length,
+      usersWithThirdOrMore: usersWithThirdOrMore.length,
+      usersWithRepeat: usersWithRepeat.length,
+    };
+  }, [totals, userAggregation]);
 
   // ソートハンドラ
   const handleSort = useCallback(
@@ -482,13 +514,47 @@ export function UserAggregationView() {
           </Box>
 
           {/* サマリー */}
-          <Stack direction="row" spacing={2} sx={{ mb: 3 }} flexWrap="wrap" useFlexGap>
-            <Chip label={`基準日: ${DATE_BASE_TYPE_LABELS[dateBaseType]}`} variant="outlined" color="info" />
-            <Chip label={`対象レコード: ${filteredRecords.length}件`} color="primary" variant="outlined" />
-            <Chip label={`ユーザー数: ${userAggregation.length}人`} color="secondary" variant="outlined" />
-            <Chip label={`全体実施率: ${overallStats.implementationRate}%`} color="success" variant="outlined" />
-            <Chip label={`累計来店: ${totals.cumulativeVisitCount}回`} color="info" variant="outlined" />
-          </Stack>
+          <Paper variant="outlined" sx={{ p: 2, mb: 3, backgroundColor: 'grey.50' }}>
+            <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 'bold' }}>
+              集計サマリー
+            </Typography>
+            <Stack direction="row" spacing={2} flexWrap="wrap" useFlexGap sx={{ mb: 2 }}>
+              <Chip label={`基準日: ${DATE_BASE_TYPE_LABELS[dateBaseType]}`} variant="outlined" color="info" />
+              <Chip label={`対象レコード: ${filteredRecords.length}件`} color="primary" variant="outlined" />
+              <Chip label={`ユーザー数: ${userAggregation.length}人`} color="secondary" variant="outlined" />
+              <Chip label={`全体実施率: ${overallStats.implementationRate}%`} color="success" variant="outlined" />
+              <Chip label={`累計来店: ${totals.cumulativeVisitCount}回`} color="info" variant="outlined" />
+            </Stack>
+
+            {/* 移行率サマリー */}
+            <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold', color: 'text.secondary' }}>
+              継続率・移行率
+            </Typography>
+            <Stack direction="row" spacing={2} flexWrap="wrap" useFlexGap>
+              <Tooltip title={`初回来店ユーザー${overallStats.usersWithFirstVisit}人 → 2回目以降来店${overallStats.usersWithSecondVisit}人`}>
+                <Chip
+                  label={`初回→2回目: ${overallStats.firstToSecondRate}%`}
+                  color={overallStats.firstToSecondRate >= 50 ? 'success' : overallStats.firstToSecondRate >= 30 ? 'warning' : 'error'}
+                  variant="filled"
+                  sx={{ fontWeight: 'bold' }}
+                />
+              </Tooltip>
+              <Tooltip title={`2回目来店ユーザー${overallStats.usersWithSecondVisit}人 → 3回目以降来店${overallStats.usersWithThirdOrMore}人`}>
+                <Chip
+                  label={`2回目→3回目: ${overallStats.secondToThirdRate}%`}
+                  color={overallStats.secondToThirdRate >= 50 ? 'success' : overallStats.secondToThirdRate >= 30 ? 'warning' : 'default'}
+                  variant="outlined"
+                />
+              </Tooltip>
+              <Tooltip title={`全ユーザー${userAggregation.length}人中、2回以上来店${overallStats.usersWithRepeat}人`}>
+                <Chip
+                  label={`リピート率: ${overallStats.repeatRate}%`}
+                  color="info"
+                  variant="outlined"
+                />
+              </Tooltip>
+            </Stack>
+          </Paper>
 
           {/* 検索バー */}
           <Box sx={{ mb: 2, display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>

@@ -6,6 +6,7 @@
  * - 来店履歴一覧
  */
 
+import { useMemo } from 'react';
 import {
   Drawer,
   Box,
@@ -21,9 +22,14 @@ import {
   Paper,
   Chip,
   Stack,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import PersonIcon from '@mui/icons-material/Person';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import CategoryIcon from '@mui/icons-material/Category';
 import type { ReservationHistory } from '../domain/types';
 
 interface UserAggregationResult {
@@ -69,7 +75,48 @@ function formatDateTime(date: Date): string {
   });
 }
 
+// コース別集計の型
+interface CourseStats {
+  course: string;
+  count: number;
+  implementedCount: number;
+  cancelCount: number;
+  lastDate: Date | null;
+}
+
 export function UserDetailDrawer({ open, onClose, user }: UserDetailDrawerProps) {
+  // コース別履歴の集計
+  const courseStats = useMemo(() => {
+    if (!user) return [];
+
+    const courseMap = new Map<string, CourseStats>();
+
+    user.histories.forEach(history => {
+      const courseName = history.course || '未選択';
+      const existing = courseMap.get(courseName);
+
+      if (existing) {
+        existing.count++;
+        if (history.isImplemented) existing.implementedCount++;
+        if (history.status === 'キャンセル済み') existing.cancelCount++;
+        if (history.sessionDate && (!existing.lastDate || history.sessionDate > existing.lastDate)) {
+          existing.lastDate = history.sessionDate;
+        }
+      } else {
+        courseMap.set(courseName, {
+          course: courseName,
+          count: 1,
+          implementedCount: history.isImplemented ? 1 : 0,
+          cancelCount: history.status === 'キャンセル済み' ? 1 : 0,
+          lastDate: history.sessionDate,
+        });
+      }
+    });
+
+    // 実施回数でソート（降順）
+    return Array.from(courseMap.values()).sort((a, b) => b.implementedCount - a.implementedCount);
+  }, [user]);
+
   if (!user) return null;
 
   return (
@@ -149,6 +196,71 @@ export function UserDetailDrawer({ open, onClose, user }: UserDetailDrawerProps)
         </Box>
 
         <Divider sx={{ mb: 3 }} />
+
+        {/* コース別履歴 */}
+        {courseStats.length > 0 && (
+          <Accordion defaultExpanded={courseStats.length <= 5} sx={{ mb: 2 }}>
+            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <CategoryIcon fontSize="small" color="action" />
+                <Typography variant="subtitle2">
+                  コース別履歴 ({courseStats.length}コース)
+                </Typography>
+              </Box>
+            </AccordionSummary>
+            <AccordionDetails sx={{ pt: 0 }}>
+              <TableContainer>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>コース名</TableCell>
+                      <TableCell align="center">予約</TableCell>
+                      <TableCell align="center">実施</TableCell>
+                      <TableCell align="center">キャンセル</TableCell>
+                      <TableCell>最終実施日</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {courseStats.map(stats => (
+                      <TableRow key={stats.course}>
+                        <TableCell>
+                          <Typography variant="body2" noWrap sx={{ maxWidth: 150 }}>
+                            {stats.course}
+                          </Typography>
+                        </TableCell>
+                        <TableCell align="center">
+                          <Chip label={stats.count} size="small" variant="outlined" />
+                        </TableCell>
+                        <TableCell align="center">
+                          <Chip
+                            label={stats.implementedCount}
+                            size="small"
+                            color={stats.implementedCount > 0 ? 'success' : 'default'}
+                            variant={stats.implementedCount > 0 ? 'filled' : 'outlined'}
+                          />
+                        </TableCell>
+                        <TableCell align="center">
+                          {stats.cancelCount > 0 ? (
+                            <Chip label={stats.cancelCount} size="small" color="error" variant="outlined" />
+                          ) : (
+                            <Typography variant="body2" color="text.secondary">
+                              -
+                            </Typography>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2" fontSize="0.75rem" color="text.secondary">
+                            {formatDate(stats.lastDate)}
+                          </Typography>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </AccordionDetails>
+          </Accordion>
+        )}
 
         {/* 来店履歴一覧 */}
         <Typography variant="subtitle2" color="text.secondary" gutterBottom>
