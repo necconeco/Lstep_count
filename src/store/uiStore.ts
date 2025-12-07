@@ -4,9 +4,11 @@
  * - ビュー切り替え
  * - 共通フィルタ（基準日・期間）
  * - 実施判定ルール
+ * - フィルタプリセット保存・読込
  */
 
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 import type { ImplementationRule } from '../domain/types';
 
 // ============================================================================
@@ -27,6 +29,22 @@ export type PeriodPreset = 'thisFiscalYear' | 'thisMonth' | 'lastMonth' | 'all' 
  * ビュータイプ
  */
 export type ViewType = 'history' | 'monthly' | 'campaign' | 'user';
+
+/**
+ * フィルタプリセット
+ */
+export interface FilterPreset {
+  id: string;
+  name: string;
+  createdAt: Date;
+  // フィルタ設定
+  dateBaseType: DateBaseType;
+  periodPreset: PeriodPreset;
+  periodFrom: Date | null;
+  periodTo: Date | null;
+  implementationRule: ImplementationRule;
+  mergeSameDayReservations: boolean;
+}
 
 /**
  * UIストアの状態
@@ -50,6 +68,9 @@ export interface UiState {
   // 同日統合オプション（同じ人が同日に複数予約している場合に1件として扱う）
   mergeSameDayReservations: boolean;
 
+  // フィルタプリセット
+  filterPresets: FilterPreset[];
+
   // アクション
   setView: (view: ViewType) => void;
   setDateBaseType: (type: DateBaseType) => void;
@@ -57,6 +78,12 @@ export interface UiState {
   setPeriodRange: (from: Date | null, to: Date | null) => void;
   setImplementationRule: (rule: ImplementationRule) => void;
   setMergeSameDayReservations: (merge: boolean) => void;
+
+  // フィルタプリセット操作
+  saveFilterPreset: (name: string) => FilterPreset;
+  loadFilterPreset: (presetId: string) => void;
+  deleteFilterPreset: (presetId: string) => void;
+  renameFilterPreset: (presetId: string, newName: string) => void;
 
   // ヘルパー
   getEffectivePeriod: () => { from: Date | null; to: Date | null };
@@ -122,51 +149,139 @@ function getLastMonthRange(): { from: Date; to: Date } {
 // ストア作成
 // ============================================================================
 
-export const useUiStore = create<UiState>((set, get) => ({
-  // 初期状態
-  view: 'history',
-  dateBaseType: 'session', // デフォルトは実施日
-  periodPreset: 'thisMonth', // デフォルトは今月
-  periodFrom: null,
-  periodTo: null,
-  fiscalYearStartMonth: 4, // 4月始まり
-  implementationRule: 'includeLateCancel', // デフォルトは前日・当日キャンセル含む
-  mergeSameDayReservations: false, // デフォルトは統合しない
+/**
+ * ユニークIDを生成
+ */
+function generateId(): string {
+  return `preset_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+}
 
-  // アクション
-  setView: view => set({ view }),
+export const useUiStore = create<UiState>()(
+  persist(
+    (set, get) => ({
+      // 初期状態
+      view: 'history',
+      dateBaseType: 'session', // デフォルトは実施日
+      periodPreset: 'thisMonth', // デフォルトは今月
+      periodFrom: null,
+      periodTo: null,
+      fiscalYearStartMonth: 4, // 4月始まり
+      implementationRule: 'includeLateCancel', // デフォルトは前日・当日キャンセル含む
+      mergeSameDayReservations: false, // デフォルトは統合しない
+      filterPresets: [], // フィルタプリセット
 
-  setDateBaseType: dateBaseType => set({ dateBaseType }),
+      // アクション
+      setView: view => set({ view }),
 
-  setPeriodPreset: periodPreset => set({ periodPreset }),
+      setDateBaseType: dateBaseType => set({ dateBaseType }),
 
-  setPeriodRange: (from, to) => set({ periodFrom: from, periodTo: to }),
+      setPeriodPreset: periodPreset => set({ periodPreset }),
 
-  setImplementationRule: implementationRule => set({ implementationRule }),
+      setPeriodRange: (from, to) => set({ periodFrom: from, periodTo: to }),
 
-  setMergeSameDayReservations: mergeSameDayReservations => set({ mergeSameDayReservations }),
+      setImplementationRule: implementationRule => set({ implementationRule }),
 
-  // ヘルパー: 有効な期間を取得
-  getEffectivePeriod: () => {
-    const { periodPreset, periodFrom, periodTo, fiscalYearStartMonth } = get();
+      setMergeSameDayReservations: mergeSameDayReservations => set({ mergeSameDayReservations }),
 
-    switch (periodPreset) {
-      case 'thisFiscalYear': {
-        const fiscalYear = getCurrentFiscalYear(fiscalYearStartMonth);
-        return getFiscalYearRange(fiscalYear, fiscalYearStartMonth);
-      }
-      case 'thisMonth':
-        return getThisMonthRange();
-      case 'lastMonth':
-        return getLastMonthRange();
-      case 'custom':
-        return { from: periodFrom, to: periodTo };
-      case 'all':
-      default:
-        return { from: null, to: null };
+      // フィルタプリセット操作
+      saveFilterPreset: (name: string) => {
+        const state = get();
+        const newPreset: FilterPreset = {
+          id: generateId(),
+          name,
+          createdAt: new Date(),
+          dateBaseType: state.dateBaseType,
+          periodPreset: state.periodPreset,
+          periodFrom: state.periodFrom,
+          periodTo: state.periodTo,
+          implementationRule: state.implementationRule,
+          mergeSameDayReservations: state.mergeSameDayReservations,
+        };
+
+        set({ filterPresets: [...state.filterPresets, newPreset] });
+        return newPreset;
+      },
+
+      loadFilterPreset: (presetId: string) => {
+        const preset = get().filterPresets.find(p => p.id === presetId);
+        if (!preset) return;
+
+        set({
+          dateBaseType: preset.dateBaseType,
+          periodPreset: preset.periodPreset,
+          periodFrom: preset.periodFrom,
+          periodTo: preset.periodTo,
+          implementationRule: preset.implementationRule,
+          mergeSameDayReservations: preset.mergeSameDayReservations,
+        });
+      },
+
+      deleteFilterPreset: (presetId: string) => {
+        set({
+          filterPresets: get().filterPresets.filter(p => p.id !== presetId),
+        });
+      },
+
+      renameFilterPreset: (presetId: string, newName: string) => {
+        set({
+          filterPresets: get().filterPresets.map(p => (p.id === presetId ? { ...p, name: newName } : p)),
+        });
+      },
+
+      // ヘルパー: 有効な期間を取得
+      getEffectivePeriod: () => {
+        const { periodPreset, periodFrom, periodTo, fiscalYearStartMonth } = get();
+
+        switch (periodPreset) {
+          case 'thisFiscalYear': {
+            const fiscalYear = getCurrentFiscalYear(fiscalYearStartMonth);
+            return getFiscalYearRange(fiscalYear, fiscalYearStartMonth);
+          }
+          case 'thisMonth':
+            return getThisMonthRange();
+          case 'lastMonth':
+            return getLastMonthRange();
+          case 'custom':
+            return { from: periodFrom, to: periodTo };
+          case 'all':
+          default:
+            return { from: null, to: null };
+        }
+      },
+    }),
+    {
+      name: 'lstep-ui-store',
+      // プリセットのみ永続化（view, periodPresetなどは永続化しない）
+      partialize: state => ({
+        filterPresets: state.filterPresets,
+      }),
+      // Date型のシリアライズ/デシリアライズ
+      storage: {
+        getItem: name => {
+          const str = localStorage.getItem(name);
+          if (!str) return null;
+          const parsed = JSON.parse(str);
+          // filterPresetsの日付文字列をDateオブジェクトに復元
+          if (parsed.state?.filterPresets) {
+            parsed.state.filterPresets = parsed.state.filterPresets.map((p: FilterPreset) => ({
+              ...p,
+              createdAt: new Date(p.createdAt),
+              periodFrom: p.periodFrom ? new Date(p.periodFrom) : null,
+              periodTo: p.periodTo ? new Date(p.periodTo) : null,
+            }));
+          }
+          return parsed;
+        },
+        setItem: (name, value) => {
+          localStorage.setItem(name, JSON.stringify(value));
+        },
+        removeItem: name => {
+          localStorage.removeItem(name);
+        },
+      },
     }
-  },
-}));
+  )
+);
 
 // ============================================================================
 // 表示用ヘルパー

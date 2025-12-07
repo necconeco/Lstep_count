@@ -25,6 +25,7 @@ import {
   CheckCircle as CheckCircleIcon,
   MergeType as MergeTypeIcon,
 } from '@mui/icons-material';
+import { FilterPresetManager } from './FilterPresetManager';
 import {
   useUiStore,
   type DateBaseType,
@@ -256,6 +257,12 @@ export const CommonFilterBar = () => {
           <ToggleButton value="merge">1件に統合</ToggleButton>
         </ToggleButtonGroup>
       </Box>
+
+      {/* 区切り線 */}
+      <Box sx={{ borderLeft: 1, borderColor: 'divider', height: 32 }} />
+
+      {/* フィルタプリセット */}
+      <FilterPresetManager />
     </Paper>
   );
 };
