@@ -112,7 +112,7 @@ export const HistoryViewer = () => {
   } = useHistoryStore();
 
   // UIストアからフィルタ条件を取得
-  const { dateBaseType, periodPreset, getEffectivePeriod } = useUiStore();
+  const { dateBaseType, periodPreset, periodFrom, periodTo, getEffectivePeriod } = useUiStore();
 
   const [clearDialogOpen, setClearDialogOpen] = useState(false);
   const [page, setPage] = useState(0);
@@ -134,8 +134,12 @@ export const HistoryViewer = () => {
     return Array.from(histories.values()).map(historyToFlatRecord);
   }, [histories]);
 
-  // 有効な期間を取得
-  const effectivePeriod = useMemo(() => getEffectivePeriod(), [getEffectivePeriod]);
+  // 有効な期間を取得（フィルタ条件の変更を検知）
+  const effectivePeriod = useMemo(
+    () => getEffectivePeriod(),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [periodPreset, periodFrom, periodTo]
+  );
 
   // 期間フィルタを適用
   const periodFilteredRecords = useMemo(() => {
@@ -232,10 +236,10 @@ export const HistoryViewer = () => {
     );
   }, [statusFilteredRecords, searchText]);
 
-  // ページ変更時にリセット
+  // フィルタ変更時にページをリセット
   useEffect(() => {
     setPage(0);
-  }, [searchText, statusFilter]);
+  }, [searchText, statusFilter, periodPreset, periodFrom, periodTo, dateBaseType]);
 
   // 現在のページに表示するレコード
   const paginatedRecords = useMemo(() => {
