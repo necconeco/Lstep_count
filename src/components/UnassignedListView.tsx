@@ -97,9 +97,80 @@ export const UnassignedListView = () => {
     const total = periodFilteredRecords.length;
     const implemented = periodFilteredRecords.filter(r => r.isImplemented).length;
     const omakase = periodFilteredRecords.filter(r => r.wasOmakase).length;
+    const excluded = periodFilteredRecords.filter(r => r.isExcluded).length;
+    const lateCancel = periodFilteredRecords.filter(
+      r => r.detailStatus === '前日キャンセル' || r.detailStatus === '当日キャンセル'
+    ).length;
 
-    return { total, implemented, omakase };
+    return { total, implemented, omakase, excluded, lateCancel };
   }, [periodFilteredRecords]);
+
+  /**
+   * 除外ステータスに基づいてバッジを返す
+   */
+  const getExclusionBadge = useCallback((record: FlatRecord) => {
+    // 手動除外が最優先
+    if (record.isExcluded) {
+      return (
+        <Chip
+          label="除外"
+          size="small"
+          sx={{
+            backgroundColor: '#f44336',
+            color: 'white',
+            fontWeight: 'bold',
+            fontSize: '0.7rem',
+          }}
+        />
+      );
+    }
+
+    // 前日/当日キャンセル
+    if (record.detailStatus === '前日キャンセル' || record.detailStatus === '当日キャンセル') {
+      return (
+        <Chip
+          label={record.detailStatus === '前日キャンセル' ? '前日' : '当日'}
+          size="small"
+          sx={{
+            backgroundColor: '#ff9800',
+            color: 'white',
+            fontWeight: 'bold',
+            fontSize: '0.7rem',
+          }}
+        />
+      );
+    }
+
+    // ステータス未設定
+    if (!record.detailStatus) {
+      // 集計対象として扱われる
+      return (
+        <Chip
+          label="対象"
+          size="small"
+          sx={{
+            backgroundColor: '#4caf50',
+            color: 'white',
+            fontWeight: 'bold',
+            fontSize: '0.7rem',
+          }}
+        />
+      );
+    }
+
+    // その他のステータス（存在する場合）
+    return (
+      <Chip
+        label="-"
+        size="small"
+        sx={{
+          backgroundColor: '#9e9e9e',
+          color: 'white',
+          fontSize: '0.7rem',
+        }}
+      />
+    );
+  }, []);
 
   // 検索フィルタ
   const filteredRecords = useMemo(() => {
@@ -161,22 +232,36 @@ export const UnassignedListView = () => {
       '申込日時',
       'ステータス',
       '来店',
+      '除外ステータス',
       'コース',
       '予約枠',
       'おまかせ',
     ];
-    const rows = filteredRecords.map(record => [
-      record.reservationId,
-      record.friendId,
-      record.name,
-      record.sessionDateStr,
-      record.applicationDateStr,
-      record.status,
-      record.visitStatus,
-      record.course || '',
-      record.reservationSlot || '',
-      record.wasOmakase ? 'はい' : 'いいえ',
-    ]);
+    const rows = filteredRecords.map(record => {
+      // 除外ステータスの判定
+      let exclusionStatus = '対象';
+      if (record.isExcluded) {
+        exclusionStatus = '除外';
+      } else if (record.detailStatus === '前日キャンセル') {
+        exclusionStatus = '前日キャンセル';
+      } else if (record.detailStatus === '当日キャンセル') {
+        exclusionStatus = '当日キャンセル';
+      }
+
+      return [
+        record.reservationId,
+        record.friendId,
+        record.name,
+        record.sessionDateStr,
+        record.applicationDateStr,
+        record.status,
+        record.visitStatus,
+        exclusionStatus,
+        record.course || '',
+        record.reservationSlot || '',
+        record.wasOmakase ? 'はい' : 'いいえ',
+      ];
+    });
 
     const csv = [headers, ...rows].map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
     const bom = '\uFEFF';
@@ -253,6 +338,24 @@ export const UnassignedListView = () => {
             sx={{ height: 20, fontSize: '0.75rem' }}
           />{' '}
           （実施済み: {stats.implemented}件 / おまかせ: {stats.omakase}件）
+          {(stats.excluded > 0 || stats.lateCancel > 0) && (
+            <span style={{ marginLeft: 8 }}>
+              {stats.excluded > 0 && (
+                <Chip
+                  size="small"
+                  label={`除外: ${stats.excluded}件`}
+                  sx={{ height: 20, fontSize: '0.75rem', backgroundColor: '#f44336', color: 'white', ml: 0.5 }}
+                />
+              )}
+              {stats.lateCancel > 0 && (
+                <Chip
+                  size="small"
+                  label={`前日/当日: ${stats.lateCancel}件`}
+                  sx={{ height: 20, fontSize: '0.75rem', backgroundColor: '#ff9800', color: 'white', ml: 0.5 }}
+                />
+              )}
+            </span>
+          )}
         </Typography>
         <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
           担当者が未設定、または「おまかせ」予約で担当者判定ができなかった予約が表示されます。
@@ -291,6 +394,11 @@ export const UnassignedListView = () => {
                 <TableCell>実施日</TableCell>
                 <TableCell>申込日時</TableCell>
                 <TableCell align="center">ステータス</TableCell>
+                <TableCell align="center">
+                  <Tooltip title="集計対象/除外/前日キャンセル/当日キャンセル">
+                    <span>除外</span>
+                  </Tooltip>
+                </TableCell>
                 <TableCell>コース</TableCell>
                 <TableCell>予約枠（G列）</TableCell>
                 <TableCell sx={{ minWidth: 200 }}>
@@ -328,6 +436,9 @@ export const UnassignedListView = () => {
                       />
                       {record.wasOmakase && <Chip label="おまかせ" size="small" color="warning" variant="outlined" />}
                     </Box>
+                  </TableCell>
+                  <TableCell align="center" onClick={() => handleRowClick(record)}>
+                    {getExclusionBadge(record)}
                   </TableCell>
                   <TableCell onClick={() => handleRowClick(record)}>{record.course || '-'}</TableCell>
                   <TableCell onClick={() => handleRowClick(record)}>
