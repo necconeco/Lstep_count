@@ -5,7 +5,7 @@
  * - isExcludedの切り替え操作
  * - 実施/キャンセルの手動切り替え
  */
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useMemo } from 'react';
 import {
   Drawer,
   Box,
@@ -41,12 +41,13 @@ import {
 } from '@mui/icons-material';
 import { useHistoryStore } from '../store/historyStore';
 import type { FlatRecord } from '../domain/types';
+import { historyToFlatRecord } from '../domain/logic';
 import { OFFICIAL_STAFF_MEMBERS } from '../domain/staffMasterData';
 
 interface ReservationDetailDrawerProps {
   open: boolean;
   onClose: () => void;
-  record: FlatRecord | null;
+  record: FlatRecord | null;  // 初期表示用（reservationIdの取得に使用）
 }
 
 /**
@@ -81,11 +82,19 @@ function formatValue(field: string, value: unknown): string {
 export const ReservationDetailDrawer = ({
   open,
   onClose,
-  record,
+  record: initialRecord,
 }: ReservationDetailDrawerProps) => {
-  const { setExcluded, updateDetailStatus, assignStaffToOmakase, setIsImplementedManual, getAuditLogsByReservation, getHistory } = useHistoryStore();
+  const { histories, setExcluded, updateDetailStatus, assignStaffToOmakase, setIsImplementedManual, getAuditLogsByReservation } = useHistoryStore();
   const [isUpdating, setIsUpdating] = useState(false);
   const [selectedStaff, setSelectedStaff] = useState<string>('');
+
+  // ストアから最新のレコードを取得（即時反映のため）
+  const record = useMemo<FlatRecord | null>(() => {
+    if (!initialRecord) return null;
+    const history = histories.get(initialRecord.reservationId);
+    if (!history) return initialRecord;  // フォールバック
+    return historyToFlatRecord(history);
+  }, [initialRecord, histories]);
 
   // 監査ログを取得
   const auditLogs = record ? getAuditLogsByReservation(record.reservationId) : [];
@@ -147,13 +156,16 @@ export const ReservationDetailDrawer = ({
     [record, setIsImplementedManual]
   );
 
+  // ストアからisImplementedManualを取得（即時反映のため）
+  const isImplementedManual = useMemo(() => {
+    if (!initialRecord) return null;
+    const history = histories.get(initialRecord.reservationId);
+    return history?.isImplementedManual ?? null;
+  }, [initialRecord, histories]);
+
   if (!record) {
     return null;
   }
-
-  // 履歴データを取得してisImplementedManualの値を確認
-  const historyRecord = getHistory(record.reservationId);
-  const isImplementedManual = historyRecord?.isImplementedManual ?? null;
 
   return (
     <Drawer

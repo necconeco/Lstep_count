@@ -123,7 +123,7 @@ export const HistoryViewer = () => {
 
   // 詳細ドロワー
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [selectedRecord, setSelectedRecord] = useState<FlatRecord | null>(null);
+  const [selectedReservationId, setSelectedReservationId] = useState<string | null>(null);
 
   // 初回読み込み
   useEffect(() => {
@@ -338,7 +338,7 @@ export const HistoryViewer = () => {
    * 行クリックで詳細ドロワーを開く
    */
   const handleRowClick = useCallback((record: FlatRecord) => {
-    setSelectedRecord(record);
+    setSelectedReservationId(record.reservationId);
     setDrawerOpen(true);
   }, []);
 
@@ -350,19 +350,12 @@ export const HistoryViewer = () => {
   }, []);
 
   /**
-   * ドロワーが閉じた後、選択中のレコードを更新（isExcludedの変更を反映）
+   * 選択中のレコードをストアから取得（常に最新の状態を反映）
    */
-  useEffect(() => {
-    if (selectedRecord && drawerOpen) {
-      // 最新のレコードを取得
-      const updatedRecord = filteredRecords.find(
-        (r) => r.reservationId === selectedRecord.reservationId
-      );
-      if (updatedRecord && updatedRecord.isExcluded !== selectedRecord.isExcluded) {
-        setSelectedRecord(updatedRecord);
-      }
-    }
-  }, [filteredRecords, selectedRecord, drawerOpen]);
+  const selectedRecord = useMemo(() => {
+    if (!selectedReservationId) return null;
+    return allRecords.find((r) => r.reservationId === selectedReservationId) || null;
+  }, [selectedReservationId, allRecords]);
 
   // データがない場合
   if (histories.size === 0 && !isLoading) {
