@@ -129,6 +129,7 @@ export function PasswordGate({ children }: PasswordGateProps) {
           sx={{
             width: '100%',
             maxWidth: 360,
+            margin: '0 auto',
             animation: isShaking ? 'shake 0.5s ease-in-out' : 'none',
             '@keyframes shake': {
               '0%, 100%': { transform: 'translateX(0)' },
