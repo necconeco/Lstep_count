@@ -21,6 +21,7 @@ import {
   getVisitLabel,
 } from '../domain/masterMerge';
 import * as masterRepository from '../infrastructure/masterRepository';
+import { uploadToCloud, downloadFromCloud } from '../lib/supabaseSync';
 
 // ============================================================================
 // ストア型定義
@@ -95,6 +96,7 @@ export const useMasterStoreV2 = create<MasterStoreV2State>((set, get) => ({
 
   /**
    * マスターデータをIndexedDBから読み込み
+   * ローカルが空の場合、クラウドから復元を試みる
    */
   loadMasters: async () => {
     set({ isLoading: true, error: null });
@@ -103,6 +105,40 @@ export const useMasterStoreV2 = create<MasterStoreV2State>((set, get) => ({
         masterRepository.getAllFullHistoryMasters(),
         masterRepository.getAllImplementationMasters(),
       ]);
+
+      // ローカルが空の場合、クラウドから復元を試みる
+      if (implementationMasters.size === 0) {
+        try {
+          const cloudData = await downloadFromCloud();
+          if (cloudData.size > 0) {
+            // クラウドからの復元データをImplementationMasterとして使用
+            const restoredMasters = new Map<string, ImplementationMaster>();
+            const now = new Date();
+            cloudData.forEach((partial, friendId) => {
+              restoredMasters.set(friendId, {
+                friendId: partial.friendId || friendId,
+                implementationCount: partial.implementationCount || 0,
+                lastImplementationDate: partial.lastImplementationDate || null,
+                lastStaff: null,
+                records: [], // 履歴詳細は復元できない
+                createdAt: now,
+                updatedAt: now,
+              });
+            });
+            // IndexedDBにも保存
+            await masterRepository.saveImplementationMastersBatch(restoredMasters);
+            set({
+              fullHistoryMasters,
+              implementationMasters: restoredMasters,
+              isLoading: false,
+            });
+            return;
+          }
+        } catch (cloudError) {
+          console.warn('[loadMasters] Cloud restore failed (non-blocking):', cloudError);
+        }
+      }
+
       set({
         fullHistoryMasters,
         implementationMasters,
@@ -163,6 +199,11 @@ export const useMasterStoreV2 = create<MasterStoreV2State>((set, get) => ({
         fullHistoryMasters: updatedFullHistory,
         implementationMasters: updatedImplementation,
         isLoading: false,
+      });
+
+      // 6. クラウドに自動同期（バックグラウンド、エラーは無視）
+      uploadToCloud(updatedImplementation).catch((err) => {
+        console.warn('[mergeCsvData] Cloud sync failed (non-blocking):', err);
       });
     } catch (error) {
       set({
