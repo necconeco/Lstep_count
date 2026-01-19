@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import vercel from 'vite-plugin-vercel'
 
 // CSPヘッダー設定（セキュリティ強化）
 const cspDirectives = [
@@ -16,7 +17,7 @@ const cspDirectives = [
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), vercel()],
   server: {
     port: 3247,
     strictPort: true,

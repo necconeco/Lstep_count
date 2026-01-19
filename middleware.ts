@@ -1,21 +1,21 @@
-import { next } from '@vercel/edge';
+import type { RequestContext } from 'vite-plugin-vercel/server';
 
 export const config = {
-  matcher: ['/((?!api|_next/static|_next/image|favicon.ico|assets).*)'],
+  runtime: 'edge',
 };
 
-export default function middleware(request: Request) {
+export default function middleware(req: RequestContext): Response | void {
   // 環境変数から認証情報を取得
   const validUser = process.env.BASIC_AUTH_USER;
   const validPass = process.env.BASIC_AUTH_PASSWORD;
 
   // 環境変数が設定されていない場合は認証をスキップ（開発環境用）
   if (!validUser || !validPass) {
-    return next();
+    return;
   }
 
   // Authorization ヘッダーを取得
-  const basicAuth = request.headers.get('authorization');
+  const basicAuth = req.request.headers.get('authorization');
 
   // 認証ヘッダーがない場合
   if (!basicAuth) {
@@ -72,8 +72,8 @@ export default function middleware(request: Request) {
 
   // 認証チェック
   if (user === validUser && pass === validPass) {
-    // 認証成功 - リクエストを続行
-    return next();
+    // 認証成功 - 続行（void返却）
+    return;
   }
 
   // 認証失敗
