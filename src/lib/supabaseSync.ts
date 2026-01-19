@@ -18,7 +18,7 @@ export interface SyncStatus {
   cloudCount: number;
 }
 
-let syncStatus: SyncStatus = {
+const syncStatus: SyncStatus = {
   lastSyncedAt: null,
   isSyncing: false,
   error: null,
