@@ -17,6 +17,9 @@ import {
 // 実際のパスワード: Lstep2025!
 const PASSWORD_HASH = '20c7556cb6b986c8894c8035795d2e6e48e920a1b518775700f752e8f611cc2a';
 
+// LINE公式カラー
+const LINE_GREEN = '#06C755';
+
 // SHA-256 ハッシュを計算
 async function sha256(message: string): Promise<string> {
   const msgBuffer = new TextEncoder().encode(message);
@@ -83,7 +86,7 @@ export function PasswordGate({ children }: PasswordGateProps) {
           justifyContent: 'center',
           alignItems: 'center',
           minHeight: '100vh',
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          backgroundColor: LINE_GREEN,
         }}
       >
         <Box
@@ -117,7 +120,7 @@ export function PasswordGate({ children }: PasswordGateProps) {
         justifyContent: 'center',
         alignItems: 'center',
         minHeight: '100vh',
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        backgroundColor: LINE_GREEN,
         p: 2,
       }}
     >
@@ -125,7 +128,7 @@ export function PasswordGate({ children }: PasswordGateProps) {
         <Box
           sx={{
             width: '100%',
-            maxWidth: 380,
+            maxWidth: 360,
             animation: isShaking ? 'shake 0.5s ease-in-out' : 'none',
             '@keyframes shake': {
               '0%, 100%': { transform: 'translateX(0)' },
@@ -134,65 +137,30 @@ export function PasswordGate({ children }: PasswordGateProps) {
             },
           }}
         >
-          {/* ロゴ・タイトル */}
-          <Box sx={{ textAlign: 'center', mb: 4 }}>
-            <Box
-              sx={{
-                width: 64,
-                height: 64,
-                borderRadius: '16px',
-                background: 'rgba(255,255,255,0.2)',
-                backdropFilter: 'blur(10px)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                margin: '0 auto 16px',
-                boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
-              }}
-            >
-              <Typography
-                sx={{
-                  fontSize: 28,
-                  fontWeight: 700,
-                  color: '#fff',
-                }}
-              >
-                L
-              </Typography>
-            </Box>
-            <Typography
-              variant="h5"
-              sx={{
-                fontWeight: 600,
-                color: '#fff',
-                mb: 0.5,
-                letterSpacing: '-0.5px',
-              }}
-            >
-              Lステップ集計
-            </Typography>
-            <Typography
-              variant="body2"
-              sx={{
-                color: 'rgba(255,255,255,0.7)',
-              }}
-            >
-              アクセスにはパスワードが必要です
-            </Typography>
-          </Box>
-
-          {/* フォーム */}
+          {/* ログインカード */}
           <Box
             component="form"
             onSubmit={handleSubmit}
             sx={{
-              background: 'rgba(255,255,255,0.95)',
-              backdropFilter: 'blur(20px)',
-              borderRadius: '20px',
+              backgroundColor: '#fff',
+              borderRadius: '16px',
               p: 4,
-              boxShadow: '0 20px 60px rgba(0,0,0,0.15)',
+              boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
             }}
           >
+            {/* タイトル */}
+            <Typography
+              variant="h6"
+              sx={{
+                fontWeight: 600,
+                color: '#333',
+                textAlign: 'center',
+                mb: 3,
+              }}
+            >
+              Lステップ集計
+            </Typography>
+
             <TextField
               fullWidth
               type={showPassword ? 'text' : 'password'}
@@ -218,17 +186,12 @@ export function PasswordGate({ children }: PasswordGateProps) {
               sx={{
                 mb: 3,
                 '& .MuiOutlinedInput-root': {
-                  borderRadius: '12px',
-                  backgroundColor: '#f8f9fa',
-                  '& fieldset': {
-                    borderColor: 'transparent',
-                  },
+                  borderRadius: '8px',
                   '&:hover fieldset': {
-                    borderColor: '#667eea',
+                    borderColor: LINE_GREEN,
                   },
                   '&.Mui-focused fieldset': {
-                    borderColor: '#667eea',
-                    borderWidth: '2px',
+                    borderColor: LINE_GREEN,
                   },
                 },
               }}
@@ -240,16 +203,14 @@ export function PasswordGate({ children }: PasswordGateProps) {
               variant="contained"
               size="large"
               sx={{
-                borderRadius: '12px',
+                borderRadius: '8px',
                 py: 1.5,
                 fontSize: '1rem',
                 fontWeight: 600,
                 textTransform: 'none',
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                boxShadow: '0 4px 15px rgba(102, 126, 234, 0.4)',
+                backgroundColor: LINE_GREEN,
                 '&:hover': {
-                  background: 'linear-gradient(135deg, #5a6fd6 0%, #6a4190 100%)',
-                  boxShadow: '0 6px 20px rgba(102, 126, 234, 0.5)',
+                  backgroundColor: '#05b04c',
                 },
               }}
             >
