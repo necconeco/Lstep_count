@@ -44,6 +44,7 @@ import {
   School as SchoolIcon,
 } from '@mui/icons-material';
 import { useHistoryStore } from '../store/historyStore';
+import { CloudSyncButton } from './CloudSyncButton';
 
 export type ViewType =
   | 'history'
@@ -101,9 +102,10 @@ export const Sidebar = ({ currentView, onViewChange, onUploadClick, mobileOpen, 
         }}
       >
         <AssessmentIcon color="primary" />
-        <Typography variant="h6" noWrap>
+        <Typography variant="h6" noWrap sx={{ flexGrow: 1 }}>
           Lステップ集計
         </Typography>
+        <CloudSyncButton />
       </Box>
 
       {/* メインコンテンツ */}
