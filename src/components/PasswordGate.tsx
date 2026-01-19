@@ -11,7 +11,7 @@ import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 
 // パスワードのハッシュ値（SHA-256）
 // 実際のパスワード: Lstep2025!
-const PASSWORD_HASH = '8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918';
+const PASSWORD_HASH = '20c7556cb6b986c8894c8035795d2e6e48e920a1b518775700f752e8f611cc2a';
 
 // SHA-256 ハッシュを計算
 async function sha256(message: string): Promise<string> {
