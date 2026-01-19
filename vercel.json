@@ -4,11 +4,6 @@
   "devCommand": "npm run dev",
   "installCommand": "npm install",
   "framework": "vite",
-  "functions": {
-    "middleware.js": {
-      "runtime": "edge"
-    }
-  },
   "rewrites": [
     {
       "source": "/(.*)",

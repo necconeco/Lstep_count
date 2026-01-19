@@ -1,19 +1,17 @@
-/**
- * Vercel Edge Middleware - Basic認証
- *
- * 環境変数:
- * - BASIC_AUTH_USER: ユーザー名
- * - BASIC_AUTH_PASSWORD: パスワード
- */
+import { next } from '@vercel/edge';
 
-export default function middleware(request) {
+export const config = {
+  matcher: ['/((?!api|_next/static|_next/image|favicon.ico|assets).*)'],
+};
+
+export default function middleware(request: Request) {
   // 環境変数から認証情報を取得
   const validUser = process.env.BASIC_AUTH_USER;
   const validPass = process.env.BASIC_AUTH_PASSWORD;
 
   // 環境変数が設定されていない場合は認証をスキップ（開発環境用）
   if (!validUser || !validPass) {
-    return new Response(null, { status: 200 });
+    return next();
   }
 
   // Authorization ヘッダーを取得
@@ -44,7 +42,7 @@ export default function middleware(request) {
   }
 
   // Base64デコード
-  let decoded;
+  let decoded: string;
   try {
     decoded = atob(encoded);
   } catch {
@@ -74,8 +72,8 @@ export default function middleware(request) {
 
   // 認証チェック
   if (user === validUser && pass === validPass) {
-    // 認証成功
-    return new Response(null, { status: 200 });
+    // 認証成功 - リクエストを続行
+    return next();
   }
 
   // 認証失敗
@@ -87,17 +85,3 @@ export default function middleware(request) {
     },
   });
 }
-
-// すべてのパスに適用（静的ファイルを除く）
-export const config = {
-  matcher: [
-    /*
-     * Match all request paths except:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - assets (static assets)
-     */
-    '/((?!_next/static|_next/image|favicon.ico|assets/).*)',
-  ],
-};
