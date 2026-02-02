@@ -607,9 +607,9 @@ export function StaffAggregationView(_props: StaffAggregationViewProps) {
                     />
                     <YAxis domain={[0, 100]} tickFormatter={v => `${v}%`} />
                     <RechartsTooltip
-                      formatter={(value: number, name: string) => {
-                        if (name === 'implementationRate') return [`${value}%`, '実施率'];
-                        return [value, name];
+                      formatter={(value: number | undefined, name?: string) => {
+                        if (name === 'implementationRate') return [`${value ?? 0}%`, '実施率'];
+                        return [value ?? 0, name ?? ''];
                       }}
                     />
                     <Legend />
@@ -645,9 +645,9 @@ export function StaffAggregationView(_props: StaffAggregationViewProps) {
                     />
                     <YAxis domain={[0, 100]} tickFormatter={v => `${v}%`} />
                     <RechartsTooltip
-                      formatter={(value: number, name: string) => {
-                        if (name === 'firstToSecondCVR') return [`${value}%`, '初回→2回目CVR'];
-                        return [value, name];
+                      formatter={(value: number | undefined, name?: string) => {
+                        if (name === 'firstToSecondCVR') return [`${value ?? 0}%`, '初回→2回目CVR'];
+                        return [value ?? 0, name ?? ''];
                       }}
                     />
                     <Legend />

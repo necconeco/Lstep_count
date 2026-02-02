@@ -706,10 +706,10 @@ export function CourseAggregationView() {
                     />
                     <YAxis domain={[0, 100]} tickFormatter={v => `${v}%`} />
                     <RechartsTooltip
-                      formatter={(value: number, name: string) => {
-                        if (name === 'implementationRate') return [`${value}%`, '実施率'];
-                        if (name === 'cancelRate') return [`${value}%`, 'キャンセル率'];
-                        return [value, name];
+                      formatter={(value: number | undefined, name?: string) => {
+                        if (name === 'implementationRate') return [`${value ?? 0}%`, '実施率'];
+                        if (name === 'cancelRate') return [`${value ?? 0}%`, 'キャンセル率'];
+                        return [value ?? 0, name ?? ''];
                       }}
                     />
                     <Legend />
@@ -740,7 +740,7 @@ export function CourseAggregationView() {
                         <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
                       ))}
                     </Pie>
-                    <RechartsTooltip formatter={(value: number) => [`${value}件`, '実施数']} />
+                    <RechartsTooltip formatter={(value: number | undefined) => [`${value ?? 0}件`, '実施数']} />
                   </PieChart>
                 </ResponsiveContainer>
               </Paper>
@@ -765,7 +765,7 @@ export function CourseAggregationView() {
                       tick={{ fontSize: 11 }}
                     />
                     <YAxis domain={[0, 100]} tickFormatter={v => `${v}%`} />
-                    <RechartsTooltip formatter={(value: number) => [`${value}%`, '初回→2回目CVR']} />
+                    <RechartsTooltip formatter={(value: number | undefined) => [`${value ?? 0}%`, '初回→2回目CVR']} />
                     <Legend />
                     <Bar dataKey="firstToSecondCVR" name="初回→2回目CVR" fill="#2196F3">
                       {courseAggregation

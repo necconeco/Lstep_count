@@ -1719,7 +1719,7 @@ export const CampaignAggregationView = () => {
                           <Cell key={`cell-${index}`} fill={entry.fill} />
                         ))}
                       </Pie>
-                      <RechartsTooltip formatter={(value: number, name: string) => [`${value}件`, name]} />
+                      <RechartsTooltip formatter={(value: number | undefined, name?: string) => [`${value ?? 0}件`, name ?? '']} />
                     </PieChart>
                   </ResponsiveContainer>
                 </Box>
@@ -1793,8 +1793,8 @@ export const CampaignAggregationView = () => {
                         <XAxis dataKey="hourLabel" tick={{ fontSize: 10 }} interval={1} />
                         <YAxis tick={{ fontSize: 10 }} />
                         <RechartsTooltip
-                          formatter={(value: number, name: string) => [
-                            `${value}件`,
+                          formatter={(value: number | undefined, name?: string) => [
+                            `${value ?? 0}件`,
                             name === 'implemented' ? '実施' : 'キャンセル',
                           ]}
                           labelFormatter={label => `${label}`}
@@ -1818,8 +1818,8 @@ export const CampaignAggregationView = () => {
                         <XAxis dataKey="dayName" tick={{ fontSize: 12 }} />
                         <YAxis tick={{ fontSize: 10 }} />
                         <RechartsTooltip
-                          formatter={(value: number, name: string) => [
-                            `${value}件`,
+                          formatter={(value: number | undefined, name?: string) => [
+                            `${value ?? 0}件`,
                             name === 'implemented' ? '実施' : 'キャンセル',
                           ]}
                           labelFormatter={label => `${label}曜`}
