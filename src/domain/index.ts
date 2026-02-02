@@ -22,6 +22,7 @@ export type {
   ReservationStatus,
   VisitStatus,
   CancelTiming,
+  CancelHandlingStatus,
   TargetDateType,
   ImplementationRule,
 
@@ -61,6 +62,8 @@ export type {
 export {
   // 定数
   CANCEL_TIMING_LABELS,
+  CANCEL_HANDLING_STATUS_LABELS,
+  CANCEL_HANDLING_STATUS_COLORS,
   DEFAULT_AGGREGATION_RULE,
   IMPLEMENTATION_RULE_LABELS,
 } from './types';

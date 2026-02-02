@@ -26,6 +26,10 @@ import {
   ToggleButton,
   ToggleButtonGroup,
   Tooltip,
+  Menu,
+  MenuItem,
+  ListItemIcon,
+  ListItemText,
 } from '@mui/material';
 import {
   Download as DownloadIcon,
@@ -34,12 +38,24 @@ import {
   List as ListIcon,
   EventBusy as SameDayCancelIcon,
   Schedule as PreviousDayCancelIcon,
+  Phone as PhoneIcon,
+  EventAvailable as RebookIcon,
+  Done as DoneIcon,
+  Block as BlockIcon,
+  HelpOutline as UnhandledIcon,
 } from '@mui/icons-material';
 import { useHistoryStore } from '../store/historyStore';
 import { useUiStore, DATE_BASE_TYPE_LABELS, PERIOD_PRESET_LABELS } from '../store/uiStore';
 import { ReservationDetailDrawer } from './ReservationDetailDrawer';
-import { getCancelTimingFromStrings, historyToFlatRecord, parseLocalDate, CANCEL_TIMING_LABELS } from '../domain';
-import type { FlatRecord, CancelTiming } from '../domain';
+import {
+  getCancelTimingFromStrings,
+  historyToFlatRecord,
+  parseLocalDate,
+  CANCEL_TIMING_LABELS,
+  CANCEL_HANDLING_STATUS_LABELS,
+  CANCEL_HANDLING_STATUS_COLORS,
+} from '../domain';
+import type { FlatRecord, CancelTiming, CancelHandlingStatus } from '../domain';
 
 type CancelFilter = 'all' | 'sameDayCancel' | 'previousDayCancel' | 'normalCancel';
 
@@ -47,8 +63,26 @@ function getRecordCancelTiming(record: FlatRecord): CancelTiming {
   return getCancelTimingFromStrings(record.sessionDateStr, record.applicationDateStr, record.status);
 }
 
+// ステータスアイコンの取得
+const getStatusIcon = (status: CancelHandlingStatus | null) => {
+  switch (status) {
+    case 'unhandled':
+      return <UnhandledIcon fontSize="small" />;
+    case 'contacted':
+      return <PhoneIcon fontSize="small" />;
+    case 'rebooked':
+      return <RebookIcon fontSize="small" />;
+    case 'completed':
+      return <DoneIcon fontSize="small" />;
+    case 'not-required':
+      return <BlockIcon fontSize="small" />;
+    default:
+      return <UnhandledIcon fontSize="small" />;
+  }
+};
+
 export const CancelListView = () => {
-  const { histories } = useHistoryStore();
+  const { histories, updateCancelHandlingStatus } = useHistoryStore();
   const { dateBaseType, periodPreset, periodFrom, periodTo, getEffectivePeriod } = useUiStore();
 
   const [page, setPage] = useState(0);
@@ -58,6 +92,10 @@ export const CancelListView = () => {
 
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [selectedReservationId, setSelectedReservationId] = useState<string | null>(null);
+
+  // ステータス変更メニュー用
+  const [menuAnchorEl, setMenuAnchorEl] = useState<HTMLElement | null>(null);
+  const [menuReservationId, setMenuReservationId] = useState<string | null>(null);
 
   // キャンセルレコードのみ抽出
   const allCancelRecords = useMemo<FlatRecord[]>(() => {
@@ -166,15 +204,42 @@ export const CancelListView = () => {
     []
   );
 
+  // ステータス変更メニューを開く
+  const handleStatusClick = useCallback((event: React.MouseEvent<HTMLElement>, reservationId: string) => {
+    event.stopPropagation(); // 行クリックイベントを防止
+    setMenuAnchorEl(event.currentTarget);
+    setMenuReservationId(reservationId);
+  }, []);
+
+  // ステータス変更メニューを閉じる
+  const handleMenuClose = useCallback(() => {
+    setMenuAnchorEl(null);
+    setMenuReservationId(null);
+  }, []);
+
+  // ステータスを変更
+  const handleStatusChange = useCallback(
+    async (status: CancelHandlingStatus) => {
+      if (menuReservationId) {
+        await updateCancelHandlingStatus(menuReservationId, status);
+      }
+      handleMenuClose();
+    },
+    [menuReservationId, updateCancelHandlingStatus, handleMenuClose]
+  );
+
   const handleDownloadCSV = useCallback(() => {
     if (filteredRecords.length === 0) {
       alert('データがありません');
       return;
     }
 
-    const headers = ['予約ID', '友だちID', '名前', '実施日', '申込日時', 'キャンセル種別', '担当者', 'コース'];
+    const headers = ['予約ID', '友だちID', '名前', '実施日', '申込日時', 'キャンセル種別', '対応状況', '担当者', 'コース'];
     const rows = filteredRecords.map(record => {
       const timing = getRecordCancelTiming(record);
+      const handlingStatus = record.cancelHandlingStatus
+        ? CANCEL_HANDLING_STATUS_LABELS[record.cancelHandlingStatus]
+        : '未対応';
       return [
         record.reservationId,
         record.friendId,
@@ -182,6 +247,7 @@ export const CancelListView = () => {
         record.sessionDateStr,
         record.applicationDateStr,
         CANCEL_TIMING_LABELS[timing] || 'キャンセル',
+        handlingStatus,
         record.staff || '',
         record.course || '',
       ];
@@ -319,6 +385,7 @@ export const CancelListView = () => {
                 <TableCell>実施日</TableCell>
                 <TableCell>申込日時</TableCell>
                 <TableCell align="center">種別</TableCell>
+                <TableCell align="center">対応状況</TableCell>
                 <TableCell>担当者</TableCell>
                 <TableCell>コース</TableCell>
               </TableRow>
@@ -361,6 +428,25 @@ export const CancelListView = () => {
                         variant={timing === 'same-day' || timing === 'previous-day' ? 'filled' : 'outlined'}
                       />
                     </TableCell>
+                    <TableCell align="center">
+                      <Chip
+                        icon={getStatusIcon(record.cancelHandlingStatus)}
+                        label={
+                          record.cancelHandlingStatus
+                            ? CANCEL_HANDLING_STATUS_LABELS[record.cancelHandlingStatus]
+                            : '未対応'
+                        }
+                        size="small"
+                        color={
+                          record.cancelHandlingStatus
+                            ? CANCEL_HANDLING_STATUS_COLORS[record.cancelHandlingStatus]
+                            : 'error'
+                        }
+                        variant="outlined"
+                        onClick={e => handleStatusClick(e, record.reservationId)}
+                        sx={{ cursor: 'pointer' }}
+                      />
+                    </TableCell>
                     <TableCell>{record.staff || '-'}</TableCell>
                     <TableCell>{record.course || '-'}</TableCell>
                   </TableRow>
@@ -387,6 +473,40 @@ export const CancelListView = () => {
       </Paper>
 
       <ReservationDetailDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} record={selectedRecord} />
+
+      {/* ステータス変更メニュー */}
+      <Menu anchorEl={menuAnchorEl} open={Boolean(menuAnchorEl)} onClose={handleMenuClose}>
+        <MenuItem onClick={() => handleStatusChange('unhandled')}>
+          <ListItemIcon>
+            <UnhandledIcon fontSize="small" color="error" />
+          </ListItemIcon>
+          <ListItemText>未対応</ListItemText>
+        </MenuItem>
+        <MenuItem onClick={() => handleStatusChange('contacted')}>
+          <ListItemIcon>
+            <PhoneIcon fontSize="small" color="warning" />
+          </ListItemIcon>
+          <ListItemText>連絡済み</ListItemText>
+        </MenuItem>
+        <MenuItem onClick={() => handleStatusChange('rebooked')}>
+          <ListItemIcon>
+            <RebookIcon fontSize="small" color="success" />
+          </ListItemIcon>
+          <ListItemText>再予約済み</ListItemText>
+        </MenuItem>
+        <MenuItem onClick={() => handleStatusChange('completed')}>
+          <ListItemIcon>
+            <DoneIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>対応完了</ListItemText>
+        </MenuItem>
+        <MenuItem onClick={() => handleStatusChange('not-required')}>
+          <ListItemIcon>
+            <BlockIcon fontSize="small" color="info" />
+          </ListItemIcon>
+          <ListItemText>対応不要</ListItemText>
+        </MenuItem>
+      </Menu>
     </Box>
   );
 };

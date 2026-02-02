@@ -155,6 +155,11 @@ export interface HistoryStoreState {
    */
   updateCancelReason: (reservationId: string, cancelReason: string | null, changedBy?: string) => Promise<void>;
 
+  /**
+   * キャンセル対応ステータスを更新
+   */
+  updateCancelHandlingStatus: (reservationId: string, status: import('../domain').CancelHandlingStatus | null, changedBy?: string) => Promise<void>;
+
   // ============================================================================
   // 監査ログ
   // ============================================================================
@@ -1037,6 +1042,60 @@ export const useHistoryStore = create<HistoryStoreState>((set, get) => ({
     } catch (error) {
       set({
         error: error instanceof Error ? error.message : 'キャンセル理由の更新に失敗しました',
+      });
+    }
+  },
+
+  /**
+   * キャンセル対応ステータスを更新
+   */
+  updateCancelHandlingStatus: async (reservationId, status, changedBy = 'user') => {
+    const { histories, auditLogs } = get();
+    const history = histories.get(reservationId);
+    if (!history) {
+      set({ error: '予約が見つかりません' });
+      return;
+    }
+
+    const now = new Date();
+    const oldValue = history.cancelHandlingStatus;
+
+    // 値が変わっていない場合はスキップ
+    if (oldValue === status) return;
+
+    // 監査ログを作成
+    const auditLog: AuditLog = {
+      id: generateAuditLogId(),
+      reservationId,
+      field: 'cancelHandlingStatus',
+      oldValue,
+      newValue: status,
+      changedAt: now,
+      changedBy,
+    };
+
+    // 履歴を更新
+    const updatedHistory: ReservationHistory = {
+      ...history,
+      cancelHandlingStatus: status,
+      updatedAt: now,
+    };
+
+    const newHistories = new Map(histories);
+    newHistories.set(reservationId, updatedHistory);
+
+    try {
+      await Promise.all([repository.saveHistoriesBatch(newHistories), repository.saveAuditLog(auditLog)]);
+      set({
+        histories: newHistories,
+        auditLogs: [...auditLogs, auditLog],
+      });
+
+      // 他タブに同期通知
+      broadcastSync('HISTORY_UPDATED', { source: 'cancel_handling_status' });
+    } catch (error) {
+      set({
+        error: error instanceof Error ? error.message : 'キャンセル対応ステータスの更新に失敗しました',
       });
     }
   },

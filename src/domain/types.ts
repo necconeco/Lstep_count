@@ -50,6 +50,33 @@ export const CANCEL_TIMING_LABELS: Record<CancelTiming, string> = {
 };
 
 /**
+ * キャンセル対応ステータス
+ */
+export type CancelHandlingStatus = 'unhandled' | 'contacted' | 'rebooked' | 'completed' | 'not-required';
+
+/**
+ * キャンセル対応ステータスのラベル
+ */
+export const CANCEL_HANDLING_STATUS_LABELS: Record<CancelHandlingStatus, string> = {
+  unhandled: '未対応',
+  contacted: '連絡済み',
+  rebooked: '再予約済み',
+  completed: '対応完了',
+  'not-required': '対応不要',
+};
+
+/**
+ * キャンセル対応ステータスの色
+ */
+export const CANCEL_HANDLING_STATUS_COLORS: Record<CancelHandlingStatus, 'error' | 'warning' | 'success' | 'default' | 'info'> = {
+  unhandled: 'error',
+  contacted: 'warning',
+  rebooked: 'success',
+  completed: 'default',
+  'not-required': 'info',
+};
+
+/**
  * 日付タイプ（キャンペーン集計用）
  */
 export type TargetDateType = 'application' | 'session';
@@ -97,6 +124,7 @@ export interface ReservationHistory {
   wasOmakase: boolean; // CSVで担当者が「おまかせ」だった
   groupId: string | null; // 同日複数申込の統合ID（形式: friendId_YYYY-MM-DD）
   cancelReason: string | null; // キャンセル理由メモ（手動入力）
+  cancelHandlingStatus: CancelHandlingStatus | null; // キャンセル対応ステータス（キャンセル時のみ）
 
   // メタ情報
   createdAt: Date;
@@ -269,6 +297,7 @@ export interface FlatRecord {
   course: string | null; // コース名
   reservationSlot: string | null; // 予約枠（G列の元データ）
   cancelReason: string | null; // キャンセル理由メモ
+  cancelHandlingStatus: CancelHandlingStatus | null; // キャンセル対応ステータス
 }
 
 // ============================================================================
