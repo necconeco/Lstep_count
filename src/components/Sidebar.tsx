@@ -31,6 +31,7 @@ import {
   ExpandLess,
   ExpandMore,
   CalendarMonth as CalendarIcon,
+  Today as TodayIcon,
   Person as PersonIcon,
   TrendingUp as TrendingUpIcon,
   Menu as MenuIcon,
@@ -48,6 +49,7 @@ import { CloudSyncButton } from './CloudSyncButton';
 
 export type ViewType =
   | 'history'
+  | 'daily'
   | 'monthly'
   | 'campaign'
   | 'user'
@@ -183,6 +185,21 @@ export const Sidebar = ({ currentView, onViewChange, onUploadClick, mobileOpen, 
                   <HistoryIcon fontSize="small" />
                 </ListItemIcon>
                 <ListItemText primary="履歴一覧" />
+              </ListItemButton>
+
+              {/* 日次集計 */}
+              <ListItemButton
+                sx={{ pl: 4 }}
+                selected={currentView === 'daily'}
+                onClick={() => {
+                  onViewChange('daily');
+                  if (isMobile) onMobileClose();
+                }}
+              >
+                <ListItemIcon>
+                  <TodayIcon fontSize="small" />
+                </ListItemIcon>
+                <ListItemText primary="日次集計" />
               </ListItemButton>
 
               {/* 月次集計 */}

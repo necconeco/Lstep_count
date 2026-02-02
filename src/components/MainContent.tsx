@@ -14,6 +14,7 @@ import { CommonFilterBar } from './CommonFilterBar';
 import { HistoryViewer } from './HistoryViewer';
 
 // 重いコンポーネント（動的インポートで遅延読み込み）
+const DailyAggregationView = lazy(() => import('./DailyAggregationView').then(m => ({ default: m.DailyAggregationView })));
 const MonthlyAggregationView = lazy(() => import('./MonthlyAggregationView').then(m => ({ default: m.MonthlyAggregationView })));
 const CampaignAggregationView = lazy(() => import('./CampaignAggregationView').then(m => ({ default: m.CampaignAggregationView })));
 const StaffAggregationView = lazy(() => import('./StaffAggregationView').then(m => ({ default: m.StaffAggregationView })));
@@ -52,7 +53,7 @@ export const MainContent = ({ currentView }: MainContentProps) => {
   return (
     <Box sx={{ flexGrow: 1, p: 3, overflow: 'auto' }}>
       {/* 共通フィルタバー（集計ビューのみ表示） */}
-      {['history', 'monthly', 'campaign', 'user', 'staff', 'course', 'cancelList', 'unassignedList'].includes(
+      {['history', 'daily', 'monthly', 'campaign', 'user', 'staff', 'course', 'cancelList', 'unassignedList'].includes(
         currentView
       ) && <CommonFilterBar />}
 
@@ -60,6 +61,8 @@ export const MainContent = ({ currentView }: MainContentProps) => {
       {currentView === 'history' && <HistoryViewer />}
 
       <Suspense fallback={<LoadingFallback />}>
+        {currentView === 'daily' && <DailyAggregationView />}
+
         {currentView === 'monthly' && <MonthlyAggregationView />}
 
         {currentView === 'campaign' && <CampaignAggregationView />}
