@@ -1,7 +1,6 @@
 /**
  * 共通フィルタバーコンポーネント
  *
- * - 基準日切り替え（申込日/実施日）
  * - 期間プリセット選択
  * - カスタム期間入力
  */
@@ -20,7 +19,6 @@ import {
   Chip,
 } from '@mui/material';
 import {
-  CalendarToday as CalendarIcon,
   DateRange as DateRangeIcon,
   CheckCircle as CheckCircleIcon,
   MergeType as MergeTypeIcon,
@@ -28,10 +26,8 @@ import {
 import { FilterPresetManager } from './FilterPresetManager';
 import {
   useUiStore,
-  type DateBaseType,
   type PeriodPreset,
   PERIOD_PRESET_LABELS,
-  DATE_BASE_TYPE_LABELS,
 } from '../store/uiStore';
 import { type ImplementationRule, IMPLEMENTATION_RULE_LABELS } from '../domain';
 
@@ -58,13 +54,11 @@ function formatDateShort(date: Date | null): string {
 
 export const CommonFilterBar = () => {
   const {
-    dateBaseType,
     periodPreset,
     periodFrom,
     periodTo,
     implementationRule,
     mergeSameDayReservations,
-    setDateBaseType,
     setPeriodPreset,
     setPeriodRange,
     setImplementationRule,
@@ -74,18 +68,6 @@ export const CommonFilterBar = () => {
 
   // 有効な期間を取得
   const effectivePeriod = getEffectivePeriod();
-
-  /**
-   * 基準日タイプ変更
-   */
-  const handleDateBaseTypeChange = useCallback(
-    (_event: React.MouseEvent<HTMLElement>, newType: DateBaseType | null) => {
-      if (newType !== null) {
-        setDateBaseType(newType);
-      }
-    },
-    [setDateBaseType]
-  );
 
   /**
    * 期間プリセット変更
@@ -157,18 +139,6 @@ export const CommonFilterBar = () => {
         flexWrap: 'wrap',
       }}
     >
-      {/* 基準日切り替え */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-        <CalendarIcon color="action" fontSize="small" />
-        <Typography variant="body2" color="text.secondary" sx={{ mr: 1 }}>
-          基準日:
-        </Typography>
-        <ToggleButtonGroup value={dateBaseType} exclusive onChange={handleDateBaseTypeChange} size="small">
-          <ToggleButton value="session">{DATE_BASE_TYPE_LABELS.session}</ToggleButton>
-          <ToggleButton value="application">{DATE_BASE_TYPE_LABELS.application}</ToggleButton>
-        </ToggleButtonGroup>
-      </Box>
-
       {/* 期間プリセット */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
         <DateRangeIcon color="action" fontSize="small" />

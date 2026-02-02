@@ -47,7 +47,6 @@ interface DailyData {
 export const DailyAggregationView = () => {
   const { histories } = useHistoryStore();
   const {
-    dateBaseType,
     periodPreset,
     periodFrom,
     periodTo,
@@ -82,7 +81,7 @@ export const DailyAggregationView = () => {
     });
   }, [histories]);
 
-  // 期間フィルタを適用
+  // 期間フィルタを適用（実施日または申込日が期間内ならOK）
   const filteredRecords = useMemo(() => {
     const { from, to } = effectivePeriod;
 
@@ -90,21 +89,24 @@ export const DailyAggregationView = () => {
       if (record.isExcluded) return false;
       if (!from && !to) return true;
 
-      const targetDateStr = dateBaseType === 'application' ? record.applicationDateStr : record.sessionDateStr;
-      const datePart = targetDateStr.split(' ')[0];
-      if (!datePart) return false;
-      const targetDate = parseLocalDate(datePart);
+      // 実施日をチェック
+      const sessionDatePart = record.sessionDateStr.split(' ')[0];
+      const sessionDate = sessionDatePart ? parseLocalDate(sessionDatePart) : null;
 
-      if (from && targetDate < from) return false;
-      if (to) {
-        const toEnd = new Date(to);
-        toEnd.setHours(23, 59, 59, 999);
-        if (targetDate > toEnd) return false;
-      }
+      // 申込日をチェック
+      const applicationDatePart = record.applicationDateStr.split(' ')[0];
+      const applicationDate = applicationDatePart ? parseLocalDate(applicationDatePart) : null;
 
-      return true;
+      // 実施日または申込日が期間内ならOK
+      const toEnd = to ? new Date(to) : null;
+      if (toEnd) toEnd.setHours(23, 59, 59, 999);
+
+      const sessionInRange = sessionDate && (!from || sessionDate >= from) && (!toEnd || sessionDate <= toEnd);
+      const applicationInRange = applicationDate && (!from || applicationDate >= from) && (!toEnd || applicationDate <= toEnd);
+
+      return sessionInRange || applicationInRange;
     });
-  }, [allRecords, effectivePeriod, dateBaseType]);
+  }, [allRecords, effectivePeriod]);
 
   // 同日統合を適用
   const mergedRecords = useMemo(() => {
