@@ -130,19 +130,34 @@ export const DailyAggregationView = () => {
 
   // 日別にグループ化して集計（スプレッドシート形式）
   // カレンダー形式: 期間内の全日を表示（予約がない日も0で表示）
+  //
+  // 重要: 予約と実施で基準日が異なる
+  // - 予約（初回予約、2回目以降予約）= 申込日ベース
+  // - 実施（初回実施、2回目以降実施）= 実施日ベース
   const dailyData = useMemo<DailyData[]>(() => {
-    const dayMap = new Map<string, typeof mergedRecords>();
+    // 申込日ベースでグループ化（予約カウント用）
+    const applicationDayMap = new Map<string, typeof mergedRecords>();
+    // 実施日ベースでグループ化（実施カウント用）
+    const sessionDayMap = new Map<string, typeof mergedRecords>();
 
     for (const record of mergedRecords) {
-      const targetDateStr = dateBaseType === 'application' ? record.applicationDateStr : record.sessionDateStr;
-      const datePart = targetDateStr.split(' ')[0] || '';
-
-      if (!datePart) continue;
-
-      if (!dayMap.has(datePart)) {
-        dayMap.set(datePart, []);
+      // 申込日
+      const applicationDatePart = record.applicationDateStr.split(' ')[0] || '';
+      if (applicationDatePart) {
+        if (!applicationDayMap.has(applicationDatePart)) {
+          applicationDayMap.set(applicationDatePart, []);
+        }
+        applicationDayMap.get(applicationDatePart)!.push(record);
       }
-      dayMap.get(datePart)!.push(record);
+
+      // 実施日
+      const sessionDatePart = record.sessionDateStr.split(' ')[0] || '';
+      if (sessionDatePart) {
+        if (!sessionDayMap.has(sessionDatePart)) {
+          sessionDayMap.set(sessionDatePart, []);
+        }
+        sessionDayMap.get(sessionDatePart)!.push(record);
+      }
     }
 
     // 期間内の全日を生成
@@ -159,25 +174,31 @@ export const DailyAggregationView = () => {
         current.setDate(current.getDate() + 1);
       }
     } else {
-      // 期間指定がない場合: データがある日のみ
-      allDates.push(...Array.from(dayMap.keys()));
+      // 期間指定がない場合: 両方のマップからユニークな日付を取得
+      const allDateSet = new Set([...applicationDayMap.keys(), ...sessionDayMap.keys()]);
+      allDates.push(...Array.from(allDateSet));
     }
 
     const result: DailyData[] = [];
 
     for (const dateSort of allDates) {
-      const records = dayMap.get(dateSort) || [];
+      // 予約は申込日ベース
+      const applicationRecords = applicationDayMap.get(dateSort) || [];
+      const firstApplicationRecords = applicationRecords.filter(r => r.visitLabel === '初回');
+      const repeatApplicationRecords = applicationRecords.filter(r => r.visitLabel !== '初回');
 
-      // 初回 vs 2回目以降を分類
-      const firstRecords = records.filter(r => r.visitLabel === '初回');
-      const repeatRecords = records.filter(r => r.visitLabel !== '初回');
+      // 実施は実施日ベース
+      const sessionRecords = sessionDayMap.get(dateSort) || [];
+      const firstSessionRecords = sessionRecords.filter(r => r.visitLabel === '初回');
+      const repeatSessionRecords = sessionRecords.filter(r => r.visitLabel !== '初回');
 
-      // 予約 = キャンセルではないもの（ステータスが予約済み）
-      // 実施 = shouldCountAsImplemented
-      const firstReservation = firstRecords.filter(r => r.status === '予約済み').length;
-      const firstImplementation = firstRecords.filter(r => shouldCountAsImplemented(r, implementationRule)).length;
-      const repeatReservation = repeatRecords.filter(r => r.status === '予約済み').length;
-      const repeatImplementation = repeatRecords.filter(r => shouldCountAsImplemented(r, implementationRule)).length;
+      // 予約 = 申込日ベースで、ステータスが予約済み
+      const firstReservation = firstApplicationRecords.filter(r => r.status === '予約済み').length;
+      const repeatReservation = repeatApplicationRecords.filter(r => r.status === '予約済み').length;
+
+      // 実施 = 実施日ベースで、shouldCountAsImplemented
+      const firstImplementation = firstSessionRecords.filter(r => shouldCountAsImplemented(r, implementationRule)).length;
+      const repeatImplementation = repeatSessionRecords.filter(r => shouldCountAsImplemented(r, implementationRule)).length;
 
       // MM/dd形式に変換
       const parts = dateSort.split('-');
@@ -197,7 +218,7 @@ export const DailyAggregationView = () => {
     result.sort((a, b) => a.dateSort.localeCompare(b.dateSort));
 
     return result;
-  }, [mergedRecords, dateBaseType, implementationRule, effectivePeriod]);
+  }, [mergedRecords, implementationRule, effectivePeriod]);
 
   // 全体サマリー（TTL行用）
   const summary = useMemo(() => {
