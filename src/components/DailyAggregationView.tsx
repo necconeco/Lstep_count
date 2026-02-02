@@ -102,8 +102,8 @@ export const DailyAggregationView = () => {
   const mergedRecords = useMemo(() => {
     const historiesForMerge = filteredRecords.map(r => ({
       ...r,
-      sessionDate: new Date(r.sessionDateStr),
-      applicationDate: new Date(r.applicationDateStr),
+      sessionDate: parseLocalDate(r.sessionDateStr.split(' ')[0] || r.sessionDateStr),
+      applicationDate: parseLocalDate(r.applicationDateStr.split(' ')[0] || r.applicationDateStr),
     }));
     const merged = applySameDayMerge(historiesForMerge, mergeSameDayReservations);
     return merged.map(h => ({
