@@ -132,10 +132,10 @@ export function getCancelTimingFromStrings(
     return 'none';
   }
 
-  // 日付部分のみ抽出
-  const sessionDate = new Date(sessionDateStr);
+  // 日付部分のみ抽出し、ローカルタイムゾーンでパース
+  const sessionDate = parseLocalDate(sessionDateStr);
   const applicationDatePart = applicationDateStr.split(' ')[0] ?? applicationDateStr;
-  const applicationDate = new Date(applicationDatePart);
+  const applicationDate = parseLocalDate(applicationDatePart);
 
   return getCancelTiming(sessionDate, applicationDate, status);
 }

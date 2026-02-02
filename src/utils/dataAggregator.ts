@@ -12,6 +12,7 @@ import type {
   VisitType,
   ImplementationStatus,
 } from '../types';
+import { parseLocalDate } from '../domain';
 
 /**
  * 実施判定
@@ -85,7 +86,7 @@ export function updateMasterData(
 
   csvData.forEach(record => {
     const friendId = record.友だちID;
-    const reservationDate = new Date(record.予約日);
+    const reservationDate = parseLocalDate(record.予約日);
     const staffName = record.担当者 || null;
     const implemented = isImplemented(record);
     const existing = newMasterData.get(friendId);

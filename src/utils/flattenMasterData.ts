@@ -4,6 +4,29 @@
  */
 
 import type { UserHistoryMaster, ImplementationRecord, VisitType } from '../types';
+import { parseLocalDate } from '../domain';
+
+/**
+ * 日付をローカルタイムゾーンで復元
+ * Date オブジェクトまたは文字列から、日付部分のみを取得してローカル時間として解釈
+ */
+function restoreDateOnly(dateValue: Date | string): Date {
+  if (dateValue instanceof Date) {
+    // すでにDateの場合、ISOStringから日付部分を取得してローカルで再解釈
+    const str = dateValue.toISOString();
+    const datePart = str.split('T')[0];
+    if (datePart && /^\d{4}-\d{2}-\d{2}$/.test(datePart)) {
+      return parseLocalDate(datePart);
+    }
+    return dateValue;
+  }
+  // 文字列の場合
+  const datePart = String(dateValue).split('T')[0];
+  if (datePart && /^\d{4}-\d{2}-\d{2}$/.test(datePart)) {
+    return parseLocalDate(datePart);
+  }
+  return new Date(dateValue);
+}
 
 /**
  * フラット化された履歴レコード
@@ -41,13 +64,13 @@ export function flattenMasterData(masterData: Map<string, UserHistoryMaster>): F
   masterData.forEach((master, friendId) => {
     // implementationHistory を日付順にソート（古い順）
     const sortedHistory = [...(master.implementationHistory || [])].sort(
-      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+      (a, b) => restoreDateOnly(a.date).getTime() - restoreDateOnly(b.date).getTime()
     );
 
     // 各履歴レコードにインデックスとラベルを付与
     sortedHistory.forEach((record: ImplementationRecord, index: number) => {
       const visitIndex = index + 1; // 1-based index
-      const date = new Date(record.date);
+      const date = restoreDateOnly(record.date);
 
       flattenedRecords.push({
         friendId,
@@ -57,8 +80,8 @@ export function flattenMasterData(masterData: Map<string, UserHistoryMaster>): F
         visitIndex,
         visitLabel: getVisitLabel(visitIndex),
         staff: record.staff || null,
-        createdAt: new Date(master.createdAt),
-        updatedAt: new Date(master.updatedAt),
+        createdAt: master.createdAt instanceof Date ? master.createdAt : new Date(master.createdAt),
+        updatedAt: master.updatedAt instanceof Date ? master.updatedAt : new Date(master.updatedAt),
       });
     });
   });
