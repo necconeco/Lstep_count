@@ -59,7 +59,8 @@ export type ViewType =
   | 'auditLog'
   | 'staffMaster'
   | 'cancelList'
-  | 'unassignedList';
+  | 'unassignedList'
+  | 'settings';
 
 export const SIDEBAR_WIDTH = 280;
 
@@ -370,7 +371,13 @@ export const Sidebar = ({ currentView, onViewChange, onUploadClick, mobileOpen, 
           <Divider sx={{ my: 1 }} />
 
           {/* 設定 */}
-          <ListItemButton>
+          <ListItemButton
+            selected={currentView === 'settings'}
+            onClick={() => {
+              onViewChange('settings');
+              if (isMobile) onMobileClose();
+            }}
+          >
             <ListItemIcon>
               <SettingsIcon />
             </ListItemIcon>

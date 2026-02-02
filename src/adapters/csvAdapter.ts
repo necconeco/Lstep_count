@@ -13,6 +13,7 @@
 
 import type { CsvRecord } from '../types';
 import type { CsvInputRecord, MasterCsvInputRecord } from '../domain';
+import { parseLocalDate } from '../domain';
 
 // ============================================================================
 // 日付パース
@@ -20,14 +21,25 @@ import type { CsvInputRecord, MasterCsvInputRecord } from '../domain';
 
 /**
  * 日付文字列をDateに変換（YYYY-MM-DD形式）
+ *
+ * 注意: new Date("YYYY-MM-DD") はUTCとして解釈されるため、
+ * 日本時間では前日になってしまう問題がある。
+ * parseLocalDateを使用してローカルタイムゾーンでパースする。
  */
 export function parseDate(dateStr: string): Date {
-  const parsed = new Date(dateStr);
-  if (isNaN(parsed.getTime())) {
-    console.warn(`[parseDate] Invalid date: ${dateStr}`);
+  // スラッシュをハイフンに正規化
+  const normalized = dateStr.replace(/\//g, '-').trim();
+
+  // YYYY-MM-DD形式を抽出（時刻部分があれば除去）
+  const dateOnly = normalized.split(/[T\s]/)[0];
+
+  if (!dateOnly || !/^\d{4}-\d{2}-\d{2}$/.test(dateOnly)) {
+    console.warn(`[parseDate] Invalid date format: ${dateStr}`);
     return new Date();
   }
-  return parsed;
+
+  // ローカルタイムゾーンでパース
+  return parseLocalDate(dateOnly);
 }
 
 /**

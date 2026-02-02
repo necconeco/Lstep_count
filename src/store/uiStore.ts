@@ -28,7 +28,7 @@ export type PeriodPreset = 'thisFiscalYear' | 'thisMonth' | 'lastMonth' | 'all' 
 /**
  * ビュータイプ
  */
-export type ViewType = 'history' | 'daily' | 'monthly' | 'campaign' | 'user';
+export type ViewType = 'history' | 'daily' | 'monthly' | 'campaign' | 'user' | 'settings';
 
 /**
  * フィルタプリセット

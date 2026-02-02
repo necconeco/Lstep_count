@@ -25,6 +25,7 @@ const CancelListView = lazy(() => import('./CancelListView').then(m => ({ defaul
 const UnassignedListView = lazy(() => import('./UnassignedListView').then(m => ({ default: m.UnassignedListView })));
 const CourseAggregationView = lazy(() => import('./CourseAggregationView').then(m => ({ default: m.CourseAggregationView })));
 const UserAggregationView = lazy(() => import('./UserAggregationView').then(m => ({ default: m.UserAggregationView })));
+const SettingsView = lazy(() => import('./SettingsView').then(m => ({ default: m.SettingsView })));
 
 // ローディングコンポーネント
 const LoadingFallback = () => (
@@ -82,6 +83,8 @@ export const MainContent = ({ currentView }: MainContentProps) => {
         {currentView === 'cancelList' && <CancelListView />}
 
         {currentView === 'unassignedList' && <UnassignedListView />}
+
+        {currentView === 'settings' && <SettingsView />}
       </Suspense>
     </Box>
   );
