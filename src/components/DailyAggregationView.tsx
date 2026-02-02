@@ -129,6 +129,7 @@ export const DailyAggregationView = () => {
   }, [filteredRecords, mergeSameDayReservations]);
 
   // 日別にグループ化して集計（スプレッドシート形式）
+  // カレンダー形式: 期間内の全日を表示（予約がない日も0で表示）
   const dailyData = useMemo<DailyData[]>(() => {
     const dayMap = new Map<string, typeof mergedRecords>();
 
@@ -144,9 +145,29 @@ export const DailyAggregationView = () => {
       dayMap.get(datePart)!.push(record);
     }
 
+    // 期間内の全日を生成
+    const { from, to } = effectivePeriod;
+    const allDates: string[] = [];
+
+    if (from && to) {
+      // 期間指定がある場合: fromからtoまでの全日を生成
+      const current = new Date(from);
+      const endDate = new Date(to);
+      while (current <= endDate) {
+        const dateStr = `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, '0')}-${String(current.getDate()).padStart(2, '0')}`;
+        allDates.push(dateStr);
+        current.setDate(current.getDate() + 1);
+      }
+    } else {
+      // 期間指定がない場合: データがある日のみ
+      allDates.push(...Array.from(dayMap.keys()));
+    }
+
     const result: DailyData[] = [];
 
-    for (const [dateSort, records] of dayMap) {
+    for (const dateSort of allDates) {
+      const records = dayMap.get(dateSort) || [];
+
       // 初回 vs 2回目以降を分類
       const firstRecords = records.filter(r => r.visitLabel === '初回');
       const repeatRecords = records.filter(r => r.visitLabel !== '初回');
@@ -176,7 +197,7 @@ export const DailyAggregationView = () => {
     result.sort((a, b) => a.dateSort.localeCompare(b.dateSort));
 
     return result;
-  }, [mergedRecords, dateBaseType, implementationRule]);
+  }, [mergedRecords, dateBaseType, implementationRule, effectivePeriod]);
 
   // 全体サマリー（TTL行用）
   const summary = useMemo(() => {
