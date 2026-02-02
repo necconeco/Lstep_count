@@ -125,11 +125,18 @@ export interface ReservationHistory {
   groupId: string | null; // 同日複数申込の統合ID（形式: friendId_YYYY-MM-DD）
   cancelReason: string | null; // キャンセル理由メモ（手動入力）
   cancelHandlingStatus: CancelHandlingStatus | null; // キャンセル対応ステータス（キャンセル時のみ）
+  selfReportedVisitType: SelfReportedVisitType; // 自己申告の利用回数（CSVの「キャリア相談のご利用回数」列）
 
   // メタ情報
   createdAt: Date;
   updatedAt: Date;
 }
+
+/**
+ * 自己申告の来店回数タイプ
+ * CSVの「キャリア相談のご利用回数を教えてください。」列の値
+ */
+export type SelfReportedVisitType = '初めて' | '2回目以上' | null;
 
 /**
  * CSVからの入力レコード（パース後）
@@ -147,6 +154,7 @@ export interface CsvInputRecord {
   wasOmakase: boolean; // おまかせ予約だったか
   course: string | null; // コース名
   reservationSlot: string | null; // 予約枠（G列の元データ）
+  selfReportedVisitType: SelfReportedVisitType; // 自己申告の利用回数（CSVの「キャリア相談のご利用回数」列）
 }
 
 // ============================================================================

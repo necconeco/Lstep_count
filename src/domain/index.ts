@@ -25,6 +25,7 @@ export type {
   CancelHandlingStatus,
   TargetDateType,
   ImplementationRule,
+  SelfReportedVisitType,
 
   // エンティティ
   ReservationHistory,

@@ -243,6 +243,7 @@ export function csvToHistory(
     groupId: existingGroupId, // 同日統合ID（既存を引き継ぐ）
     cancelReason: null, // キャンセル理由メモ（手動入力のみ）
     cancelHandlingStatus: null, // キャンセル対応ステータス（手動入力のみ）
+    selfReportedVisitType: csv.selfReportedVisitType, // 自己申告の利用回数（CSVの「キャリア相談のご利用回数」列）
     createdAt: now,
     updatedAt: now,
   };

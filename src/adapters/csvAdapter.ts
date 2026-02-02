@@ -12,8 +12,22 @@
  */
 
 import type { CsvRecord } from '../types';
-import type { CsvInputRecord, MasterCsvInputRecord } from '../domain';
+import type { CsvInputRecord, MasterCsvInputRecord, SelfReportedVisitType } from '../domain';
 import { parseLocalDate } from '../domain';
+
+// キャリア相談のご利用回数フィールド名
+const USAGE_COUNT_FIELD = 'キャリア相談のご利用回数を教えてください。';
+
+/**
+ * CSVの「キャリア相談のご利用回数」をSelfReportedVisitTypeに変換
+ */
+function parseSelfReportedVisitType(value: string | undefined): SelfReportedVisitType {
+  if (!value) return null;
+  const trimmed = value.trim();
+  if (trimmed === '初めて') return '初めて';
+  if (trimmed === '2回目以上') return '2回目以上';
+  return null;
+}
 
 // ============================================================================
 // 日付パース
@@ -78,6 +92,7 @@ export function toCsvInputRecord(record: CsvRecord): CsvInputRecord {
     wasOmakase: record.wasOmakase ?? false,
     course: (record['コース'] as string) || null,
     reservationSlot: (record['予約枠'] as string) || null,
+    selfReportedVisitType: parseSelfReportedVisitType(record[USAGE_COUNT_FIELD] as string | undefined),
   };
 }
 
