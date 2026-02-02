@@ -29,8 +29,6 @@ import { useUiStore } from '../store/uiStore';
 import {
   shouldCountAsImplemented,
   applySameDayMerge,
-  formatDate,
-  formatDateTime,
   parseLocalDate,
 } from '../domain';
 
@@ -66,12 +64,22 @@ export const DailyAggregationView = () => {
   );
 
   // 全履歴レコードを取得
+  // シンプルに: Dateからローカル日付文字列を直接生成（タイムゾーン変換なし）
   const allRecords = useMemo(() => {
-    return Array.from(histories.values()).map(history => ({
-      ...history,
-      sessionDateStr: formatDate(history.sessionDate),
-      applicationDateStr: formatDateTime(history.applicationDate),
-    }));
+    return Array.from(histories.values()).map(history => {
+      // sessionDateからローカル日付文字列を生成（getFullYear/Month/Dateはローカルタイムゾーン）
+      const sd = history.sessionDate;
+      const sessionDateStr = `${sd.getFullYear()}-${String(sd.getMonth() + 1).padStart(2, '0')}-${String(sd.getDate()).padStart(2, '0')}`;
+
+      const ad = history.applicationDate;
+      const applicationDateStr = `${ad.getFullYear()}-${String(ad.getMonth() + 1).padStart(2, '0')}-${String(ad.getDate()).padStart(2, '0')} ${String(ad.getHours()).padStart(2, '0')}:${String(ad.getMinutes()).padStart(2, '0')}`;
+
+      return {
+        ...history,
+        sessionDateStr,
+        applicationDateStr,
+      };
+    });
   }, [histories]);
 
   // 期間フィルタを適用
@@ -106,11 +114,18 @@ export const DailyAggregationView = () => {
       applicationDate: parseLocalDate(r.applicationDateStr.split(' ')[0] || r.applicationDateStr),
     }));
     const merged = applySameDayMerge(historiesForMerge, mergeSameDayReservations);
-    return merged.map(h => ({
-      ...h,
-      sessionDateStr: formatDate(h.sessionDate),
-      applicationDateStr: formatDateTime(h.applicationDate),
-    }));
+    // シンプルに: Dateからローカル日付文字列を直接生成
+    return merged.map(h => {
+      const sd = h.sessionDate;
+      const sessionDateStr = `${sd.getFullYear()}-${String(sd.getMonth() + 1).padStart(2, '0')}-${String(sd.getDate()).padStart(2, '0')}`;
+      const ad = h.applicationDate;
+      const applicationDateStr = `${ad.getFullYear()}-${String(ad.getMonth() + 1).padStart(2, '0')}-${String(ad.getDate()).padStart(2, '0')} ${String(ad.getHours()).padStart(2, '0')}:${String(ad.getMinutes()).padStart(2, '0')}`;
+      return {
+        ...h,
+        sessionDateStr,
+        applicationDateStr,
+      };
+    });
   }, [filteredRecords, mergeSameDayReservations]);
 
   // 日別にグループ化して集計（スプレッドシート形式）
