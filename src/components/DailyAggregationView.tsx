@@ -210,7 +210,7 @@ export const DailyAggregationView = () => {
     link.download = filename;
     link.click();
     URL.revokeObjectURL(url);
-  }, [dailyData, summary]);
+  }, [dailyData]);
 
   // データがない場合
   if (histories.size === 0) {
