@@ -70,7 +70,6 @@ export async function uploadToCloud(
   implementationMasters: Map<string, ImplementationMaster>
 ): Promise<void> {
   if (implementationMasters.size === 0) {
-    console.log('[uploadToCloud] No data to upload');
     return;
   }
 
@@ -107,7 +106,6 @@ export async function uploadToCloud(
       .select('*', { count: 'exact', head: true });
     syncStatus.cloudCount = count || 0;
 
-    console.log(`[uploadToCloud] Uploaded ${records.length} records`);
   } catch (error) {
     syncStatus.error = error instanceof Error ? error.message : '同期に失敗しました';
     console.error('[uploadToCloud] Error:', error);
@@ -152,7 +150,6 @@ export async function downloadFromCloud(): Promise<Map<string, Partial<Implement
     syncStatus.lastSyncedAt = new Date();
     syncStatus.cloudCount = masters.size;
 
-    console.log(`[downloadFromCloud] Downloaded ${masters.size} records`);
     return masters;
   } catch (error) {
     syncStatus.error = error instanceof Error ? error.message : 'ダウンロードに失敗しました';
@@ -186,7 +183,6 @@ export async function clearCloud(): Promise<void> {
     }
 
     syncStatus.cloudCount = 0;
-    console.log('[clearCloud] All cloud data cleared');
   } catch (error) {
     syncStatus.error = error instanceof Error ? error.message : '削除に失敗しました';
     console.error('[clearCloud] Error:', error);
