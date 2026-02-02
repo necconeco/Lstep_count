@@ -54,6 +54,14 @@ import { toCsvInputRecord, generateAuditLogId, generateGroupId } from '../adapte
  * @param isDateOnly trueの場合は日付部分のみ抽出してローカルタイムゾーンで復元
  */
 function restoreDate(dateValue: string | Date, isDateOnly: boolean = false): Date {
+  if (isDateOnly && dateValue instanceof Date) {
+    // Dateオブジェクトの場合は、ローカル時間で年月日を取得
+    const year = dateValue.getFullYear();
+    const month = String(dateValue.getMonth() + 1).padStart(2, '0');
+    const day = String(dateValue.getDate()).padStart(2, '0');
+    return parseLocalDate(`${year}-${month}-${day}`);
+  }
+
   const str = typeof dateValue === 'string' ? dateValue : dateValue.toISOString();
 
   if (isDateOnly) {

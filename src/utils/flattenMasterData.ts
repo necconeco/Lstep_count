@@ -12,13 +12,11 @@ import { parseLocalDate } from '../domain';
  */
 function restoreDateOnly(dateValue: Date | string): Date {
   if (dateValue instanceof Date) {
-    // すでにDateの場合、ISOStringから日付部分を取得してローカルで再解釈
-    const str = dateValue.toISOString();
-    const datePart = str.split('T')[0];
-    if (datePart && /^\d{4}-\d{2}-\d{2}$/.test(datePart)) {
-      return parseLocalDate(datePart);
-    }
-    return dateValue;
+    // すでにDateの場合、ローカル時間で年月日を取得
+    const year = dateValue.getFullYear();
+    const month = String(dateValue.getMonth() + 1).padStart(2, '0');
+    const day = String(dateValue.getDate()).padStart(2, '0');
+    return parseLocalDate(`${year}-${month}-${day}`);
   }
   // 文字列の場合
   const datePart = String(dateValue).split('T')[0];

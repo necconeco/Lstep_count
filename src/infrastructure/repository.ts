@@ -171,7 +171,15 @@ async function openDatabase(): Promise<IDBDatabase> {
  * sessionDateは日付のみなのでローカルタイムゾーンで復元
  */
 function restoreDateOnly(dateValue: string | Date): Date {
-  const str = typeof dateValue === 'string' ? dateValue : dateValue.toISOString();
+  if (dateValue instanceof Date) {
+    // すでにDateオブジェクトの場合は、ローカル時間で年月日を取得
+    const year = dateValue.getFullYear();
+    const month = String(dateValue.getMonth() + 1).padStart(2, '0');
+    const day = String(dateValue.getDate()).padStart(2, '0');
+    return parseLocalDate(`${year}-${month}-${day}`);
+  }
+  // 文字列の場合
+  const str = String(dateValue);
   const datePart = str.split('T')[0];
   if (datePart && /^\d{4}-\d{2}-\d{2}$/.test(datePart)) {
     return parseLocalDate(datePart);
