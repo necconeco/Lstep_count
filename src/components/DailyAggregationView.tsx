@@ -1,8 +1,9 @@
 /**
  * 日次集計ビューコンポーネント
  *
- * - 日ごとの集計テーブルを表示
- * - 初回/2回目以降でシンプルに集計
+ * スプレッドシート形式で表示:
+ * - 初回予約/初回実施/2回目以降予約/2回目以降実施
+ * - TTL（合計）行 + 日別行
  * - CSV DL機能付き
  */
 import { useMemo, useCallback } from 'react';
@@ -16,36 +17,33 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Chip,
   Alert,
   Button,
 } from '@mui/material';
 import {
   Today as TodayIcon,
-  TrendingUp as TrendingUpIcon,
   Download as DownloadIcon,
 } from '@mui/icons-material';
 import { useHistoryStore } from '../store/historyStore';
-import { useUiStore, DATE_BASE_TYPE_LABELS, PERIOD_PRESET_LABELS } from '../store/uiStore';
+import { useUiStore } from '../store/uiStore';
 import {
   shouldCountAsImplemented,
   applySameDayMerge,
   formatDate,
   formatDateTime,
   parseLocalDate,
-  IMPLEMENTATION_RULE_LABELS,
 } from '../domain';
 
 /**
- * 日次集計の1行分のデータ
+ * 日次集計の1行分のデータ（スプレッドシート形式）
  */
 interface DailyData {
-  date: string; // yyyy-MM-dd形式
-  totalCount: number;
-  implementedCount: number;
-  cancelCount: number;
-  firstVisitCount: number;
-  repeatVisitCount: number; // 2回目以降
+  date: string; // MM/dd形式（表示用）
+  dateSort: string; // yyyy-MM-dd形式（ソート用）
+  firstReservation: number; // 初回予約
+  firstImplementation: number; // 初回実施
+  repeatReservation: number; // 2回目以降予約
+  repeatImplementation: number; // 2回目以降実施
 }
 
 export const DailyAggregationView = () => {
@@ -115,7 +113,7 @@ export const DailyAggregationView = () => {
     }));
   }, [filteredRecords, mergeSameDayReservations]);
 
-  // 日別にグループ化して集計
+  // 日別にグループ化して集計（スプレッドシート形式）
   const dailyData = useMemo<DailyData[]>(() => {
     const dayMap = new Map<string, typeof mergedRecords>();
 
@@ -133,56 +131,50 @@ export const DailyAggregationView = () => {
 
     const result: DailyData[] = [];
 
-    for (const [date, records] of dayMap) {
-      const implementedRecords = records.filter(r => shouldCountAsImplemented(r, implementationRule));
+    for (const [dateSort, records] of dayMap) {
+      // 初回 vs 2回目以降を分類
+      const firstRecords = records.filter(r => r.visitLabel === '初回');
+      const repeatRecords = records.filter(r => r.visitLabel !== '初回');
+
+      // 予約 = キャンセルではないもの（ステータスが予約済み）
+      // 実施 = shouldCountAsImplemented
+      const firstReservation = firstRecords.filter(r => r.status === '予約済み').length;
+      const firstImplementation = firstRecords.filter(r => shouldCountAsImplemented(r, implementationRule)).length;
+      const repeatReservation = repeatRecords.filter(r => r.status === '予約済み').length;
+      const repeatImplementation = repeatRecords.filter(r => shouldCountAsImplemented(r, implementationRule)).length;
+
+      // MM/dd形式に変換
+      const parts = dateSort.split('-');
+      const displayDate = parts.length >= 3 ? `${parts[1]}/${parts[2]}` : dateSort;
 
       result.push({
-        date,
-        totalCount: records.length,
-        implementedCount: implementedRecords.length,
-        cancelCount: records.filter(r => r.status === 'キャンセル済み' && !shouldCountAsImplemented(r, implementationRule))
-          .length,
-        firstVisitCount: implementedRecords.filter(r => r.visitLabel === '初回').length,
-        repeatVisitCount: implementedRecords.filter(r => r.visitLabel !== '初回').length,
+        date: displayDate,
+        dateSort,
+        firstReservation,
+        firstImplementation,
+        repeatReservation,
+        repeatImplementation,
       });
     }
 
-    // 日付順にソート（降順: 新しい日が上）
-    result.sort((a, b) => b.date.localeCompare(a.date));
+    // 日付順にソート（昇順: 古い日が上）
+    result.sort((a, b) => a.dateSort.localeCompare(b.dateSort));
 
     return result;
   }, [mergedRecords, dateBaseType, implementationRule]);
 
-  // 全体サマリー
+  // 全体サマリー（TTL行用）
   const summary = useMemo(() => {
     return {
-      dayCount: dailyData.length,
-      totalCount: dailyData.reduce((sum, d) => sum + d.totalCount, 0),
-      implementedCount: dailyData.reduce((sum, d) => sum + d.implementedCount, 0),
-      cancelCount: dailyData.reduce((sum, d) => sum + d.cancelCount, 0),
-      firstVisitCount: dailyData.reduce((sum, d) => sum + d.firstVisitCount, 0),
-      repeatVisitCount: dailyData.reduce((sum, d) => sum + d.repeatVisitCount, 0),
+      firstReservation: dailyData.reduce((sum, d) => sum + d.firstReservation, 0),
+      firstImplementation: dailyData.reduce((sum, d) => sum + d.firstImplementation, 0),
+      repeatReservation: dailyData.reduce((sum, d) => sum + d.repeatReservation, 0),
+      repeatImplementation: dailyData.reduce((sum, d) => sum + d.repeatImplementation, 0),
     };
   }, [dailyData]);
 
-  // 期間表示用フォーマット
-  const periodLabel = useMemo(() => {
-    const { from, to } = effectivePeriod;
-    if (!from && !to) return '全期間';
-
-    const formatPeriodDate = (date: Date | null) => {
-      if (!date) return '';
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const day = String(date.getDate()).padStart(2, '0');
-      return `${year}-${month}-${day}`;
-    };
-
-    return `${formatPeriodDate(from)} 〜 ${formatPeriodDate(to)}`;
-  }, [effectivePeriod]);
-
   /**
-   * CSVダウンロード
+   * CSVダウンロード（スプレッドシート形式）
    */
   const handleDownloadCSV = useCallback(() => {
     if (dailyData.length === 0) {
@@ -190,30 +182,18 @@ export const DailyAggregationView = () => {
       return;
     }
 
-    // 日本語ヘッダー
-    const header = '日付,総件数,実施,キャンセル,初回,2回目以降,実施率';
+    // ヘッダー（スプレッドシートと同じ列名）
+    const header = '日付,初回予約,初回実施,2回目以降予約,2回目以降実施';
+
+    // TTL行（合計）を先頭に
+    const ttlRow = ['TTL', summary.firstReservation, summary.firstImplementation, summary.repeatReservation, summary.repeatImplementation].join(',');
 
     // データ行
     const rows = dailyData.map(row => {
-      const rate = row.totalCount > 0 ? Math.round((row.implementedCount / row.totalCount) * 100) : 0;
-      return [row.date, row.totalCount, row.implementedCount, row.cancelCount, row.firstVisitCount, row.repeatVisitCount, `${rate}%`].join(
-        ','
-      );
+      return [row.date, row.firstReservation, row.firstImplementation, row.repeatReservation, row.repeatImplementation].join(',');
     });
 
-    // 合計行
-    const totalRate = summary.totalCount > 0 ? Math.round((summary.implementedCount / summary.totalCount) * 100) : 0;
-    const totalRow = [
-      '合計',
-      summary.totalCount,
-      summary.implementedCount,
-      summary.cancelCount,
-      summary.firstVisitCount,
-      summary.repeatVisitCount,
-      `${totalRate}%`,
-    ].join(',');
-
-    const csv = [header, ...rows, totalRow].join('\n');
+    const csv = [header, ttlRow, ...rows].join('\n');
 
     // BOM付きUTF-8でダウンロード
     const bom = '\uFEFF';
@@ -225,9 +205,6 @@ export const DailyAggregationView = () => {
       now.getFullYear(),
       String(now.getMonth() + 1).padStart(2, '0'),
       String(now.getDate()).padStart(2, '0'),
-      '-',
-      String(now.getHours()).padStart(2, '0'),
-      String(now.getMinutes()).padStart(2, '0'),
     ].join('');
     const filename = `日次集計_${timestamp}.csv`;
 
@@ -259,7 +236,8 @@ export const DailyAggregationView = () => {
           日次集計
         </Typography>
         <Button
-          variant="outlined"
+          variant="contained"
+          color="primary"
           startIcon={<DownloadIcon />}
           onClick={handleDownloadCSV}
           disabled={dailyData.length === 0}
@@ -270,27 +248,9 @@ export const DailyAggregationView = () => {
 
       {/* サマリー */}
       <Alert severity="info" sx={{ mb: 3 }}>
-        <Box sx={{ mb: 1 }}>
-          <Typography variant="body2" component="span">
-            <strong>集計条件:</strong>{' '}
-            <Chip size="small" label={`基準: ${DATE_BASE_TYPE_LABELS[dateBaseType]}`} sx={{ mr: 0.5 }} />
-            <Chip size="small" label={PERIOD_PRESET_LABELS[periodPreset]} color="primary" variant="outlined" sx={{ mr: 0.5 }} />
-            <Chip
-              size="small"
-              label={`実施: ${IMPLEMENTATION_RULE_LABELS[implementationRule]}`}
-              color={implementationRule === 'strict' ? 'default' : 'success'}
-              variant="outlined"
-              sx={{ mr: 0.5 }}
-            />
-            <Typography variant="caption" color="text.secondary">
-              （{periodLabel}）
-            </Typography>
-          </Typography>
-        </Box>
         <Typography variant="body2">
-          <strong>表示日数:</strong> {summary.dayCount}日 |<strong> 総件数:</strong> {summary.totalCount}件 |
-          <strong> 実施:</strong> {summary.implementedCount}件（初回: {summary.firstVisitCount} / 2回目以降:{' '}
-          {summary.repeatVisitCount}）|<strong> キャンセル:</strong> {summary.cancelCount}件
+          <strong>初回:</strong> 予約 {summary.firstReservation}件 → 実施 {summary.firstImplementation}件 |
+          <strong> 2回目以降:</strong> 予約 {summary.repeatReservation}件 → 実施 {summary.repeatImplementation}件
         </Typography>
       </Alert>
 
@@ -298,102 +258,67 @@ export const DailyAggregationView = () => {
         <Alert severity="warning">指定された期間内にデータがありません。</Alert>
       ) : (
         <Paper elevation={2} sx={{ p: 3 }}>
-          <TableContainer sx={{ maxHeight: 500 }}>
+          <TableContainer sx={{ maxHeight: 600 }}>
             <Table size="small" stickyHeader>
               <TableHead>
                 <TableRow>
-                  <TableCell>日付</TableCell>
-                  <TableCell align="right">総件数</TableCell>
-                  <TableCell align="right">
-                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 0.5 }}>
-                      <TrendingUpIcon fontSize="small" color="success" />
-                      実施
-                    </Box>
+                  <TableCell sx={{ fontWeight: 'bold', bgcolor: 'grey.100' }}>日付</TableCell>
+                  <TableCell align="right" sx={{ fontWeight: 'bold', bgcolor: 'success.light', color: 'white' }}>
+                    初回予約
                   </TableCell>
-                  <TableCell align="right">キャンセル</TableCell>
-                  <TableCell align="right">初回</TableCell>
-                  <TableCell align="right">2回目以降</TableCell>
-                  <TableCell align="right">実施率</TableCell>
+                  <TableCell align="right" sx={{ fontWeight: 'bold', bgcolor: 'success.main', color: 'white' }}>
+                    初回実施
+                  </TableCell>
+                  <TableCell align="right" sx={{ fontWeight: 'bold', bgcolor: 'info.light', color: 'white' }}>
+                    2回目以降予約
+                  </TableCell>
+                  <TableCell align="right" sx={{ fontWeight: 'bold', bgcolor: 'info.main', color: 'white' }}>
+                    2回目以降実施
+                  </TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {dailyData.map(row => {
-                  const rate = row.totalCount > 0 ? Math.round((row.implementedCount / row.totalCount) * 100) : 0;
-
-                  return (
-                    <TableRow key={row.date} hover>
-                      <TableCell>
-                        <Typography variant="body2" fontWeight="bold">
-                          {row.date}
-                        </Typography>
-                      </TableCell>
-                      <TableCell align="right">{row.totalCount}</TableCell>
-                      <TableCell align="right">
-                        <Typography variant="body2" fontWeight="bold" color="success.main">
-                          {row.implementedCount}
-                        </Typography>
-                      </TableCell>
-                      <TableCell align="right">
-                        <Typography variant="body2" color="error.main">
-                          {row.cancelCount}
-                        </Typography>
-                      </TableCell>
-                      <TableCell align="right">{row.firstVisitCount}</TableCell>
-                      <TableCell align="right">{row.repeatVisitCount}</TableCell>
-                      <TableCell align="right">
-                        <Chip
-                          size="small"
-                          label={`${rate}%`}
-                          color={rate >= 80 ? 'success' : rate >= 50 ? 'warning' : 'error'}
-                          variant="outlined"
-                          sx={{ height: 18, fontSize: '0.65rem' }}
-                        />
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-
-                {/* 合計行 */}
-                <TableRow sx={{ bgcolor: 'grey.100' }}>
+                {/* TTL行（合計）を先頭に */}
+                <TableRow sx={{ bgcolor: 'grey.200' }}>
                   <TableCell>
                     <Typography variant="body2" fontWeight="bold">
-                      合計
+                      TTL
                     </Typography>
                   </TableCell>
                   <TableCell align="right">
-                    <Typography variant="body2" fontWeight="bold">
-                      {summary.totalCount}
+                    <Typography variant="body2" fontWeight="bold" color="success.dark">
+                      {summary.firstReservation}
                     </Typography>
                   </TableCell>
                   <TableCell align="right">
-                    <Typography variant="body2" fontWeight="bold" color="success.main">
-                      {summary.implementedCount}
+                    <Typography variant="body2" fontWeight="bold" color="success.dark">
+                      {summary.firstImplementation}
                     </Typography>
                   </TableCell>
                   <TableCell align="right">
-                    <Typography variant="body2" fontWeight="bold" color="error.main">
-                      {summary.cancelCount}
+                    <Typography variant="body2" fontWeight="bold" color="info.dark">
+                      {summary.repeatReservation}
                     </Typography>
                   </TableCell>
                   <TableCell align="right">
-                    <Typography variant="body2" fontWeight="bold">
-                      {summary.firstVisitCount}
+                    <Typography variant="body2" fontWeight="bold" color="info.dark">
+                      {summary.repeatImplementation}
                     </Typography>
-                  </TableCell>
-                  <TableCell align="right">
-                    <Typography variant="body2" fontWeight="bold">
-                      {summary.repeatVisitCount}
-                    </Typography>
-                  </TableCell>
-                  <TableCell align="right">
-                    <Chip
-                      size="small"
-                      label={`${summary.totalCount > 0 ? Math.round((summary.implementedCount / summary.totalCount) * 100) : 0}%`}
-                      color="primary"
-                      sx={{ height: 18, fontSize: '0.65rem' }}
-                    />
                   </TableCell>
                 </TableRow>
+
+                {/* 日別データ */}
+                {dailyData.map(row => (
+                  <TableRow key={row.dateSort} hover>
+                    <TableCell>
+                      <Typography variant="body2">{row.date}</Typography>
+                    </TableCell>
+                    <TableCell align="right">{row.firstReservation}</TableCell>
+                    <TableCell align="right">{row.firstImplementation}</TableCell>
+                    <TableCell align="right">{row.repeatReservation}</TableCell>
+                    <TableCell align="right">{row.repeatImplementation}</TableCell>
+                  </TableRow>
+                ))}
               </TableBody>
             </Table>
           </TableContainer>
