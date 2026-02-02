@@ -194,9 +194,9 @@ export const DailyAggregationView = () => {
       const firstSessionRecords = sessionRecords.filter(r => r.visitLabel === '初回');
       const repeatSessionRecords = sessionRecords.filter(r => r.visitLabel !== '初回');
 
-      // 予約 = 申込日ベースで、ステータスが予約済み
-      const firstReservation = firstApplicationRecords.filter(r => r.status === '予約済み').length;
-      const repeatReservation = repeatApplicationRecords.filter(r => r.status === '予約済み').length;
+      // 予約 = 申込日ベースで、全ての申込をカウント（キャンセル含む）
+      const firstReservation = firstApplicationRecords.length;
+      const repeatReservation = repeatApplicationRecords.length;
 
       // 実施 = 実施日ベースで、shouldCountAsImplemented
       const firstImplementation = firstSessionRecords.filter(r => shouldCountAsImplemented(r, implementationRule)).length;
