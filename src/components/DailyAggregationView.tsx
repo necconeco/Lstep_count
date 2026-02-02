@@ -185,15 +185,12 @@ export const DailyAggregationView = () => {
     // ヘッダー（スプレッドシートと同じ列名）
     const header = '日付,初回予約,初回実施,2回目以降予約,2回目以降実施';
 
-    // TTL行（合計）を先頭に
-    const ttlRow = ['TTL', summary.firstReservation, summary.firstImplementation, summary.repeatReservation, summary.repeatImplementation].join(',');
-
     // データ行
     const rows = dailyData.map(row => {
       return [row.date, row.firstReservation, row.firstImplementation, row.repeatReservation, row.repeatImplementation].join(',');
     });
 
-    const csv = [header, ttlRow, ...rows].join('\n');
+    const csv = [header, ...rows].join('\n');
 
     // BOM付きUTF-8でダウンロード
     const bom = '\uFEFF';
@@ -278,36 +275,6 @@ export const DailyAggregationView = () => {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {/* TTL行（合計）を先頭に */}
-                <TableRow sx={{ bgcolor: 'grey.200' }}>
-                  <TableCell>
-                    <Typography variant="body2" fontWeight="bold">
-                      TTL
-                    </Typography>
-                  </TableCell>
-                  <TableCell align="right">
-                    <Typography variant="body2" fontWeight="bold" color="success.dark">
-                      {summary.firstReservation}
-                    </Typography>
-                  </TableCell>
-                  <TableCell align="right">
-                    <Typography variant="body2" fontWeight="bold" color="success.dark">
-                      {summary.firstImplementation}
-                    </Typography>
-                  </TableCell>
-                  <TableCell align="right">
-                    <Typography variant="body2" fontWeight="bold" color="info.dark">
-                      {summary.repeatReservation}
-                    </Typography>
-                  </TableCell>
-                  <TableCell align="right">
-                    <Typography variant="body2" fontWeight="bold" color="info.dark">
-                      {summary.repeatImplementation}
-                    </Typography>
-                  </TableCell>
-                </TableRow>
-
-                {/* 日別データ */}
                 {dailyData.map(row => (
                   <TableRow key={row.dateSort} hover>
                     <TableCell>
