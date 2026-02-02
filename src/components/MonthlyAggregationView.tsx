@@ -116,10 +116,11 @@ export const MonthlyAggregationView = () => {
   // 同日統合を適用
   const mergedRecords = useMemo(() => {
     // ReservationHistory型に変換して統合を適用
+    // sessionDateStrは日付のみなのでparseLocalDateでタイムゾーン対応
     const historiesForMerge = filteredRecords.map(r => ({
       ...r,
-      sessionDate: new Date(r.sessionDateStr),
-      applicationDate: new Date(r.applicationDateStr),
+      sessionDate: parseLocalDate(r.sessionDateStr.split(' ')[0] || r.sessionDateStr),
+      applicationDate: parseLocalDate(r.applicationDateStr.split(' ')[0] || r.applicationDateStr),
     }));
     const merged = applySameDayMerge(historiesForMerge, mergeSameDayReservations);
     // 元の形式に戻す

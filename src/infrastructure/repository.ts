@@ -20,6 +20,7 @@ import type {
   AggregationSnapshot,
   SnapshotFolder,
 } from '../domain';
+import { parseLocalDate } from '../domain';
 
 // ============================================================================
 // 定数
@@ -165,11 +166,24 @@ async function openDatabase(): Promise<IDBDatabase> {
 // Date復元ヘルパー
 // ============================================================================
 
+/**
+ * 日付復元ヘルパー（タイムゾーン対応）
+ * sessionDateは日付のみなのでローカルタイムゾーンで復元
+ */
+function restoreDateOnly(dateValue: string | Date): Date {
+  const str = typeof dateValue === 'string' ? dateValue : dateValue.toISOString();
+  const datePart = str.split('T')[0];
+  if (datePart && /^\d{4}-\d{2}-\d{2}$/.test(datePart)) {
+    return parseLocalDate(datePart);
+  }
+  return new Date(str);
+}
+
 function restoreHistoryDates(record: ReservationHistory): ReservationHistory {
   return {
     ...record,
-    sessionDate: new Date(record.sessionDate),
-    applicationDate: new Date(record.applicationDate),
+    sessionDate: restoreDateOnly(record.sessionDate), // 日付のみ（タイムゾーン対応）
+    applicationDate: new Date(record.applicationDate), // タイムスタンプ付き
     createdAt: new Date(record.createdAt),
     updatedAt: new Date(record.updatedAt),
   };

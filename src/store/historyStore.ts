@@ -33,10 +33,40 @@ import {
   flatRecordsToCSV,
   getVisitLabel,
   formatDate,
+  parseLocalDate,
 } from '../domain';
 import * as repository from '../infrastructure';
 import { broadcastSync, onSyncMessage, initTabSync, type SyncMessage } from '../utils/tabSync';
 import { toCsvInputRecord, generateAuditLogId, generateGroupId } from '../adapters';
+
+// ============================================================================
+// ヘルパー関数
+// ============================================================================
+
+/**
+ * JSON/IndexedDBから復元した日付をローカルタイムゾーンで正しく復元
+ *
+ * JSON.stringifyでDateは ISO文字列（例: "2025-02-01T00:00:00.000Z"）になる。
+ * new Date()でこれをパースするとUTCとして解釈され、
+ * 日本時間では前日の23時になってしまう問題を解決する。
+ *
+ * @param dateValue ISO文字列、Date、または日付文字列
+ * @param isDateOnly trueの場合は日付部分のみ抽出してローカルタイムゾーンで復元
+ */
+function restoreDate(dateValue: string | Date, isDateOnly: boolean = false): Date {
+  const str = typeof dateValue === 'string' ? dateValue : dateValue.toISOString();
+
+  if (isDateOnly) {
+    // YYYY-MM-DD部分のみ抽出してローカルタイムゾーンで復元
+    const datePart = str.split('T')[0];
+    if (datePart && /^\d{4}-\d{2}-\d{2}$/.test(datePart)) {
+      return parseLocalDate(datePart);
+    }
+  }
+
+  // タイムスタンプ付きの日時はそのままnew Dateで復元
+  return new Date(str);
+}
 
 // ============================================================================
 // ストア型定義
@@ -481,12 +511,13 @@ export const useHistoryStore = create<HistoryStoreState>((set, get) => ({
       }
 
       // 日付文字列をDateオブジェクトに変換
+      // sessionDateは日付のみなのでローカルタイムゾーンで復元（タイムゾーンずれ防止）
       const restoredHistories = new Map<string, ReservationHistory>();
       for (const h of histories) {
         const restored: ReservationHistory = {
           ...h,
-          sessionDate: new Date(h.sessionDate),
-          applicationDate: new Date(h.applicationDate),
+          sessionDate: restoreDate(h.sessionDate, true), // 日付のみ（タイムゾーン対応）
+          applicationDate: new Date(h.applicationDate), // タイムスタンプ付き
           createdAt: new Date(h.createdAt),
           updatedAt: new Date(h.updatedAt),
         };
