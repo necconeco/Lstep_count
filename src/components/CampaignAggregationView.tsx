@@ -67,9 +67,9 @@ import {
 } from 'recharts';
 import { useHistoryStore } from '../store/historyStore';
 import { useUiStore } from '../store/uiStore';
-import type { CampaignMaster, TargetDateType, ReservationHistory, ImplementationRule } from '../domain/types';
-import { shouldCountAsImplemented, getCancelTiming, applySameDayMerge } from '../domain/logic';
-import * as repository from '../infrastructure/repository';
+import type { CampaignMaster, TargetDateType, ReservationHistory, ImplementationRule } from '../domain';
+import { shouldCountAsImplemented, getCancelTiming, applySameDayMerge } from '../domain';
+import * as repository from '../infrastructure';
 
 // ============================================================================
 // 型定義

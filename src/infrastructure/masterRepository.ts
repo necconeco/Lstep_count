@@ -3,7 +3,7 @@
  * IndexedDB入出力（2系統ストア: フル履歴マスター / 実施マスター）
  */
 
-import type { FullHistoryMaster, ImplementationMaster } from '../domain/masterTypes';
+import type { FullHistoryMaster, ImplementationMaster } from '../domain';
 
 const DB_NAME = 'lstep-aggregation-db';
 const DB_VERSION = 3; // バージョン3に変更（2系統ストア対応）

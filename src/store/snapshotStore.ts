@@ -9,8 +9,8 @@
  */
 
 import { create } from 'zustand';
-import type { AggregationSnapshot, SnapshotFolder, SnapshotType, TargetDateType } from '../domain/types';
-import * as repository from '../infrastructure/repository';
+import type { AggregationSnapshot, SnapshotFolder, SnapshotType, TargetDateType } from '../domain';
+import * as repository from '../infrastructure';
 
 // ============================================================================
 // ストア型定義

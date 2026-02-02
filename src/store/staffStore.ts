@@ -8,8 +8,8 @@
  */
 
 import { create } from 'zustand';
-import type { StaffMaster } from '../domain/types';
-import * as repository from '../infrastructure/repository';
+import type { StaffMaster } from '../domain';
+import * as repository from '../infrastructure';
 
 // ============================================================================
 // ストア型定義

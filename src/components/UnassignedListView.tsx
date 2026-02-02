@@ -39,9 +39,8 @@ import {
 import { useHistoryStore } from '../store/historyStore';
 import { useUiStore, DATE_BASE_TYPE_LABELS, PERIOD_PRESET_LABELS } from '../store/uiStore';
 import { ReservationDetailDrawer } from './ReservationDetailDrawer';
-import { historyToFlatRecord, parseLocalDate } from '../domain/logic';
-import type { FlatRecord } from '../domain/types';
-import { OFFICIAL_STAFF_MEMBERS } from '../domain/staffMasterData';
+import { historyToFlatRecord, parseLocalDate, OFFICIAL_STAFF_MEMBERS } from '../domain';
+import type { FlatRecord } from '../domain';
 
 /**
  * 除外ステータスフィルタの種類

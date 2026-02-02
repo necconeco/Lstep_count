@@ -1,9 +1,9 @@
 /**
  * 要確認リストコンポーネント
  * 3パターンの要確認レコードを表示 + CSV出力
- * 詳細ステータスの編集はCsvDataTableコンポーネントで実施
+ * パターン2からの実施変更機能付き
  */
-import { useEffect } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import {
   Box,
   Typography,
@@ -20,20 +20,62 @@ import {
   TableRow,
   Paper,
   Button,
+  Tooltip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
 } from '@mui/material';
-import { Warning as WarningIcon, ExpandMore as ExpandMoreIcon, Download as DownloadIcon } from '@mui/icons-material';
+import {
+  Warning as WarningIcon,
+  ExpandMore as ExpandMoreIcon,
+  Download as DownloadIcon,
+  CheckCircle as CheckCircleIcon,
+} from '@mui/icons-material';
 import { useReviewStore } from '../store/reviewStore';
 import { useCsvStore } from '../store/csvStore';
 import { useMasterStore } from '../store/masterStore';
 import { exportToCSV } from '../utils/csvExporter';
 import { exportDailySpreadsheetCSV } from '../utils/dailySpreadsheetExporter';
 import { autoPopulateUsageCount } from '../utils/dataAggregator';
-import type { CsvRecord } from '../types';
+import type { CsvRecord, ReviewRecord } from '../types';
 
 export const ReviewList = () => {
   const { reviewRecords, detectReviewRecords } = useReviewStore();
-  const { csvData, selectedMonth, getFilteredData } = useCsvStore();
+  const { csvData, selectedMonth, getFilteredData, updateRecord } = useCsvStore();
   const { masterData } = useMasterStore();
+
+  // 保存メッセージ
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  // 実施変更確認ダイアログ
+  const [confirmDialog, setConfirmDialog] = useState<{
+    open: boolean;
+    record: ReviewRecord | null;
+  }>({ open: false, record: null });
+
+  // 実施変更確認ダイアログを開く
+  const handleOpenConfirmDialog = useCallback((review: ReviewRecord) => {
+    setConfirmDialog({ open: true, record: review });
+  }, []);
+
+  // 実施変更確認ダイアログを閉じる
+  const handleCloseConfirmDialog = useCallback(() => {
+    setConfirmDialog({ open: false, record: null });
+  }, []);
+
+  // 実施に変更（来店/来場を「済み」に変更）
+  const handleChangeToImplemented = useCallback(() => {
+    if (confirmDialog.record) {
+      updateRecord(confirmDialog.record.record.予約ID, {
+        '来店/来場': '済み',
+        手動実施変更: true,
+      });
+      setSaveMessage(`${confirmDialog.record.record.名前}さんを実施済みに変更しました`);
+      setTimeout(() => setSaveMessage(null), 3000);
+    }
+    handleCloseConfirmDialog();
+  }, [confirmDialog.record, updateRecord, handleCloseConfirmDialog]);
 
   // 重要: csvDataまたはselectedMonthが更新されたら、reviewRecordsも自動的に再検出
   useEffect(() => {
@@ -123,8 +165,14 @@ export const ReviewList = () => {
         </Box>
       </Box>
 
+      {saveMessage && (
+        <Alert severity="success" sx={{ mb: 2 }}>
+          {saveMessage}
+        </Alert>
+      )}
+
       <Alert severity="info" sx={{ mb: 2 }}>
-        データの不整合や確認が必要なレコードが検出されました。詳細ステータスの編集は上部の「CSVデータ一覧」から行えます。
+        データの不整合や確認が必要なレコードが検出されました。パターン2からは直接「実施済み」に変更できます。
       </Alert>
 
       {/* パターン1: データ不整合 */}
@@ -182,7 +230,7 @@ export const ReviewList = () => {
           <AccordionSummary expandIcon={<ExpandMoreIcon />}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, width: '100%' }}>
               <Typography variant="subtitle1" fontWeight="bold">
-                パターン2: 未来日予約
+                パターン2: 未来日予約 / 入力漏れ
               </Typography>
               <Chip label={`${pattern2Records.length}件`} color="warning" size="small" />
               <Typography variant="caption" color="text.secondary" sx={{ ml: 'auto' }}>
@@ -191,6 +239,9 @@ export const ReviewList = () => {
             </Box>
           </AccordionSummary>
           <AccordionDetails>
+            <Alert severity="warning" sx={{ mb: 2 }}>
+              相談員が「来店/来場」の入力を忘れた場合は、「実施」ボタンで実施済みに変更できます。
+            </Alert>
             <TableContainer component={Paper} variant="outlined">
               <Table size="small">
                 <TableHead>
@@ -199,8 +250,10 @@ export const ReviewList = () => {
                     <TableCell>予約日</TableCell>
                     <TableCell>申し込み日時</TableCell>
                     <TableCell>名前</TableCell>
+                    <TableCell>担当者</TableCell>
                     <TableCell>詳細ステータス</TableCell>
                     <TableCell>確認理由</TableCell>
+                    <TableCell sx={{ width: 100 }}>操作</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -210,11 +263,25 @@ export const ReviewList = () => {
                       <TableCell>{review.record.予約日}</TableCell>
                       <TableCell>{review.record.申込日時}</TableCell>
                       <TableCell>{review.record.名前}</TableCell>
+                      <TableCell>{review.record.担当者 || '-'}</TableCell>
                       <TableCell>{getStatusChip(review.record)}</TableCell>
                       <TableCell>
                         <Typography variant="caption" color="warning.main">
                           {review.reason}
                         </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Tooltip title="実施済みに変更（相談員の入力漏れを補完）">
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            color="success"
+                            startIcon={<CheckCircleIcon />}
+                            onClick={() => handleOpenConfirmDialog(review)}
+                          >
+                            実施
+                          </Button>
+                        </Tooltip>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -267,6 +334,31 @@ export const ReviewList = () => {
           </AccordionDetails>
         </Accordion>
       )}
+
+      {/* 実施変更確認ダイアログ */}
+      <Dialog open={confirmDialog.open} onClose={handleCloseConfirmDialog}>
+        <DialogTitle>実施済みに変更しますか？</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            {confirmDialog.record && (
+              <>
+                <strong>{confirmDialog.record.record.名前}</strong>さん（予約日:{' '}
+                {confirmDialog.record.record.予約日}）を実施済みに変更します。
+                <br />
+                <br />
+                この操作は、相談員が「来店/来場」の入力を忘れた場合に使用してください。
+                変更後は集計に「実施」としてカウントされます。
+              </>
+            )}
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseConfirmDialog}>キャンセル</Button>
+          <Button variant="contained" color="success" onClick={handleChangeToImplemented}>
+            実施済みに変更
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

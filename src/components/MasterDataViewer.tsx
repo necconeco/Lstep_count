@@ -38,7 +38,7 @@ import {
   List as ListIcon,
 } from '@mui/icons-material';
 import { useMasterStoreV2 } from '../store/masterStoreV2';
-import type { FlattenedRecord, MasterDataSummary } from '../domain/masterTypes';
+import type { FlattenedRecord, MasterDataSummary } from '../domain';
 
 type ViewMode = 'all' | 'implemented';
 

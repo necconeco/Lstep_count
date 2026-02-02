@@ -33,7 +33,7 @@ import {
   PERIOD_PRESET_LABELS,
   DATE_BASE_TYPE_LABELS,
 } from '../store/uiStore';
-import { type ImplementationRule, IMPLEMENTATION_RULE_LABELS } from '../domain/types';
+import { type ImplementationRule, IMPLEMENTATION_RULE_LABELS } from '../domain';
 
 /**
  * 日付をYYYY-MM-DD形式にフォーマット（input[type="date"]用）

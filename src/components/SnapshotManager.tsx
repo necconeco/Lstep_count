@@ -55,8 +55,9 @@ import RestoreIcon from '@mui/icons-material/Restore';
 import WarningIcon from '@mui/icons-material/Warning';
 import { useSnapshotStore } from '../store/snapshotStore';
 import { useHistoryStore } from '../store/historyStore';
-import type { AggregationSnapshot, SnapshotFolder } from '../domain/types';
-import { formatDate } from '../domain/logic';
+// Domain層からは公開API（index.ts）経由でインポート
+import type { AggregationSnapshot, SnapshotFolder } from '../domain';
+import { formatDate } from '../domain';
 
 // ============================================================================
 // 型定義

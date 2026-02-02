@@ -41,8 +41,8 @@ import HistoryIcon from '@mui/icons-material/History';
 import PersonIcon from '@mui/icons-material/Person';
 import { useHistoryStore } from '../store/historyStore';
 import { useStaffStore } from '../store/staffStore';
-import type { ReservationHistory, AuditLog } from '../domain/types';
-import { formatDate, formatDateTime } from '../domain/logic';
+import type { ReservationHistory, AuditLog } from '../domain';
+import { formatDate, formatDateTime } from '../domain';
 
 // ============================================================================
 // 型定義

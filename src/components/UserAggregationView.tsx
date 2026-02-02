@@ -35,8 +35,8 @@ import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import SearchIcon from '@mui/icons-material/Search';
 import { useHistoryStore } from '../store/historyStore';
 import { useUiStore, DATE_BASE_TYPE_LABELS } from '../store/uiStore';
-import type { ReservationHistory, ImplementationRule } from '../domain/types';
-import { shouldCountAsImplemented, applySameDayMerge } from '../domain/logic';
+import type { ReservationHistory, ImplementationRule } from '../domain';
+import { shouldCountAsImplemented, applySameDayMerge } from '../domain';
 import { UserDetailDrawer } from './UserDetailDrawer';
 
 // ============================================================================

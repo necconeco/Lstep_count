@@ -9,7 +9,7 @@
 
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { ImplementationRule } from '../domain/types';
+import type { ImplementationRule } from '../domain';
 
 // ============================================================================
 // 型定義

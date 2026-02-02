@@ -241,6 +241,7 @@ export function csvToHistory(
     isImplementedManual: existingIsImplementedManual, // 既存の手動実施フラグを引き継ぐ
     wasOmakase: csv.wasOmakase, // おまかせ予約フラグ
     groupId: existingGroupId, // 同日統合ID（既存を引き継ぐ）
+    cancelReason: null, // キャンセル理由メモ（手動入力のみ）
     createdAt: now,
     updatedAt: now,
   };
@@ -620,6 +621,7 @@ export function historyToFlatRecord(history: ReservationHistory): FlatRecord {
     wasOmakase: history.wasOmakase,
     course: history.course,
     reservationSlot: history.reservationSlot,
+    cancelReason: history.cancelReason ?? null,
   };
 }
 

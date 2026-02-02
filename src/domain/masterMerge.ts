@@ -3,16 +3,16 @@
  * 「後勝ち」マージルール、visitIndex再計算
  */
 
-import type { VisitType } from '../types';
 import type {
+  VisitType,
   FullHistoryRecord,
   FullHistoryMaster,
   ImplementationMaster,
   ImplementationHistoryRecord,
-  CsvInputRecord,
+  MasterCsvInputRecord,
   FlattenedRecord,
   MasterDataSummary,
-} from './masterTypes';
+} from './types';
 
 // ============================================================================
 // ユーティリティ関数
@@ -78,7 +78,7 @@ export function getRecordKey(record: { reservationId: string; fallbackKey?: stri
 /**
  * CSVレコードをFullHistoryRecordに変換
  */
-export function csvToFullHistoryRecord(csv: CsvInputRecord, visitIndex: number = 0): FullHistoryRecord {
+export function csvToFullHistoryRecord(csv: MasterCsvInputRecord, visitIndex: number = 0): FullHistoryRecord {
   const implemented = isImplemented(csv.status, csv.visitStatus, csv.detailStatus);
 
   return {
@@ -106,7 +106,7 @@ export function csvToFullHistoryRecord(csv: CsvInputRecord, visitIndex: number =
  */
 export function mergeFullHistoryRecords(
   existingRecords: FullHistoryRecord[],
-  newRecords: CsvInputRecord[]
+  newRecords: MasterCsvInputRecord[]
 ): FullHistoryRecord[] {
   // 既存レコードをMapに格納（キー: reservationId or fallbackKey）
   const recordMap = new Map<string, FullHistoryRecord>();
@@ -166,7 +166,7 @@ export function recalculateVisitIndex(records: FullHistoryRecord[]): FullHistory
  */
 export function updateFullHistoryMaster(
   existingMaster: FullHistoryMaster | null,
-  csvRecords: CsvInputRecord[]
+  csvRecords: MasterCsvInputRecord[]
 ): FullHistoryMaster {
   const now = new Date();
   const friendId = csvRecords[0]?.friendId || existingMaster?.friendId || '';
@@ -240,10 +240,10 @@ export function updateImplementationMaster(
  */
 export function batchMergeFullHistoryMasters(
   existingMasters: Map<string, FullHistoryMaster>,
-  csvRecords: CsvInputRecord[]
+  csvRecords: MasterCsvInputRecord[]
 ): Map<string, FullHistoryMaster> {
   // friendIdでグループ化
-  const recordsByFriend = new Map<string, CsvInputRecord[]>();
+  const recordsByFriend = new Map<string, MasterCsvInputRecord[]>();
 
   for (const record of csvRecords) {
     const existing = recordsByFriend.get(record.friendId) || [];

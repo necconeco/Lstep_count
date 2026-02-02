@@ -14,7 +14,6 @@ import type { CsvRecord } from '../types';
 import type {
   ReservationHistory,
   UserVisitCount,
-  CsvInputRecord,
   CampaignMaster,
   AggregationSummary,
   DailyAggregation,
@@ -22,7 +21,7 @@ import type {
   TargetDateType,
   AuditLog,
   ImplementationRule,
-} from '../domain/types';
+} from '../domain';
 import {
   mergeCsvToHistories,
   recalculateAllVisitIndexes,
@@ -34,9 +33,10 @@ import {
   flatRecordsToCSV,
   getVisitLabel,
   formatDate,
-} from '../domain/logic';
-import * as repository from '../infrastructure/repository';
+} from '../domain';
+import * as repository from '../infrastructure';
 import { broadcastSync, onSyncMessage, initTabSync, type SyncMessage } from '../utils/tabSync';
+import { toCsvInputRecord, generateAuditLogId, generateGroupId } from '../adapters';
 
 // ============================================================================
 // ストア型定義
@@ -150,6 +150,11 @@ export interface HistoryStoreState {
    */
   unmergeReservation: (reservationId: string, changedBy?: string) => Promise<void>;
 
+  /**
+   * キャンセル理由メモを更新
+   */
+  updateCancelReason: (reservationId: string, cancelReason: string | null, changedBy?: string) => Promise<void>;
+
   // ============================================================================
   // 監査ログ
   // ============================================================================
@@ -168,75 +173,6 @@ export interface HistoryStoreState {
    * 監査ログを読み込み
    */
   loadAuditLogs: () => Promise<void>;
-}
-
-// ============================================================================
-// CSV変換ヘルパー
-// ============================================================================
-
-/**
- * CsvRecord を CsvInputRecord に変換
- */
-function csvRecordToInput(record: CsvRecord): CsvInputRecord {
-  return {
-    reservationId: record.予約ID || '',
-    friendId: record.友だちID,
-    name: record.名前,
-    sessionDate: parseDate(record.予約日),
-    applicationDate: parseDateTime(record.申込日時),
-    status: record.ステータス,
-    visitStatus: record['来店/来場'],
-    staff: record.担当者 || null,
-    detailStatus: record.詳細ステータス || null,
-    wasOmakase: record.wasOmakase ?? false, // おまかせ予約フラグ
-    course: (record['コース'] as string) || null, // コース名
-    reservationSlot: (record['予約枠'] as string) || null, // 予約枠（G列の元データ）
-  };
-}
-
-/**
- * 日付文字列をDateに変換（YYYY-MM-DD）
- */
-function parseDate(dateStr: string): Date {
-  const parsed = new Date(dateStr);
-  if (isNaN(parsed.getTime())) {
-    console.warn(`[parseDate] Invalid date: ${dateStr}`);
-    return new Date();
-  }
-  return parsed;
-}
-
-/**
- * 日時文字列をDateに変換（YYYY-MM-DD HH:mm など）
- */
-function parseDateTime(dateTimeStr: string): Date {
-  // 様々な形式に対応
-  // "2025-11-20 10:30" or "2025/11/20 10:30" or "2025-11-20T10:30:00"
-  const normalized = dateTimeStr.replace(/\//g, '-');
-  const parsed = new Date(normalized);
-  if (isNaN(parsed.getTime())) {
-    console.warn(`[parseDateTime] Invalid datetime: ${dateTimeStr}`);
-    return new Date();
-  }
-  return parsed;
-}
-
-// ============================================================================
-// ユーティリティ
-// ============================================================================
-
-/**
- * 監査ログIDを生成
- */
-function generateAuditLogId(): string {
-  return `audit_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-}
-
-/**
- * groupIdを生成（friendId_sessionDate形式）
- */
-function generateGroupId(friendId: string, sessionDate: Date): string {
-  return `${friendId}_${formatDate(sessionDate)}`;
 }
 
 // ============================================================================
@@ -320,7 +256,7 @@ export const useHistoryStore = create<HistoryStoreState>((set, get) => ({
 
     try {
       // CsvRecord → CsvInputRecord に変換
-      const inputRecords = csvRecords.map(csvRecordToInput);
+      const inputRecords = csvRecords.map(toCsvInputRecord);
 
       // マージ処理
       const merged = mergeCsvToHistories(histories, userCounts, inputRecords);
@@ -1050,6 +986,57 @@ export const useHistoryStore = create<HistoryStoreState>((set, get) => ({
     } catch (error) {
       set({
         error: error instanceof Error ? error.message : '統合の解除に失敗しました',
+      });
+    }
+  },
+
+  /**
+   * キャンセル理由メモを更新
+   */
+  updateCancelReason: async (reservationId, cancelReason, changedBy = 'user') => {
+    const { histories, auditLogs } = get();
+    const history = histories.get(reservationId);
+    if (!history) {
+      set({ error: '予約が見つかりません' });
+      return;
+    }
+
+    const now = new Date();
+    const oldValue = history.cancelReason;
+
+    // 値が変わっていない場合はスキップ
+    if (oldValue === cancelReason) return;
+
+    // 監査ログを作成
+    const auditLog: AuditLog = {
+      id: generateAuditLogId(),
+      reservationId,
+      field: 'cancelReason',
+      oldValue,
+      newValue: cancelReason,
+      changedAt: now,
+      changedBy,
+    };
+
+    // 履歴を更新
+    const updatedHistory: ReservationHistory = {
+      ...history,
+      cancelReason,
+      updatedAt: now,
+    };
+
+    const newHistories = new Map(histories);
+    newHistories.set(reservationId, updatedHistory);
+
+    try {
+      await Promise.all([repository.saveHistoriesBatch(newHistories), repository.saveAuditLog(auditLog)]);
+      set({
+        histories: newHistories,
+        auditLogs: [...auditLogs, auditLog],
+      });
+    } catch (error) {
+      set({
+        error: error instanceof Error ? error.message : 'キャンセル理由の更新に失敗しました',
       });
     }
   },

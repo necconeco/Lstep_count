@@ -11,6 +11,7 @@ import {
   CheckCircle as CheckIcon,
   History as HistoryIcon,
   CalendarMonth as CalendarIcon,
+  Delete as DeleteIcon,
 } from '@mui/icons-material';
 import { useCsvStore } from '../store/csvStore';
 import { useAggregationStore } from '../store/aggregationStore';
@@ -21,7 +22,7 @@ import { autoPopulateUsageCount } from '../utils/dataAggregator';
 
 export const CsvUploader = () => {
   // 今月のCSV用のstate
-  const { setCsvData, setError, setLoading, isLoading, error, fileName, csvData } = useCsvStore();
+  const { setCsvData, setError, setLoading, isLoading, error, fileName, csvData, clearCsvData } = useCsvStore();
   const { processData } = useAggregationStore();
   const { detectReviewRecords } = useReviewStore();
 
@@ -330,18 +331,29 @@ export const CsvUploader = () => {
                   <Chip label={`ファイル: ${fileName}`} color="primary" />
                   <Chip label={`${csvData.length}件`} color="primary" variant="outlined" />
                 </Box>
-                <Button variant="outlined" component="label" size="small">
-                  再アップロード
-                  <input
-                    type="file"
-                    accept=".csv"
-                    hidden
-                    onChange={e => {
-                      const file = e.target.files?.[0];
-                      if (file) handleMonthlyFile(file);
-                    }}
-                  />
-                </Button>
+                <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1 }}>
+                  <Button variant="outlined" component="label" size="small">
+                    再アップロード
+                    <input
+                      type="file"
+                      accept=".csv"
+                      hidden
+                      onChange={e => {
+                        const file = e.target.files?.[0];
+                        if (file) handleMonthlyFile(file);
+                      }}
+                    />
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    color="error"
+                    size="small"
+                    startIcon={<DeleteIcon />}
+                    onClick={clearCsvData}
+                  >
+                    リセット
+                  </Button>
+                </Box>
               </Box>
             ) : (
               <Button

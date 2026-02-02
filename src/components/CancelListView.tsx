@@ -38,9 +38,8 @@ import {
 import { useHistoryStore } from '../store/historyStore';
 import { useUiStore, DATE_BASE_TYPE_LABELS, PERIOD_PRESET_LABELS } from '../store/uiStore';
 import { ReservationDetailDrawer } from './ReservationDetailDrawer';
-import { getCancelTimingFromStrings, historyToFlatRecord, parseLocalDate } from '../domain/logic';
-import type { FlatRecord, CancelTiming } from '../domain/types';
-import { CANCEL_TIMING_LABELS } from '../domain/types';
+import { getCancelTimingFromStrings, historyToFlatRecord, parseLocalDate, CANCEL_TIMING_LABELS } from '../domain';
+import type { FlatRecord, CancelTiming } from '../domain';
 
 type CancelFilter = 'all' | 'sameDayCancel' | 'previousDayCancel' | 'normalCancel';
 

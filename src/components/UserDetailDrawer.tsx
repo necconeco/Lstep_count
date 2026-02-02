@@ -30,7 +30,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import PersonIcon from '@mui/icons-material/Person';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import CategoryIcon from '@mui/icons-material/Category';
-import type { ReservationHistory } from '../domain/types';
+import type { ReservationHistory } from '../domain';
 
 interface UserAggregationResult {
   friendId: string;

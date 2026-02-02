@@ -19,7 +19,7 @@ import type {
   StaffMaster,
   AggregationSnapshot,
   SnapshotFolder,
-} from '../domain/types';
+} from '../domain';
 
 // ============================================================================
 // 定数

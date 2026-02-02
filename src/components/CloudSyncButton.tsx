@@ -31,7 +31,7 @@ import {
   type SyncStatus,
 } from '../lib/supabaseSync';
 import { useHistoryStore } from '../store/historyStore';
-import { getAllImplementationMasters } from '../infrastructure/masterRepository';
+import { getAllImplementationMasters } from '../infrastructure';
 
 export function CloudSyncButton() {
   const [isConnected, setIsConnected] = useState<boolean | null>(null);

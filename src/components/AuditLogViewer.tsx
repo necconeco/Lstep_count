@@ -34,7 +34,8 @@ import {
 import HistoryIcon from '@mui/icons-material/History';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import { useHistoryStore } from '../store/historyStore';
-import { formatDateTime } from '../domain/logic';
+// Domain層からは公開API（index.ts）経由でインポート
+import { formatDateTime } from '../domain';
 
 // ============================================================================
 // 型定義

@@ -4,7 +4,7 @@
  */
 
 import { supabase, type UserVisitHistory } from './supabase';
-import type { ImplementationMaster } from '../domain/masterTypes';
+import type { ImplementationMaster } from '../domain';
 
 // ============================================================================
 // 同期状態の管理

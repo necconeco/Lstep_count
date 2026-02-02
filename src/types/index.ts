@@ -25,6 +25,10 @@ export interface CsvRecord {
   詳細ステータス?: '' | '前日キャンセル' | '当日キャンセル';
   // おまかせ予約フラグ（CSVで担当者が「おまかせ」だった場合true）
   wasOmakase?: boolean;
+  // キャンセル理由メモ（手動入力、キャンセル者の理由を記録）
+  キャンセル理由?: string;
+  // 手動で実施に変更した場合のフラグ（相談員の入力漏れを補完）
+  手動実施変更?: boolean;
   [key: string]: string | boolean | undefined; // その他のフィールド
 }
 

@@ -8,7 +8,7 @@
  */
 import Papa from 'papaparse';
 import type { CsvRecord, ParseResult } from '../types';
-import { classifyReservationSlot } from '../domain/staffMasterData';
+import { classifyReservationSlot } from '../domain';
 import { is2024Format, parse2024CSV } from './csv2024Parser';
 
 /**

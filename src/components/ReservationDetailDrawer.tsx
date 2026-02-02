@@ -26,6 +26,7 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  TextField,
 } from '@mui/material';
 import {
   Close as CloseIcon,
@@ -38,11 +39,12 @@ import {
   SwapHoriz as SwapHorizIcon,
   PersonAdd as PersonAddIcon,
   History as HistoryIcon,
+  Edit as EditIcon,
+  Comment as CommentIcon,
 } from '@mui/icons-material';
 import { useHistoryStore } from '../store/historyStore';
-import type { FlatRecord } from '../domain/types';
-import { historyToFlatRecord } from '../domain/logic';
-import { OFFICIAL_STAFF_MEMBERS } from '../domain/staffMasterData';
+import type { FlatRecord } from '../domain';
+import { historyToFlatRecord, OFFICIAL_STAFF_MEMBERS } from '../domain';
 
 interface ReservationDetailDrawerProps {
   open: boolean;
@@ -60,6 +62,7 @@ const FIELD_LABELS: Record<string, string> = {
   isImplemented: '実施状態',
   isImplementedManual: '実施手動設定',
   groupId: '統合ID',
+  cancelReason: 'キャンセル理由',
 };
 
 /**
@@ -80,10 +83,19 @@ function formatValue(field: string, value: unknown): string {
 }
 
 export const ReservationDetailDrawer = ({ open, onClose, record: initialRecord }: ReservationDetailDrawerProps) => {
-  const { histories, setExcluded, updateDetailStatus, assignStaff, setIsImplementedManual, getAuditLogsByReservation } =
-    useHistoryStore();
+  const {
+    histories,
+    setExcluded,
+    updateDetailStatus,
+    assignStaff,
+    setIsImplementedManual,
+    getAuditLogsByReservation,
+    updateCancelReason,
+  } = useHistoryStore();
   const [isUpdating, setIsUpdating] = useState(false);
   const [selectedStaff, setSelectedStaff] = useState<string>('');
+  const [cancelReasonInput, setCancelReasonInput] = useState<string>('');
+  const [isEditingCancelReason, setIsEditingCancelReason] = useState(false);
 
   // ストアから最新のレコードを取得（即時反映のため）
   const record = useMemo<FlatRecord | null>(() => {
@@ -166,6 +178,37 @@ export const ReservationDetailDrawer = ({ open, onClose, record: initialRecord }
     },
     [record, setIsImplementedManual]
   );
+
+  /**
+   * キャンセル理由の編集開始
+   */
+  const handleStartEditCancelReason = useCallback(() => {
+    if (!record) return;
+    setCancelReasonInput(record.cancelReason || '');
+    setIsEditingCancelReason(true);
+  }, [record]);
+
+  /**
+   * キャンセル理由の保存
+   */
+  const handleSaveCancelReason = useCallback(async () => {
+    if (!record) return;
+    setIsUpdating(true);
+    try {
+      await updateCancelReason(record.reservationId, cancelReasonInput || null);
+      setIsEditingCancelReason(false);
+    } finally {
+      setIsUpdating(false);
+    }
+  }, [record, cancelReasonInput, updateCancelReason]);
+
+  /**
+   * キャンセル理由の編集キャンセル
+   */
+  const handleCancelEditCancelReason = useCallback(() => {
+    setIsEditingCancelReason(false);
+    setCancelReasonInput('');
+  }, []);
 
   // ストアからisImplementedManualを取得（即時反映のため）
   const isImplementedManual = useMemo(() => {
@@ -456,6 +499,72 @@ export const ReservationDetailDrawer = ({ open, onClose, record: initialRecord }
               )}
             </List>
           </Paper>
+
+          {/* キャンセル理由メモセクション（キャンセル済みの場合のみ） */}
+          {record.status === 'キャンセル済み' && (
+            <Paper variant="outlined" sx={{ mb: 2 }}>
+              <Box sx={{ p: 2, bgcolor: 'warning.50' }}>
+                <Typography variant="subtitle2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <CommentIcon fontSize="small" />
+                  キャンセル理由メモ
+                </Typography>
+              </Box>
+              <Divider />
+              <Box sx={{ p: 2 }}>
+                {isEditingCancelReason ? (
+                  <Box>
+                    <TextField
+                      fullWidth
+                      multiline
+                      rows={3}
+                      size="small"
+                      placeholder="キャンセル理由を入力..."
+                      value={cancelReasonInput}
+                      onChange={e => setCancelReasonInput(e.target.value)}
+                      autoFocus
+                      sx={{ mb: 1 }}
+                    />
+                    <Box sx={{ display: 'flex', gap: 1 }}>
+                      <Button
+                        variant="contained"
+                        size="small"
+                        onClick={handleSaveCancelReason}
+                        disabled={isUpdating}
+                        startIcon={isUpdating ? <CircularProgress size={16} /> : null}
+                      >
+                        保存
+                      </Button>
+                      <Button variant="outlined" size="small" onClick={handleCancelEditCancelReason}>
+                        取消
+                      </Button>
+                    </Box>
+                  </Box>
+                ) : (
+                  <Box>
+                    {record.cancelReason ? (
+                      <Box sx={{ mb: 1 }}>
+                        <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
+                          {record.cancelReason}
+                        </Typography>
+                      </Box>
+                    ) : (
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                        キャンセル理由が未入力です
+                      </Typography>
+                    )}
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      startIcon={<EditIcon />}
+                      onClick={handleStartEditCancelReason}
+                    >
+                      {record.cancelReason ? '編集' : '理由を入力'}
+                    </Button>
+                  </Box>
+                )}
+              </Box>
+            </Paper>
+          )}
 
           {/* 来店回数情報セクション */}
           {record.isImplemented && (

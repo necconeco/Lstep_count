@@ -41,7 +41,8 @@ import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import PersonIcon from '@mui/icons-material/Person';
 import { useStaffStore } from '../store/staffStore';
-import type { StaffMaster } from '../domain/types';
+// Domain層からは公開API（index.ts）経由でインポート
+import type { StaffMaster } from '../domain';
 
 // ============================================================================
 // 型定義

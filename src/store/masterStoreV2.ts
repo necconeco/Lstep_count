@@ -8,10 +8,9 @@ import type { CsvRecord } from '../types';
 import type {
   FullHistoryMaster,
   ImplementationMaster,
-  CsvInputRecord,
   FlattenedRecord,
   MasterDataSummary,
-} from '../domain/masterTypes';
+} from '../domain';
 import {
   batchMergeFullHistoryMasters,
   deriveImplementationMasters,
@@ -19,9 +18,10 @@ import {
   getMasterDataSummary,
   flattenedRecordsToCSV,
   getVisitLabel,
-} from '../domain/masterMerge';
-import * as masterRepository from '../infrastructure/masterRepository';
+} from '../domain';
+import * as masterRepository from '../infrastructure';
 import { uploadToCloud, downloadFromCloud } from '../lib/supabaseSync';
+import { toMasterCsvInputRecord } from '../adapters';
 
 // ============================================================================
 // ストア型定義
@@ -47,41 +47,6 @@ export interface MasterStoreV2State {
   getImplementationCount: (friendId: string) => number;
   getVisitType: (friendId: string) => '初回' | '2回目' | '3回目以降';
   exportToCSV: () => string;
-}
-
-// ============================================================================
-// CSVレコード変換
-// ============================================================================
-
-/**
- * CsvRecord を CsvInputRecord に変換
- */
-function csvRecordToInput(record: CsvRecord): CsvInputRecord {
-  return {
-    reservationId: record.予約ID || '',
-    friendId: record.友だちID,
-    date: parseDate(record.予約日),
-    status: record.ステータス,
-    visitStatus: record['来店/来場'],
-    name: record.名前,
-    staff: record.担当者 || null,
-    detailStatus: record.詳細ステータス || null,
-    applicationDate: record.申込日時,
-  };
-}
-
-/**
- * 日付文字列をDateに変換
- */
-function parseDate(dateStr: string): Date {
-  // YYYY-MM-DD形式を想定
-  const parsed = new Date(dateStr);
-  if (isNaN(parsed.getTime())) {
-    // パース失敗時は現在日時
-    console.warn(`[parseDate] Invalid date string: ${dateStr}`);
-    return new Date();
-  }
-  return parsed;
 }
 
 // ============================================================================
@@ -182,8 +147,8 @@ export const useMasterStoreV2 = create<MasterStoreV2State>((set, get) => ({
     set({ isLoading: true, error: null });
 
     try {
-      // 1. CsvRecord → CsvInputRecord に変換
-      const inputRecords = csvRecords.map(csvRecordToInput);
+      // 1. CsvRecord → MasterCsvInputRecord に変換（Adapter経由）
+      const inputRecords = csvRecords.map(toMasterCsvInputRecord);
 
       // 2. Domain層: フル履歴マスターにマージ
       const updatedFullHistory = batchMergeFullHistoryMasters(fullHistoryMasters, inputRecords);
