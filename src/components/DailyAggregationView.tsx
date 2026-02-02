@@ -17,6 +17,7 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  TableFooter,
   Alert,
   Button,
 } from '@mui/material';
@@ -348,6 +349,17 @@ export const DailyAggregationView = () => {
                   </TableRow>
                 ))}
               </TableBody>
+              <TableFooter>
+                <TableRow sx={{ bgcolor: 'grey.200' }}>
+                  <TableCell sx={{ fontWeight: 'bold' }}>
+                    <Typography variant="body2" fontWeight="bold">合計</Typography>
+                  </TableCell>
+                  <TableCell align="right" sx={{ fontWeight: 'bold' }}>{summary.firstReservation}</TableCell>
+                  <TableCell align="right" sx={{ fontWeight: 'bold' }}>{summary.firstImplementation}</TableCell>
+                  <TableCell align="right" sx={{ fontWeight: 'bold' }}>{summary.repeatReservation}</TableCell>
+                  <TableCell align="right" sx={{ fontWeight: 'bold' }}>{summary.repeatImplementation}</TableCell>
+                </TableRow>
+              </TableFooter>
             </Table>
           </TableContainer>
         </Paper>
