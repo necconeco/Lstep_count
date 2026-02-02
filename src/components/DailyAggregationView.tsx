@@ -194,9 +194,9 @@ export const DailyAggregationView = () => {
       const firstSessionRecords = sessionRecords.filter(r => r.visitLabel === '初回');
       const repeatSessionRecords = sessionRecords.filter(r => r.visitLabel !== '初回');
 
-      // 予約 = 申込日ベースで、全ての申込をカウント（キャンセル含む）
-      const firstReservation = firstApplicationRecords.length;
-      const repeatReservation = repeatApplicationRecords.length;
+      // 予約 = 申込日ベースで、同一人物・同日は1件としてカウント（ユニークなfriendId数）
+      const firstReservation = new Set(firstApplicationRecords.map(r => r.friendId)).size;
+      const repeatReservation = new Set(repeatApplicationRecords.map(r => r.friendId)).size;
 
       // 実施 = 実施日ベースで、shouldCountAsImplemented
       const firstImplementation = firstSessionRecords.filter(r => shouldCountAsImplemented(r, implementationRule)).length;
