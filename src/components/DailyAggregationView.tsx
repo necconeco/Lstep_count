@@ -192,18 +192,20 @@ export const DailyAggregationView = () => {
       const firstApplicationRecords = applicationRecords.filter(r => r.selfReportedVisitType === '初めて');
       const repeatApplicationRecords = applicationRecords.filter(r => r.selfReportedVisitType !== '初めて');
 
-      // 実施は実施日ベース（実施済みレコードのvisitLabelを使用）
+      // 実施も selfReportedVisitType を使用（CSVの「キャリア相談のご利用回数」列）
       const sessionRecords = sessionDayMap.get(dateSort) || [];
-      const firstSessionRecords = sessionRecords.filter(r => r.visitLabel === '初回');
-      const repeatSessionRecords = sessionRecords.filter(r => r.visitLabel !== '初回' && r.visitLabel !== null);
+      // 実施済みレコードのみを対象
+      const implementedSessionRecords = sessionRecords.filter(r => shouldCountAsImplemented(r, implementationRule));
+      const firstSessionRecords = implementedSessionRecords.filter(r => r.selfReportedVisitType === '初めて');
+      const repeatSessionRecords = implementedSessionRecords.filter(r => r.selfReportedVisitType !== '初めて');
 
       // 予約 = 申込日ベースで、同一人物・同日は1件としてカウント（ユニークなfriendId数）
       const firstReservation = new Set(firstApplicationRecords.map(r => r.friendId)).size;
       const repeatReservation = new Set(repeatApplicationRecords.map(r => r.friendId)).size;
 
-      // 実施 = 実施日ベースで、shouldCountAsImplemented
-      const firstImplementation = firstSessionRecords.filter(r => shouldCountAsImplemented(r, implementationRule)).length;
-      const repeatImplementation = repeatSessionRecords.filter(r => shouldCountAsImplemented(r, implementationRule)).length;
+      // 実施 = 実施日ベースで、selfReportedVisitTypeで初回/2回目以降を判定
+      const firstImplementation = firstSessionRecords.length;
+      const repeatImplementation = repeatSessionRecords.length;
 
       // MM/dd形式に変換
       const parts = dateSort.split('-');
